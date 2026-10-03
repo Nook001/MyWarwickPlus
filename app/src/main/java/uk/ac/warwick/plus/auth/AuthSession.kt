@@ -1,0 +1,38 @@
+package uk.ac.warwick.plus.auth
+
+import android.webkit.CookieManager
+import okhttp3.Cookie
+import okhttp3.CookieJar
+import okhttp3.HttpUrl
+
+const val MY_WARWICK = "https://my.warwick.ac.uk"
+
+/** WebView is the cookie authority. Never copy a Warwick-wide cookie to another host. */
+class AuthSession(private val manager: CookieManager = CookieManager.getInstance()) : CookieJar {
+    override fun loadForRequest(url: HttpUrl): List<Cookie> {
+        if (!isApiOrigin(url)) return emptyList()
+        return manager.getCookie(url.toString()).orEmpty().split(';').mapNotNull { part ->
+            val pair = part.trim().split('=', limit = 2)
+            if (pair.size != 2) return@mapNotNull null
+            // CookieManager already selected domain/path/expiry. Restrict the copied cookie
+            // to this exact host; HttpOnly does not prohibit access by the Android host app.
+            runCatching {
+                Cookie.Builder().name(pair[0]).value(pair[1])
+                    .hostOnlyDomain(url.host).path("/").secure().build()
+            }.getOrNull()
+        }
+    }
+
+    override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
+        if (!isApiOrigin(url)) return
+        cookies.forEach { manager.setCookie(url.toString(), it.toString()) }
+        manager.flush()
+    }
+
+    companion object {
+        fun isApiOrigin(url: HttpUrl) = url.scheme == "https" && url.host == "my.warwick.ac.uk" && url.port == 443
+        fun isLoginUrl(url: android.net.Uri): Boolean = url.scheme == "https" && url.port in listOf(-1, 443) &&
+            (url.host == "warwick.ac.uk" || url.host?.endsWith(".warwick.ac.uk") == true ||
+                url.host in setOf("login.microsoftonline.com", "login.live.com"))
+    }
+}
