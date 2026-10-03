@@ -19,6 +19,7 @@ class MyWarwickApi(session: AuthSession) : StudentApi {
         .callTimeout(35, TimeUnit.SECONDS).build()
 
     private data class JsonResponse(val code: Int, val body: String)
+    fun cancelRequests() = client.dispatcher.cancelAll()
     private fun getResponse(path: String, user: SignedInUser? = null): JsonResponse {
         val request = Request.Builder().url(MY_WARWICK + path)
             .header("Accept", "application/json")
@@ -60,4 +61,5 @@ class MyWarwickApi(session: AuthSession) : StudentApi {
 
     override fun timetable(user: SignedInUser) = TimetableParser.parse(get("/api/tiles/content/timetable", user))
     override fun coursework(user: SignedInUser) = CourseworkParser.parse(get("/api/tiles/content/coursework", user))
+    override fun feed(kind: FeedKind, user: SignedInUser, before: String?) = FeedParser.parse(kind, get(kind.path(before), user))
 }

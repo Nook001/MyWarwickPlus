@@ -8,6 +8,10 @@
 
 - 首页：下一节课、开始倒计时、今日安排、上次同步时间；优先展示完整模块名称，保留原始课表条目代码。
 - Coursework：首页最多 3 个未来截止日期；独立页面按时间展示返回条目与过去截止日期，提供详情及原站链接。时间按 Warwick 时区显示，不推断提交状态。
+- 0.4.0 的 More：账户与会话状态、五类数据的同步时间、仅退出本应用及重新登录、常用学校服务入口。
+- Messages：只读列表、搜索、完整详情、手动加载更早消息；HTML 转为纯文本，查看不标记网站已读。
+- Modules：模块名称、代码、学年、公告/评估数量与 Moodle 入口。Library：学校返回的账户摘要、空状态及账户入口；非空借阅结构仍待验证。
+- 首页、课表、Coursework 和 More 的滚动页面支持下拉刷新；Coursework 支持搜索与 All / Upcoming / Next 7 days / Past 筛选，重叠课程会提示冲突，详情保留长标题与大字体阅读。
 - 课表和 Coursework 分别原子缓存；单个接口失败保留旧数据，另一接口仍可更新。当前“提醒”是首页展示，不包括系统通知。
 - 课表：按天选择日期、前后周切换、返回今天；可切换周列表，切换首页时保留日期选择。
 - 点击课程打开详情，显示模块、完整时间、地点、教学周；地点链接通过系统浏览器打开。
@@ -50,9 +54,9 @@ adb -s <模拟器序列号> shell am instrument -w -r uk.ac.warwick.plus.test/an
 
 ## 接口探查
 
-调试包首页底部 `Developer tools` 打开 API explorer，手动选择 Coursework / Library / Timetable 并点击 `Run request`。仅允许这三个固定 GET 路径，显示 HTTP 状态、总耗时（含会话检查）、envelope 成功与否、条目数、content 和首条条目的字段名。失败时显示连接/认证/服务错误，不显示原始异常信息。发布包不显示入口，API 方法也禁止在发布包执行。
+调试包首页底部或 More 的 `Developer tools` 打开 API explorer，手动选择 Coursework / Library / Timetable / Messages / Modules 并点击 `Run request`。仅允许这五个固定 GET 路径，显示 HTTP 状态、总耗时（含会话检查）、envelope 成功与否、条目数、content 和首条条目的字段名。失败时显示连接/认证/服务错误，不显示原始异常信息。发布包不显示入口，API 方法也禁止在发布包执行。
 
-原生 Coursework 已返回 3 条，Library 返回 0 条；Library 非空条目结构仍待验证。探查工具不会保存原始响应、个人字段值或认证信息，也不会自动批量探测。Coursework 已接入正式列表，业务缓存仅保存显示需要的字段。
+此前真机原生 Coursework 已返回 3 条，Library 返回 0 条。0.4.0 浏览器验证 Messages 69 条、Modules 1 条和 Library 0 条；本轮手机不可用，新增原生页面通过模拟器与虚构数据验证，真实会话接入需手动复核。Library 非空条目结构仍待验证。探查工具不会保存原始响应、个人字段值或认证信息，也不会自动批量探测；业务缓存仅保存显示需要的字段。
 
 ## 结构
 
@@ -65,7 +69,7 @@ app/src/main/java/uk/ac/warwick/plus/
 
 Room 声明使用 Java 注解处理，业务与 UI 使用 Kotlin；因此不需要额外 KSP 或 kapt 插件。当前仅有一个 app module，后续按照实际功能边界拆分。
 
-Room schema 2 新增 `moduleName`，schema 3 新增 Coursework 表；通过显式 1→2→3 迁移保留旧课表与同步状态。两类数据使用独立同步时间，旧条目在首次成功刷新前使用原始标题，不采用删除数据库的迁移策略。
+Room schema 2 新增 `moduleName`，schema 3 新增 Coursework，schema 4 新增 Messages / Modules / Library 缓存；通过显式 1→2→3→4 迁移保留旧课表与同步状态。五类数据各自原子替换、独立记录同步时间；单接口失败保留旧缓存，切换账户清除全部数据。
 
 ## 认证与数据边界
 
@@ -74,12 +78,13 @@ Room schema 2 新增 `moduleName`，schema 3 新增 Coursework 表；通过显�
 - GET 的 CSRF 信息来自 `/user/info`，仅接受预期的 `Csrf-Token` header 名。
 - 登录 WebView 无 JavaScript bridge，关闭文件访问、明文/混合内容，证书错误直接取消，不自动授予网页权限。
 - 外部地点链接通过 Custom Tabs 打开，不使用原生认证 cookie jar。
-- Room 只保存课表、截止日期展示需要的字段和账户归属；不保存教师邮箱等额外字段。系统备份已关闭。
-- 切换账户后先清除旧账户数据库，再读取新账户课表。
+- Room 只保存五类页面展示需要的字段和账户归属；不保存教师邮箱等额外字段。系统备份已关闭。
+- 切换账户后先清除旧账户数据库，再读取新账户数据。
+- More 的退出仅清除本应用 WebView 的 cookie、WebStorage、缓存和五类 Room 数据；取消/等待现有同步，不调用学校退出或更改账户接口，系统浏览器会话保留。退出失败时要求重试后再登录。
 
 ## 当前限制
 
-Web 接口是内部协议，没有稳定性承诺。新安装应用的 WebView 会话与桌面浏览器、其他应用和 Custom Tabs 的 cookie 分离，需要在手机上独立登录。后台同步、系统提醒、完整退出管理和多账户尚未实现。Coursework 是近期聚合列表，完整历史、源系统覆盖与提交状态尚未验证。
+Web 接口是内部协议，没有稳定性承诺。新安装应用的 WebView 会话与桌面浏览器、其他应用和 Custom Tabs 的 cookie 分离，需要在手机上独立登录。后台同步、系统提醒和多账户尚未实现。Coursework 是近期聚合列表，完整历史、源系统覆盖与提交状态尚未验证；Library 非空借阅/欠费字段、Modules 公告正文未验证。消息每次刷新取最近 100 条，旧记录手动分页，最多保存 500 条；刷新成功会重置旧分页。通知没有可靠紧急程度字段，因此首页仅提供紧凑入口。
 
 当前账号 cookie 在应用私有 WebView 数据中保存。不要将调试包作为已完成的公共发行版本；卸载或通过系统清除此应用数据可移除本地会话和缓存，不需要修改学校账户。
 

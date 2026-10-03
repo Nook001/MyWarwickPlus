@@ -6,7 +6,7 @@ import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 import androidx.annotation.NonNull;
 
-@Database(entities = {EventEntity.class, SyncEntity.class, CourseworkEntity.class}, version = 3, exportSchema = true)
+@Database(entities = {EventEntity.class, SyncEntity.class, CourseworkEntity.class, FeedEntry.class, FeedMeta.class}, version = 4, exportSchema = true)
 public abstract class TimetableDatabase extends RoomDatabase {
     public static final Migration MIGRATION_1_2 = new Migration(1, 2) {
         @Override public void migrate(@NonNull SupportSQLiteDatabase database) {
@@ -19,4 +19,10 @@ public abstract class TimetableDatabase extends RoomDatabase {
         }
     };
     public abstract TimetableDao timetable();
+    public static final Migration MIGRATION_3_4 = new Migration(3, 4) {
+        @Override public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("CREATE TABLE IF NOT EXISTS feed_entries (feed INTEGER NOT NULL, id TEXT NOT NULL, title TEXT NOT NULL, text TEXT NOT NULL, url TEXT NOT NULL, provider TEXT NOT NULL, type TEXT NOT NULL, dateMillis INTEGER NOT NULL, html INTEGER NOT NULL, moduleCode TEXT NOT NULL, academicYear TEXT NOT NULL, announcementCount INTEGER NOT NULL, evaluationCount INTEGER NOT NULL, position INTEGER NOT NULL, PRIMARY KEY(feed,id))");
+            database.execSQL("CREATE TABLE IF NOT EXISTS feed_meta (feed INTEGER NOT NULL PRIMARY KEY, description TEXT NOT NULL, url TEXT NOT NULL, hasMore INTEGER NOT NULL, webReadMillis INTEGER NOT NULL)");
+        }
+    };
 }

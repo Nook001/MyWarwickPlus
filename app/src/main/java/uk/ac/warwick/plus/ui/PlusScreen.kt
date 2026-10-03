@@ -2,12 +2,14 @@ package uk.ac.warwick.plus.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -20,8 +22,10 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import uk.ac.warwick.plus.data.*
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -48,13 +52,37 @@ private val CourseworkIcon = ImageVector.Builder("Coursework", 24.dp, 24.dp, 24f
     }
 }.build()
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit,
-    probe: ((ProbeEndpoint) -> ProbeResult)? = null, onCourseworkLink: ((String) -> Unit)? = null) {
+    probe: ((ProbeEndpoint) -> ProbeResult)? = null, onCourseworkLink: ((String) -> Unit)? = null,
+    onSignOut: () -> Unit = {}, onFeedRefresh: ((FeedKind) -> Unit)? = null,
+    onMoreMessages: () -> Unit = {}, onExternalLink: ((String) -> Unit)? = null) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
     var courseworkId by rememberSaveable { mutableStateOf<String?>(null) }
     var showProbe by rememberSaveable { mutableStateOf(false) }
+    var feedRoute by rememberSaveable { mutableStateOf<Int?>(null) }
+    var feedEntryId by rememberSaveable { mutableStateOf<String?>(null) }
+    val route = FeedKind.entries.firstOrNull { it.key == feedRoute }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = rememberCoroutineScope()
+    val snackbar = remember { SnackbarHostState() }
+    val openLink: (String) -> Unit = { raw ->
+        val url = safeExternalUrl(raw)
+        val failed = url == null || runCatching {
+            if (onExternalLink != null) onExternalLink(url)
+            else androidx.browser.customtabs.CustomTabsIntent.Builder().build().launchUrl(context, android.net.Uri.parse(url))
+        }.isFailure
+        if (failed) scope.launch { snackbar.showSnackbar("Couldn't open this link. Try again.") }
+    }
+    var previousAccount by rememberSaveable { mutableStateOf(state.accountCode) }
+    LaunchedEffect(state.accountCode) {
+        if (previousAccount.isNotBlank() && previousAccount != state.accountCode) {
+            selectedId = null; courseworkId = null; feedEntryId = null; feedRoute = null; showProbe = false
+        }
+        previousAccount = state.accountCode
+    }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) { while (true) { now = System.currentTimeMillis(); delay(30_000) } }
     val today = atWarwick(now).toLocalDate()
@@ -66,16 +94,23 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
     LaunchedEffect(state.coursework.entries, courseworkId) {
         if (courseworkId != null && state.coursework.entries.none { it.id == courseworkId }) courseworkId = null
     }
-    BackHandler(tab != 0 && selectedId == null && courseworkId == null && !showProbe) { tab = 0 }
+    LaunchedEffect(state.feeds, feedEntryId) {
+        if (feedEntryId != null && (route == null || state.feed(route).entries.none { it.id == feedEntryId })) feedEntryId = null
+    }
+    BackHandler(tab != 0 && selectedId == null && courseworkId == null && feedEntryId == null && !showProbe) {
+        if (tab == 3 && route != null) feedRoute = null else tab = 0
+    }
 
-    Scaffold(bottomBar = {
+    Scaffold(snackbarHost = { SnackbarHost(snackbar) }, bottomBar = {
         NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
             NavigationBarItem(selected = tab == 0, onClick = { tab = 0 },
                 icon = { Icon(HomeIcon, null) }, label = { Text("Home") })
             NavigationBarItem(selected = tab == 1, onClick = { tab = 1 },
                 icon = { Icon(ScheduleIcon, null) }, label = { Text("Schedule") })
             NavigationBarItem(selected = tab == 2, onClick = { tab = 2 },
-                icon = { Icon(CourseworkIcon, null) }, label = { Text("Coursework") })
+                icon = { Icon(CourseworkIcon, null) }, label = { Text("Coursework", maxLines = 1, overflow = TextOverflow.Ellipsis) })
+            NavigationBarItem(selected = tab == 3, onClick = { tab = 3; feedRoute = null; feedEntryId = null }, modifier = Modifier.testTag("more-tab"),
+                icon = { Text("•••", style = MaterialTheme.typography.titleLarge) }, label = { Text("More") })
         }
     }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
@@ -84,48 +119,78 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("MY WARWICK +", style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                    Text(if (tab == 1) "Timetable" else if (tab == 2) "Coursework deadlines" else when (atWarwick(now).hour) {
+                    Text(if (tab == 3) route?.label ?: "More" else if (tab == 1) "Timetable" else if (tab == 2) "Coursework deadlines" else when (atWarwick(now).hour) {
                         in 0..11 -> "Good morning"; in 12..17 -> "Good afternoon"; else -> "Good evening"
                     }, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
                 }
-                TextButton(onClick = onRefresh, enabled = !state.busy) { Text("Refresh") }
+                if (tab == 3 && route != null) TextButton(onClick = { feedRoute = null; feedEntryId = null }) { Text("Back") }
+                TextButton(onClick = { if (tab == 3 && route != null && onFeedRefresh != null) onFeedRefresh(route) else onRefresh() },
+                    enabled = !state.busy && !state.signingOut && !state.logoutFailed) { Text("Refresh") }
             }
             if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-            when {
-                state.lastSynced == null && state.coursework.lastSynced == null && state.busy && !state.signedIn -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Loading your saved data…", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                state.lastSynced == null && state.coursework.lastSynced == null && state.needsLogin -> Welcome(onLogin)
-                else -> {
-                    if (state.message != null) Surface(color = MaterialTheme.colorScheme.surfaceContainer,
-                        shape = RoundedCornerShape(16.dp), modifier = Modifier.padding(horizontal = Spacing.page)) {
-                        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-                            Text(state.message, style = MaterialTheme.typography.bodyMedium)
-                            if (state.needsLogin) TextButton(onClick = onLogin) { Text("Sign in") }
-                            else TextButton(onClick = onRefresh, enabled = !state.busy) { Text("Try again") }
+            if (!state.signingOut && state.message != null &&
+                (tab == 3 && (state.needsLogin || state.logoutFailed) || tab != 3 && (state.hasSavedData || !state.needsLogin))) {
+                Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.padding(horizontal = Spacing.page)) {
+                    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+                        Text(state.message, style = MaterialTheme.typography.bodyMedium)
+                        when {
+                            state.logoutFailed -> TextButton(onClick = onSignOut) { Text("Retry sign-out") }
+                            state.needsLogin -> TextButton(onClick = onLogin) { Text("Sign in") }
+                            else -> TextButton(onClick = onRefresh, enabled = !state.busy) { Text("Try again") }
                         }
                     }
+                }
+            }
+            PullToRefreshBox(isRefreshing = state.busy && !state.signingOut,
+                onRefresh = { if (!state.signingOut && !state.logoutFailed) {
+                    if (tab == 3 && route != null && onFeedRefresh != null) onFeedRefresh(route) else onRefresh()
+                } }, modifier = Modifier.fillMaxSize().testTag("refresh-container")) {
+            when {
+                state.signingOut -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Signing out…") }
+                tab == 3 -> {
+                    if (route == null) MoreContent(state, onLogin, onSignOut, { feedRoute = it.key }, openLink,
+                        if (probe != null && !state.logoutFailed) ({ showProbe = true }) else null)
+                    else {
+                        FeedContent(route, state.feed(route), state.busy, state.needsLogin,
+                            { onFeedRefresh?.invoke(route) ?: onRefresh() }, onMoreMessages, { feedEntryId = it.id }, openLink)
+                    }
+                }
+                !state.hasSavedData && state.busy && !state.signedIn -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Loading your saved data…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                !state.hasSavedData && state.logoutFailed -> Column(Modifier.padding(Spacing.page)) {
+                    Text(state.message.orEmpty())
+                    Button(onClick = onSignOut) { Text("Retry sign-out") }
+                }
+                !state.hasSavedData && state.needsLogin -> Welcome(onLogin)
+                else -> {
                     if (tab == 0) Home(state, today, now, { selectedId = it.id }, { courseworkId = it.id }, { tab = 2 },
+                        { tab = 3; feedRoute = FeedKind.MESSAGES.key },
                         if (probe != null) ({ showProbe = true }) else null)
                     else if (tab == 2) CourseworkContent(state.coursework, now, state.busy, onRefresh, { courseworkId = it.id })
                     else Schedule(state, today, now, LocalDate.ofEpochDay(selectedDay), weekView,
                         { selectedDay = it.toEpochDay() }, { weekView = it }, { selectedId = it.id })
                 }
             }
+            }
         }
     }
-    state.events.firstOrNull { it.id == selectedId }?.let { event ->
-        EventDetails(event, onDismiss = { selectedId = null })
+    if (!state.signingOut) state.events.firstOrNull { it.id == selectedId }?.let { event ->
+        EventDetails(event, event.id in conflictingEventIds(state.events), onDismiss = { selectedId = null })
     }
-    state.coursework.entries.firstOrNull { it.id == courseworkId }?.let { entry ->
+    if (!state.signingOut) state.coursework.entries.firstOrNull { it.id == courseworkId }?.let { entry ->
         CourseworkDetails(entry, { courseworkId = null }, onCourseworkLink)
     }
-    if (showProbe && probe != null) ApiProbeSheet(probe, onLogin, { showProbe = false })
+    if (!state.signingOut && route != null) state.feed(route).entries.firstOrNull { it.id == feedEntryId }?.let {
+        FeedDetails(route, it, openLink, { feedEntryId = null })
+    }
+    if (showProbe && probe != null && !state.signingOut) ApiProbeSheet(probe, onLogin, { showProbe = false })
 }
 
 @Composable
 private fun Welcome(onLogin: () -> Unit) {
-    Column(Modifier.fillMaxSize().padding(28.dp), verticalArrangement = Arrangement.Center) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(28.dp), verticalArrangement = Arrangement.Center) {
         Text("A little more clarity.", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(20.dp))
         Text("Your next class. Your week ahead.\nA calmer place to start your day.",
@@ -143,12 +208,13 @@ private fun Welcome(onLogin: () -> Unit) {
 
 @Composable
 private fun Home(state: TimetableState, today: LocalDate, now: Long, onSelect: (EventEntity) -> Unit,
-    onCoursework: (CourseworkEntity) -> Unit, onAllCoursework: () -> Unit, onProbe: (() -> Unit)?) {
+    onCoursework: (CourseworkEntity) -> Unit, onAllCoursework: () -> Unit, onMessages: () -> Unit, onProbe: (() -> Unit)?) {
     val next = state.events.filter { it.endMillis > now }.minByOrNull { it.startMillis }
     val todayEvents = eventsOnDate(state.events, today)
     LazyColumn(Modifier.fillMaxSize().testTag("home-list"), contentPadding = PaddingValues(Spacing.page),
         verticalArrangement = Arrangement.spacedBy(Spacing.section)) {
         item {
+            TextButton(onClick = onMessages) { Text("View messages") }
             Text(dateLabel(today), style = MaterialTheme.typography.titleMedium)
             Text("Times shown in Warwick time", style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -178,7 +244,7 @@ private fun Home(state: TimetableState, today: LocalDate, now: Long, onSelect: (
         }
         item { SectionLabel("TODAY", if (state.lastSynced != null) classCountLabel(todayEvents.size) else null) }
         if (todayEvents.isEmpty() && state.lastSynced != null) item { EmptyCard("No classes today", "Your saved timetable is clear for today.") }
-        items(todayEvents, key = { it.id }) { EventRow(it) { onSelect(it) } }
+        items(todayEvents, key = { it.id }) { EventRow(it, it.id in conflictingEventIds(todayEvents)) { onSelect(it) } }
         item {
             SectionLabel("DEADLINES")
             TextButton(onClick = onAllCoursework) { Text("View all coursework") }
@@ -238,13 +304,13 @@ private fun Schedule(state: TimetableState, today: LocalDate, now: Long, selecte
             val events = eventsOnDate(state.events, selected)
             item { SectionLabel(dateLabel(selected), classCountLabel(events.size)) }
             if (events.isEmpty()) item { EmptyCard("No classes on this day", "Your saved timetable has no events for this date.") }
-            items(events, key = { it.id }) { EventRow(it) { onSelect(it) } }
+            items(events, key = { it.id }) { EventRow(it, it.id in conflictingEventIds(events)) { onSelect(it) } }
         } else {
             val days = (0..6).map { start.plusDays(it.toLong()) to eventsOnDate(state.events, start.plusDays(it.toLong())) }
             if (days.all { it.second.isEmpty() }) item { EmptyCard("No classes this week", "Your saved timetable has no events for these dates.") }
             days.filter { it.second.isNotEmpty() }.forEach { (date, events) ->
                 item(key = date.toString()) { SectionLabel(dateLabel(date), classCountLabel(events.size)) }
-                items(events, key = { "${date}/${it.id}" }) { EventRow(it) { onSelect(it) } }
+                items(events, key = { "${date}/${it.id}" }) { EventRow(it, it.id in conflictingEventIds(events)) { onSelect(it) } }
             }
         }
         item { SyncNote(state, now) }
@@ -253,7 +319,7 @@ private fun Schedule(state: TimetableState, today: LocalDate, now: Long, selecte
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun EventDetails(event: EventEntity, onDismiss: () -> Unit) {
+private fun EventDetails(event: EventEntity, conflict: Boolean, onDismiss: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         LazyColumn(modifier = Modifier.testTag("class-details"), contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)) {
@@ -270,6 +336,7 @@ private fun EventDetails(event: EventEntity, onDismiss: () -> Unit) {
                         "${timeLabel(event.startMillis)} – ${atWarwick(event.endMillis).let { if (it.toLocalDate() != atWarwick(event.startMillis).toLocalDate()) dateLabel(it.toLocalDate()) + " · " else "" }}${timeLabel(event.endMillis)} · Warwick time")
             }
             item { DetailField("Location", event.location.ifBlank { "Location hasn't been provided" }) }
+            if (conflict) item { Text("Another class overlaps this time in your saved timetable.", color = MaterialTheme.colorScheme.error) }
             if (event.academicWeek > 0) item { DetailField("Academic week", event.academicWeek.toString()) }
             item { LocationLink(event) }
             item { TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Close details") } }

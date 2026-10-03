@@ -27,6 +27,24 @@ public abstract class TimetableDao {
     @Insert public abstract void insertEvents(List<EventEntity> events);
     @Insert public abstract void insertState(SyncEntity state);
     @Insert public abstract void insertCoursework(List<CourseworkEntity> entries);
+    @Query("SELECT * FROM sync_state ORDER BY id") public abstract List<SyncEntity> states();
+    @Query("SELECT * FROM feed_entries WHERE feed = :feed ORDER BY position, id") public abstract List<FeedEntry> feedEntries(int feed);
+    @Query("SELECT * FROM feed_meta WHERE feed = :feed") public abstract FeedMeta feedMeta(int feed);
+    @Query("SELECT * FROM sync_state WHERE id = :feed") public abstract SyncEntity feedState(int feed);
+    @Query("DELETE FROM feed_entries WHERE feed = :feed") public abstract void deleteFeedEntries(int feed);
+    @Query("DELETE FROM feed_meta WHERE feed = :feed") public abstract void deleteFeedMeta(int feed);
+    @Query("DELETE FROM sync_state WHERE id = :feed") public abstract void deleteFeedState(int feed);
+    @Query("DELETE FROM feed_entries") public abstract void deleteFeeds();
+    @Query("DELETE FROM feed_meta") public abstract void deleteFeedMetas();
+    @Query("DELETE FROM sync_state WHERE id > 2") public abstract void deleteFeedStates();
+    @Insert public abstract void insertFeedEntries(List<FeedEntry> entries);
+    @Insert public abstract void insertFeedMeta(FeedMeta meta);
+
+    @Transaction public void replaceFeed(List<FeedEntry> entries, FeedMeta meta, SyncEntity state) {
+        if (state.id != meta.feed) throw new IllegalArgumentException("Feed state does not match");
+        deleteFeedEntries(meta.feed); deleteFeedMeta(meta.feed); deleteFeedState(meta.feed);
+        insertFeedEntries(entries); insertFeedMeta(meta); insertState(state);
+    }
 
     @Transaction public void replace(List<EventEntity> events, SyncEntity state) {
         deleteEvents();
@@ -45,5 +63,8 @@ public abstract class TimetableDao {
         deleteState();
         deleteCoursework();
         deleteCourseworkState();
+        deleteFeeds();
+        deleteFeedMetas();
+        deleteFeedStates();
     }
 }

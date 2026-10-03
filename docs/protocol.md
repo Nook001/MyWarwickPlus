@@ -48,11 +48,37 @@ Coursework 日期实际有 `2026-10-15T12:00:00.000+01` 和 `2026-10-30T12:00:00
 
 调试探查页只保存响应的字段名、数量和状态；不保存原始 JSON、cookie、token 或个人字段值。对空列表显示“尚无法确定条目结构”，不会把空响应当作功能验证完成。
 
+## 0.4.0：Messages / Modules / Library
+
+2026-10-04 登录态浏览器以同源 GET 读取，三个接口均为 HTTP 200 / success true；不提交表单、变更账户或调用已读/静音接口。请求认证沿用当前 session cookie；原生实现继续通过 `/user/info` 取得 CSRF header 后调用相同路径。本轮新增原生链路未在真实手机上验证。
+
+| 方法与路径 | 响应字段（只记录结构） | 页面用途 |
+| --- | --- | --- |
+| `GET /api/streams/notifications?limit=100`，更早页追加 `before={id}` | `data.{notifications:[{id,title,date,provider,providerDisplayName,type,typeDisplayName,notification,providerOverrideMuting,tags,icon:{colour,name,variant},text,textAsHtml,url}],read}` | 列表/搜索/详情/原站入口；网站已读时间之后显示未读提示，不写回已读 |
+| `GET /api/tiles/content/modules` | `data.modules.content.{defaultText,items:[{id:number,fullName,moduleCode,academicYear,href,announcements,evaluations}]}`；前端还支持可选 lastUpdated | 模块名称、代码、学年及原 Moodle 页面，公告/评估只显示返回条数 |
+| `GET /api/tiles/content/library` | `data.library.content.{defaultText,href,items}` | 当前空列表说明及 Library 账户入口；非空条目语义未知 |
+
+当前通知 69 条，日期倒序，5 条含 HTML 正文。`read` 可解析为时间而非消息 id。以 limit=2 验证：`before=第二条id` 返回不包含边界的两条更早记录；`since=最新id` 返回 0 条，`since=最旧id` 返回 68 条。因此不能用 since 读取历史。部署前端加载更早消息也使用 before。客户端刷新请求最新 100 条，旧页通过显式点击加载，合并去重、最多 500 条；刷新成功重置旧分页，错误保留旧缓存。同账户缓存的最旧 id 才能作分页游标，账户切换时先清缓存，拒绝旧游标。
+
+通知 `providerOverrideMuting` 表示覆盖静音，不据此推断紧急程度。没有可靠 priority 字段，不制作自动“重要”排序。HTML 只转为纯文本，不渲染可执行网页，不加载嵌入图片。通知链接实际可能指向学校以外的网站，因此允许有效 HTTPS/443、无 userinfo 的外部链接，用户明确点击后交给系统浏览器；不向外部网站传本应用 cookie。
+
+Modules 当前 1 条，id 为数值，announcements/evaluations 均为空，href 指向 Moodle。缓存名称、模块代码、学年、链接和数组条数；未声称公告内容、完整选课或成绩已接入。Library 当前 0 条，学校说明无当前 checkout/hold，href 指向 Library 账户。对未来非空响应只显示实际已知 title/text/href；未知结构给通用原站入口，不猜测 dueDate、fine 或借阅状态。
+
+证据来自当前部署资源 `/assets/js/0b7e644fedf7b0fc1482-bundle.js`、`/assets/js/e322fe41339e34bebbd1-main-import.js` 与登录态只读请求；资源 hash 和协议可能随部署变化。只记录数量、字段名及日期格式，不保存响应正文、个人通知内容、cookie 或 token。
+
+## 登录、缓存与本地退出
+
+保留已跑通的官方 WebView SSO → CookieManager → 限定 MyWarwick origin 的原生请求。Custom Tabs 属于系统浏览器会话，不能直接从它读取 cookie 来替代本应用 WebView 登录；本轮不引入 OAuth application 或移动端专用 token。
+
+More 展示本次会话检查时间与五类缓存同步时间。退出前确认，只退出本应用：取消/等待当前同步，取消 HTTP 请求，清理应用 WebView cookie、WebStorage、WebView cache 和五类 Room 数据。学校 `links.logout` 不调用，系统浏览器账户不受影响；失败需重试，避免重新登录混入未清理的旧数据。Room 1→2→3→4 显式迁移保留现有登录与缓存；注销或换账户才清除业务数据。
+
+接口仍是学校内部聚合协议，无版本或兼容性保证。非公开移动端复用的允许范围尚未取得学校书面确认；准备公共发行前需核对学校服务使用条款与许可。代码中存在某接口、当前账户能读取，不等于学校承诺第三方长期使用；只读、最小存储和避免高频请求有助于减小维护范围，但不能代替许可。
+
 ## 后续候选
 
 - `GET /api/tiles/content/eventsmerge`：合并事件。
-- `GET /api/tiles/content/library`、`modules`、`calendar`、`mail`、`todo`：聚合卡片内容，不能当作完整源系统 API。
-- `GET /api/streams/notifications?limit=100&since={id}`：增量通知；标记已读是独立写操作。
+- `GET /api/tiles/content/calendar`、`mail`、`todo`：聚合卡片内容，不能当作完整源系统 API。
+- `GET /api/streams/notifications?limit=100&since={id}`：增量新消息已验证，当前客户端使用整页刷新；标记已读是独立写操作。
 
 ## 移动端 token：暂不调用
 
@@ -66,3 +92,5 @@ Coursework 日期实际有 `2026-10-15T12:00:00.000+01` 和 `2026-10-30T12:00:00
 - https://my.warwick.ac.uk/
 - https://developer.android.com/reference/android/webkit/CookieManager
 - https://developer.chrome.com/docs/android/custom-tabs
+- https://warwick.ac.uk/services/idg/learning-resources/knowledge/how-to-access-your-email/ （More 的 Email 入口为学校列出的 `https://warwick.ac.uk/mymail`）
+- https://developer.android.com/develop/ui/compose/components/pull-to-refresh （滚动页面使用 Material3 PullToRefreshBox）

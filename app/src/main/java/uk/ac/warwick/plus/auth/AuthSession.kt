@@ -9,6 +9,14 @@ const val MY_WARWICK = "https://my.warwick.ac.uk"
 
 /** WebView is the cookie authority. Never copy a Warwick-wide cookie to another host. */
 class AuthSession(private val manager: CookieManager = CookieManager.getInstance()) : CookieJar {
+    suspend fun clear(context: android.content.Context) = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+        kotlinx.coroutines.suspendCancellableCoroutine<Unit> { continuation ->
+            manager.removeAllCookies { if (continuation.isActive) continuation.resumeWith(Result.success(Unit)) }
+        }
+        manager.flush()
+        android.webkit.WebStorage.getInstance().deleteAllData()
+        android.webkit.WebView(context.applicationContext).apply { clearCache(true); clearHistory(); destroy() }
+    }
     override fun loadForRequest(url: HttpUrl): List<Cookie> {
         if (!isApiOrigin(url)) return emptyList()
         return manager.getCookie(url.toString()).orEmpty().split(';').mapNotNull { part ->

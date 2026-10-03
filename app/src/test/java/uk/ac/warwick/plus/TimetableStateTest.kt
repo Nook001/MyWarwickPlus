@@ -24,6 +24,8 @@ class TimetableStateTest {
         var calls = 0
         override suspend fun cached() = cache
         override suspend fun syncCoursework(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit) = cache
+        override suspend fun syncFeed(kind: FeedKind, before: String?, onAuthenticated: (SignedInUser, CachedTimetable) -> Unit) = cache
+        override suspend fun signOut() { cache = CachedTimetable(emptyList(), null) }
         override suspend fun sync(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): CachedTimetable {
             calls++; return operation(onAuthenticated)
         }

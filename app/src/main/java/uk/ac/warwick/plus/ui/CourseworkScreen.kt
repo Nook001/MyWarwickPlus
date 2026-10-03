@@ -3,11 +3,14 @@ package uk.ac.warwick.plus.ui
 import android.net.Uri
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -46,14 +49,27 @@ fun CourseworkRow(entry: CourseworkEntity, now: Long, onSelect: () -> Unit) {
 @Composable
 fun CourseworkContent(state: CourseworkState, now: Long, busy: Boolean, onRefresh: () -> Unit,
     onSelect: (CourseworkEntity) -> Unit) {
-    val upcoming = state.entries.filter { it.dueMillis >= now }.sortedBy { it.dueMillis }
-    val past = state.entries.filter { it.dueMillis < now }.sortedByDescending { it.dueMillis }
+    var query by rememberSaveable { mutableStateOf("") }
+    var filter by rememberSaveable { mutableStateOf("All") }
+    val focus = androidx.compose.ui.platform.LocalFocusManager.current
+    val matching = filterCoursework(state.entries, query, filter, now)
+    val upcoming = matching.filter { it.dueMillis >= now }.sortedBy { it.dueMillis }
+    val past = matching.filter { it.dueMillis < now }.sortedByDescending { it.dueMillis }
     LazyColumn(Modifier.fillMaxSize().testTag("coursework-list"), contentPadding = PaddingValues(Spacing.page),
         verticalArrangement = Arrangement.spacedBy(Spacing.item)) {
         item {
             Text("Deadlines from MyWarwick", style = MaterialTheme.typography.titleMedium)
             Text("Times shown in Warwick time. This feed covers a limited period and doesn't report submission status.",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            OutlinedTextField(query, { query = it }, label = { Text("Search coursework") }, singleLine = true,
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search),
+                keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { focus.clearFocus() }),
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp))
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("All", "Upcoming", "Next 7 days", "Past").forEach { option ->
+                    FilterChip(selected = filter == option, onClick = { filter = option; focus.clearFocus() }, label = { Text(option) })
+                }
+            }
         }
         state.message?.let { message -> item {
             Text(message, style = MaterialTheme.typography.bodyMedium)
@@ -66,17 +82,30 @@ fun CourseworkContent(state: CourseworkState, now: Long, busy: Boolean, onRefres
             state.entries.isEmpty() -> item {
                 EmptyCard("No deadlines returned", "MyWarwick hasn't returned any coursework in this feed. Check the source service for the full record.")
             }
+            matching.isEmpty() -> item { EmptyCard("No matching deadlines", "Clear the search or choose another filter.") }
             else -> {
-                item { SectionLabel("UPCOMING", upcoming.size.toString()) }
-                if (upcoming.isEmpty()) item { Text("No future deadlines in this saved feed.") }
-                items(upcoming, key = { it.id }) { entry -> CourseworkRow(entry, now) { onSelect(entry) } }
+                if (filter != "Past") item { SectionLabel("UPCOMING", upcoming.size.toString()) }
+                if (upcoming.isEmpty() && filter != "Past") item { Text("No future deadlines in this saved feed.") }
+                items(upcoming, key = { it.id }) { entry -> CourseworkRow(entry, now) { focus.clearFocus(); onSelect(entry) } }
                 if (past.isNotEmpty()) {
                     item { SectionLabel("PAST DEADLINES", past.size.toString()) }
-                    items(past, key = { it.id }) { entry -> CourseworkRow(entry, now) { onSelect(entry) } }
+                    items(past, key = { it.id }) { entry -> CourseworkRow(entry, now) { focus.clearFocus(); onSelect(entry) } }
                 }
             }
         }
         item { CourseworkSyncNote(state) }
+    }
+}
+
+fun filterCoursework(entries: List<CourseworkEntity>, query: String, filter: String, now: Long): List<CourseworkEntity> {
+    val end = atWarwick(now).toLocalDate().plusDays(7).atStartOfDay(WarwickZone).toInstant().toEpochMilli()
+    return entries.filter { entry ->
+        (query.isBlank() || entry.title.contains(query.trim(), true) || entry.description.contains(query.trim(), true)) && when (filter) {
+            "Upcoming" -> entry.dueMillis >= now
+            "Next 7 days" -> entry.dueMillis >= now && entry.dueMillis < end
+            "Past" -> entry.dueMillis < now
+            else -> true
+        }
     }
 }
 

@@ -63,6 +63,8 @@ class CourseworkTest {
         var courseworkCalls = 0
         var changeAccount = false
         override suspend fun cached() = data
+        override suspend fun syncFeed(kind: FeedKind, before: String?, onAuthenticated: (SignedInUser, CachedTimetable) -> Unit) = data
+        override suspend fun signOut() { data = CachedTimetable(emptyList(), null) }
         override suspend fun sync(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): CachedTimetable {
             onAuthenticated(user, data)
             timetableError?.let { throw it }; return data

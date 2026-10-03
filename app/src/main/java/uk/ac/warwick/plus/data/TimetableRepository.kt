@@ -6,26 +6,32 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 data class CachedTimetable(val events: List<EventEntity>, val sync: SyncEntity?,
-    val coursework: List<CourseworkEntity> = emptyList(), val courseworkSync: SyncEntity? = null)
+    val coursework: List<CourseworkEntity> = emptyList(), val courseworkSync: SyncEntity? = null,
+    val feeds: Map<FeedKind, CachedFeed> = emptyMap())
 
 interface TimetableStore {
     suspend fun cached(): CachedTimetable
     suspend fun sync(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): CachedTimetable
     suspend fun syncCoursework(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): CachedTimetable
+    suspend fun syncFeed(kind: FeedKind, before: String?, onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): CachedTimetable
+    suspend fun signOut()
 }
 
 interface StudentApi {
     fun user(): SignedInUser
     fun timetable(user: SignedInUser): List<EventEntity>
     fun coursework(user: SignedInUser): List<CourseworkEntity>
+    fun feed(kind: FeedKind, user: SignedInUser, before: String?): ParsedFeed
 }
 
-class TimetableRepository(private val api: StudentApi, private val dao: TimetableDao) : TimetableStore {
+class TimetableRepository(private val api: StudentApi, private val dao: TimetableDao,
+    private val endSession: suspend () -> Unit = {}) : TimetableStore {
     private val mutex = Mutex()
-    private fun snapshot() = CachedTimetable(dao.events(), dao.state(), dao.coursework(), dao.courseworkState())
+    private fun snapshot() = CachedTimetable(dao.events(), dao.state(), dao.coursework(), dao.courseworkState(),
+        FeedKind.entries.associateWith { CachedFeed(dao.feedEntries(it.key), dao.feedMeta(it.key), dao.feedState(it.key)) })
     private fun authenticate(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): SignedInUser {
         val user = api.user()
-        if (listOfNotNull(dao.state(), dao.courseworkState()).any { it.userCode != user.code }) dao.clear()
+        if (dao.states().any { it.userCode != user.code }) dao.clear()
         onAuthenticated(user, snapshot())
         return user
     }
@@ -59,5 +65,29 @@ class TimetableRepository(private val api: StudentApi, private val dao: Timetabl
             snapshot()
         }
     }
-    suspend fun clear() = withContext(Dispatchers.IO) { mutex.withLock { dao.clear() } }
+    override suspend fun syncFeed(kind: FeedKind, before: String?, onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): CachedTimetable = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            val user = authenticate(onAuthenticated)
+            val existing = dao.feedEntries(kind.key)
+            if (before != null) {
+                // A cursor captured from a previous account must never be used for the new account.
+                require(kind == FeedKind.MESSAGES && existing.lastOrNull()?.id == before)
+            }
+            val parsed = api.feed(kind, user, before)
+            val entries = if (before == null) parsed.entries else {
+                val additions = parsed.entries.filter { item -> existing.none { it.id == item.id } }
+                if (parsed.entries.isNotEmpty() && additions.isEmpty()) throw InvalidResponseException()
+                (existing + additions).sortedWith(compareByDescending<FeedEntry> { it.dateMillis }.thenBy { it.id }).take(500)
+            }
+            entries.forEachIndexed { index, item -> item.position = index }
+            parsed.meta.hasMore = parsed.meta.hasMore && entries.size < 500
+            dao.replaceFeed(entries, parsed.meta, SyncEntity().apply {
+                id = kind.key; userCode = user.code; displayName = user.name; syncedAt = System.currentTimeMillis()
+            })
+            snapshot()
+        }
+    }
+    override suspend fun signOut() = withContext(Dispatchers.IO) {
+        mutex.withLock { endSession(); dao.clear() }
+    }
 }

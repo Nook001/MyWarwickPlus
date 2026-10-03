@@ -5,6 +5,15 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import uk.ac.warwick.plus.data.EventEntity
 
+fun conflictingEventIds(events: List<EventEntity>): Set<String> = buildSet {
+    val timed = events.filter { !it.allDay && it.endMillis > it.startMillis }
+    timed.forEachIndexed { index, event ->
+        timed.drop(index + 1).forEach { other ->
+            if (event.startMillis < other.endMillis && other.startMillis < event.endMillis) { add(event.id); add(other.id) }
+        }
+    }
+}
+
 val WarwickZone: ZoneId = ZoneId.of("Europe/London")
 fun atWarwick(millis: Long): ZonedDateTime = Instant.ofEpochMilli(millis).atZone(WarwickZone)
 fun monday(date: LocalDate): LocalDate = date.minusDays((date.dayOfWeek.value - 1).toLong())

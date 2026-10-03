@@ -22,7 +22,7 @@ class CacheAndAuthTest {
                 old.version = 2
             }
             val db = Room.databaseBuilder(context, TimetableDatabase::class.java, name)
-                .addMigrations(TimetableDatabase.MIGRATION_2_3).build()
+                .addMigrations(TimetableDatabase.MIGRATION_2_3, TimetableDatabase.MIGRATION_3_4).build()
             try {
                 val dao = db.timetable()
                 assertEquals("Example module", dao.events().single().moduleName)
@@ -53,6 +53,7 @@ class CacheAndAuthTest {
                 override fun user() = SignedInUser("new", "New student", "", "")
                 override fun timetable(user: SignedInUser) = emptyList<EventEntity>()
                 override fun coursework(user: SignedInUser): List<CourseworkEntity> = throw java.io.IOException()
+                override fun feed(kind: FeedKind, user: SignedInUser, before: String?) = ParsedFeed(emptyList(), FeedMeta().apply { feed = kind.key })
             }
             val repo = TimetableRepository(api, dao)
             var authenticated = false
@@ -82,7 +83,7 @@ class CacheAndAuthTest {
                 old.version = 1
             }
             val upgraded = Room.databaseBuilder(context, TimetableDatabase::class.java, name)
-                .addMigrations(TimetableDatabase.MIGRATION_1_2, TimetableDatabase.MIGRATION_2_3).build()
+                .addMigrations(TimetableDatabase.MIGRATION_1_2, TimetableDatabase.MIGRATION_2_3, TimetableDatabase.MIGRATION_3_4).build()
             try {
                 val saved = upgraded.timetable().events().single()
                 assertEquals("Example class", saved.title)

@@ -31,7 +31,8 @@ class MainActivity : ComponentActivity() {
                     if (it.resultCode == Activity.RESULT_OK) model.refresh()
                 }
                 PlusScreen(state, model::refresh, { login.launch(Intent(this, LoginActivity::class.java)) },
-                    probe = if (BuildConfig.DEBUG) app.api::probe else null)
+                    probe = if (BuildConfig.DEBUG) app.api::probe else null, onSignOut = model::signOut,
+                    onFeedRefresh = model::refreshFeed, onMoreMessages = model::loadMoreMessages)
             }
         }
     }

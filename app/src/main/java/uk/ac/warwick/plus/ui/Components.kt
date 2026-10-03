@@ -43,7 +43,7 @@ fun EmptyCard(title: String, detail: String) {
 }
 
 @Composable
-fun EventRow(event: EventEntity, onSelect: () -> Unit) {
+fun EventRow(event: EventEntity, conflict: Boolean = false, onSelect: () -> Unit) {
     Card(onClick = onSelect, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
         Row(Modifier.padding(18.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -61,6 +61,7 @@ fun EventRow(event: EventEntity, onSelect: () -> Unit) {
                     style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (event.location.isNotBlank()) Text(event.location, style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (conflict) Text("Overlaps another class", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
             }
         }
     }
