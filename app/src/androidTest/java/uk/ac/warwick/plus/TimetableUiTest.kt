@@ -6,6 +6,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import uk.ac.warwick.plus.data.EventEntity
+import uk.ac.warwick.plus.data.CourseworkEntity
 import uk.ac.warwick.plus.data.ProbeEndpoint
 import uk.ac.warwick.plus.data.ProbeResult
 import uk.ac.warwick.plus.ui.*
@@ -13,6 +14,48 @@ import java.time.*
 
 class TimetableUiTest {
     @get:Rule val compose = createComposeRule()
+    @Test fun homeDeadlineLeadsToCourseworkDetailsAndOnlyExplicitlyOpensSource() {
+        val due = ZonedDateTime.now(WarwickZone).plusDays(2).toInstant().toEpochMilli()
+        val entry = CourseworkEntity().apply {
+            id = "sample-deadline"; title = "Example assignment"; description = "Example instructions"
+            dueMillis = due; url = "https://tabula.warwick.ac.uk/coursework/example"
+        }
+        var opened: String? = null
+        compose.setContent { PlusTheme {
+            PlusScreen(TimetableState(lastSynced = 1L, coursework = CourseworkState(listOf(entry), 1L)), {}, {},
+                onCourseworkLink = { opened = it })
+        } }
+        compose.onNodeWithText("View all coursework").performScrollTo().performClick()
+        compose.onNodeWithText("Example assignment").assertIsDisplayed()
+        capture("coursework")
+        compose.onNodeWithText("Example assignment").performClick()
+        compose.onNodeWithText("COURSEWORK DETAILS").assertIsDisplayed()
+        compose.onNodeWithText("Example instructions").assertIsDisplayed()
+        org.junit.Assert.assertNull(opened)
+        capture("coursework-details")
+        compose.onNodeWithText("Open source service").performScrollTo().performClick()
+        org.junit.Assert.assertEquals(entry.url, opened)
+    }
+    @Test fun expiredSessionWithOnlyCourseworkCacheStillShowsDeadlines() {
+        val entry = CourseworkEntity().apply { id = "past"; title = "Past assignment"; dueMillis = 1L }
+        compose.setContent { PlusTheme {
+            PlusScreen(TimetableState(needsLogin = true, message = "Sign in to update your saved data.",
+                coursework = CourseworkState(listOf(entry), 1L, "Your saved deadlines have been kept.")), {}, {})
+        } }
+        compose.onNodeWithText("Sign in with Warwick").assertDoesNotExist()
+        compose.onNodeWithText("Coursework", useUnmergedTree = true).performClick()
+        compose.onNodeWithText("Past assignment").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Deadline passed").assertIsDisplayed()
+        compose.onNodeWithText("Sign in").assertIsDisplayed()
+    }
+    @Test fun emptyFeedDoesNotImplyAllAssignmentsAreSubmitted() {
+        compose.setContent { PlusTheme {
+            PlusScreen(TimetableState(lastSynced = 1L, coursework = CourseworkState(lastSynced = 1L)), {}, {})
+        } }
+        compose.onNodeWithText("Coursework", useUnmergedTree = true).performClick()
+        compose.onNodeWithText("No deadlines returned").assertIsDisplayed()
+        compose.onNodeWithText("Check the source service for the full record.", substring = true).assertIsDisplayed()
+    }
     private fun capture(name: String) {
         compose.waitForIdle()
         val instrument = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
@@ -100,7 +143,8 @@ class TimetableUiTest {
                 ProbeResult(endpoint, 200, 5, true, listOf("items"), 3, listOf("date", "title"))
             })
         } }
-        compose.onNodeWithText("Developer tools").performScrollTo().performClick()
+        compose.onNodeWithTag("home-list").performScrollToNode(hasText("Developer tools"))
+        compose.onNodeWithText("Developer tools").performClick()
         compose.onNodeWithText("API explorer").assertIsDisplayed()
         org.junit.Assert.assertEquals(0, calls.get())
         compose.onNodeWithText("Run request").performScrollTo().performClick()

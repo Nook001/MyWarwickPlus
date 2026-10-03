@@ -40,11 +40,20 @@ private val ScheduleIcon = ImageVector.Builder("Schedule", 24.dp, 24.dp, 24f, 24
     }
 }.build()
 
+private val CourseworkIcon = ImageVector.Builder("Coursework", 24.dp, 24.dp, 24f, 24f).apply {
+    path(fill = SolidColor(Color.Black)) {
+        moveTo(4f, 5f); lineTo(20f, 5f); lineTo(20f, 8f); lineTo(4f, 8f); close()
+        moveTo(4f, 11f); lineTo(20f, 11f); lineTo(20f, 14f); lineTo(4f, 14f); close()
+        moveTo(4f, 17f); lineTo(16f, 17f); lineTo(16f, 20f); lineTo(4f, 20f); close()
+    }
+}.build()
+
 @Composable
 fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit,
-    probe: ((ProbeEndpoint) -> ProbeResult)? = null) {
+    probe: ((ProbeEndpoint) -> ProbeResult)? = null, onCourseworkLink: ((String) -> Unit)? = null) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
+    var courseworkId by rememberSaveable { mutableStateOf<String?>(null) }
     var showProbe by rememberSaveable { mutableStateOf(false) }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) { while (true) { now = System.currentTimeMillis(); delay(30_000) } }
@@ -54,7 +63,10 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
     LaunchedEffect(state.events, selectedId) {
         if (selectedId != null && state.events.none { it.id == selectedId }) selectedId = null
     }
-    BackHandler(tab != 0 && selectedId == null && !showProbe) { tab = 0 }
+    LaunchedEffect(state.coursework.entries, courseworkId) {
+        if (courseworkId != null && state.coursework.entries.none { it.id == courseworkId }) courseworkId = null
+    }
+    BackHandler(tab != 0 && selectedId == null && courseworkId == null && !showProbe) { tab = 0 }
 
     Scaffold(bottomBar = {
         NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
@@ -62,6 +74,8 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
                 icon = { Icon(HomeIcon, null) }, label = { Text("Home") })
             NavigationBarItem(selected = tab == 1, onClick = { tab = 1 },
                 icon = { Icon(ScheduleIcon, null) }, label = { Text("Schedule") })
+            NavigationBarItem(selected = tab == 2, onClick = { tab = 2 },
+                icon = { Icon(CourseworkIcon, null) }, label = { Text("Coursework") })
         }
     }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
@@ -70,7 +84,7 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("MY WARWICK +", style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                    Text(if (tab == 1) "Timetable" else when (atWarwick(now).hour) {
+                    Text(if (tab == 1) "Timetable" else if (tab == 2) "Coursework deadlines" else when (atWarwick(now).hour) {
                         in 0..11 -> "Good morning"; in 12..17 -> "Good afternoon"; else -> "Good evening"
                     }, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
                 }
@@ -78,10 +92,10 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
             }
             if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             when {
-                state.lastSynced == null && state.busy && !state.signedIn -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Loading your timetable…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                state.lastSynced == null && state.coursework.lastSynced == null && state.busy && !state.signedIn -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Loading your saved data…", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                state.lastSynced == null && state.needsLogin -> Welcome(onLogin)
+                state.lastSynced == null && state.coursework.lastSynced == null && state.needsLogin -> Welcome(onLogin)
                 else -> {
                     if (state.message != null) Surface(color = MaterialTheme.colorScheme.surfaceContainer,
                         shape = RoundedCornerShape(16.dp), modifier = Modifier.padding(horizontal = Spacing.page)) {
@@ -91,8 +105,9 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
                             else TextButton(onClick = onRefresh, enabled = !state.busy) { Text("Try again") }
                         }
                     }
-                    if (tab == 0) Home(state, today, now, { selectedId = it.id },
+                    if (tab == 0) Home(state, today, now, { selectedId = it.id }, { courseworkId = it.id }, { tab = 2 },
                         if (probe != null) ({ showProbe = true }) else null)
+                    else if (tab == 2) CourseworkContent(state.coursework, now, state.busy, onRefresh, { courseworkId = it.id })
                     else Schedule(state, today, now, LocalDate.ofEpochDay(selectedDay), weekView,
                         { selectedDay = it.toEpochDay() }, { weekView = it }, { selectedId = it.id })
                 }
@@ -101,6 +116,9 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
     }
     state.events.firstOrNull { it.id == selectedId }?.let { event ->
         EventDetails(event, onDismiss = { selectedId = null })
+    }
+    state.coursework.entries.firstOrNull { it.id == courseworkId }?.let { entry ->
+        CourseworkDetails(entry, { courseworkId = null }, onCourseworkLink)
     }
     if (showProbe && probe != null) ApiProbeSheet(probe, onLogin, { showProbe = false })
 }
@@ -125,10 +143,10 @@ private fun Welcome(onLogin: () -> Unit) {
 
 @Composable
 private fun Home(state: TimetableState, today: LocalDate, now: Long, onSelect: (EventEntity) -> Unit,
-    onProbe: (() -> Unit)?) {
+    onCoursework: (CourseworkEntity) -> Unit, onAllCoursework: () -> Unit, onProbe: (() -> Unit)?) {
     val next = state.events.filter { it.endMillis > now }.minByOrNull { it.startMillis }
     val todayEvents = eventsOnDate(state.events, today)
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(Spacing.page),
+    LazyColumn(Modifier.fillMaxSize().testTag("home-list"), contentPadding = PaddingValues(Spacing.page),
         verticalArrangement = Arrangement.spacedBy(Spacing.section)) {
         item {
             Text(dateLabel(today), style = MaterialTheme.typography.titleMedium)
@@ -161,6 +179,18 @@ private fun Home(state: TimetableState, today: LocalDate, now: Long, onSelect: (
         item { SectionLabel("TODAY", if (state.lastSynced != null) classCountLabel(todayEvents.size) else null) }
         if (todayEvents.isEmpty() && state.lastSynced != null) item { EmptyCard("No classes today", "Your saved timetable is clear for today.") }
         items(todayEvents, key = { it.id }) { EventRow(it) { onSelect(it) } }
+        item {
+            SectionLabel("DEADLINES")
+            TextButton(onClick = onAllCoursework) { Text("View all coursework") }
+            state.coursework.message?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+        }
+        val upcoming = state.coursework.entries.filter { it.dueMillis >= now }.sortedBy { it.dueMillis }.take(3)
+        if (upcoming.isEmpty()) item {
+            EmptyCard(if (state.coursework.lastSynced == null) "Coursework hasn't loaded yet" else "No upcoming deadlines returned",
+                "Check Coursework for the saved feed and source-service links.")
+        }
+        items(upcoming, key = { "coursework/${it.id}" }) { entry -> CourseworkRow(entry, now) { onCoursework(entry) } }
+        item { CourseworkSyncNote(state.coursework) }
         item { SyncNote(state, now) }
         if (onProbe != null) item { TextButton(onClick = onProbe) { Text("Developer tools") } }
     }

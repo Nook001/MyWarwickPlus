@@ -7,6 +7,8 @@
 官方 SSO WebView 登录 → CookieManager → OkHttp 原生读取课表 → Room 原子缓存 → Compose 首页 / 日课表 / 周课表。
 
 - 首页：下一节课、开始倒计时、今日安排、上次同步时间；优先展示完整模块名称，保留原始课表条目代码。
+- Coursework：首页最多 3 个未来截止日期；独立页面按时间展示返回条目与过去截止日期，提供详情及原站链接。时间按 Warwick 时区显示，不推断提交状态。
+- 课表和 Coursework 分别原子缓存；单个接口失败保留旧数据，另一接口仍可更新。当前“提醒”是首页展示，不包括系统通知。
 - 课表：按天选择日期、前后周切换、返回今天；可切换周列表，切换首页时保留日期选择。
 - 点击课程打开详情，显示模块、完整时间、地点、教学周；地点链接通过系统浏览器打开。
 - 统一浅色/深色主题、间距、课程条目、空状态和同步提示。
@@ -50,7 +52,7 @@ adb -s <模拟器序列号> shell am instrument -w -r uk.ac.warwick.plus.test/an
 
 调试包首页底部 `Developer tools` 打开 API explorer，手动选择 Coursework / Library / Timetable 并点击 `Run request`。仅允许这三个固定 GET 路径，显示 HTTP 状态、总耗时（含会话检查）、envelope 成功与否、条目数、content 和首条条目的字段名。失败时显示连接/认证/服务错误，不显示原始异常信息。发布包不显示入口，API 方法也禁止在发布包执行。
 
-原生 Coursework 已返回 3 条，Library 返回 0 条；这些结果只证明当前聚合接口可读取。不会保存原始响应、个人字段值或认证信息，也不会自动批量探测。Coursework 的正式任务列表将在下一条功能链路实现。
+原生 Coursework 已返回 3 条，Library 返回 0 条；Library 非空条目结构仍待验证。探查工具不会保存原始响应、个人字段值或认证信息，也不会自动批量探测。Coursework 已接入正式列表，业务缓存仅保存显示需要的字段。
 
 ## 结构
 
@@ -61,9 +63,9 @@ app/src/main/java/uk/ac/warwick/plus/
   ui/         Compose 页面、时区处理、ViewModel
 ```
 
-Room 的三个小型声明文件使用 Java 注解处理，业务与 UI 使用 Kotlin；因此不需要额外 KSP 或 kapt 插件。当前仅有一个 app module，后续按照实际功能边界拆分。
+Room 声明使用 Java 注解处理，业务与 UI 使用 Kotlin；因此不需要额外 KSP 或 kapt 插件。当前仅有一个 app module，后续按照实际功能边界拆分。
 
-Room schema 2 新增 `moduleName`，通过显式 1→2 迁移保留旧课表与同步状态。旧条目在首次成功刷新前使用原始标题，不采用删除数据库的迁移策略。
+Room schema 2 新增 `moduleName`，schema 3 新增 Coursework 表；通过显式 1→2→3 迁移保留旧课表与同步状态。两类数据使用独立同步时间，旧条目在首次成功刷新前使用原始标题，不采用删除数据库的迁移策略。
 
 ## 认证与数据边界
 
@@ -72,13 +74,13 @@ Room schema 2 新增 `moduleName`，通过显式 1→2 迁移保留旧课表与�
 - GET 的 CSRF 信息来自 `/user/info`，仅接受预期的 `Csrf-Token` header 名。
 - 登录 WebView 无 JavaScript bridge，关闭文件访问、明文/混合内容，证书错误直接取消，不自动授予网页权限。
 - 外部地点链接通过 Custom Tabs 打开，不使用原生认证 cookie jar。
-- Room 只保存课表需要的字段和账户归属；不保存教师邮箱等额外字段。系统备份已关闭。
+- Room 只保存课表、截止日期展示需要的字段和账户归属；不保存教师邮箱等额外字段。系统备份已关闭。
 - 切换账户后先清除旧账户数据库，再读取新账户课表。
 
 ## 当前限制
 
-Web 接口是内部协议，没有稳定性承诺。新安装应用的 WebView 会话与桌面浏览器、其他应用和 Custom Tabs 的 cookie 分离，需要在手机上独立登录。后台同步、提醒、Coursework、完整退出管理和多账户尚未实现。
+Web 接口是内部协议，没有稳定性承诺。新安装应用的 WebView 会话与桌面浏览器、其他应用和 Custom Tabs 的 cookie 分离，需要在手机上独立登录。后台同步、系统提醒、完整退出管理和多账户尚未实现。Coursework 是近期聚合列表，完整历史、源系统覆盖与提交状态尚未验证。
 
 当前账号 cookie 在应用私有 WebView 数据中保存。不要将调试包作为已完成的公共发行版本；卸载或通过系统清除此应用数据可移除本地会话和缓存，不需要修改学校账户。
 
-接口证据及原型验收记录见 [docs/protocol.md](docs/protocol.md) 和 [docs/validation.md](docs/validation.md)。
+接入进度见 [docs/api-progress.md](docs/api-progress.md)，接口证据见 [docs/protocol.md](docs/protocol.md)，验收记录见 [docs/validation.md](docs/validation.md)。每轮验证完成后提交 Git；提交情况会在交付回复中列出。

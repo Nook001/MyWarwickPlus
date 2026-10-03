@@ -11,7 +11,7 @@ class PlusApplication : Application() {
     val repository by lazy {
         TimetableRepository(api,
             Room.databaseBuilder(this, TimetableDatabase::class.java, "timetable.db")
-                .addMigrations(TimetableDatabase.MIGRATION_1_2).build().timetable())
+                .addMigrations(TimetableDatabase.MIGRATION_1_2, TimetableDatabase.MIGRATION_2_3).build().timetable())
     }
     override fun onCreate() {
         super.onCreate()

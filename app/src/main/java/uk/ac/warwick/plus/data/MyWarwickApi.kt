@@ -12,7 +12,7 @@ class SignInRequiredException : Exception()
 class ServiceException(val status: Int) : Exception()
 data class SignedInUser(val code: String, val name: String, val csrfHeader: String, val csrfToken: String)
 
-class MyWarwickApi(session: AuthSession) {
+class MyWarwickApi(session: AuthSession) : StudentApi {
     private val client = OkHttpClient.Builder().cookieJar(session)
         .followRedirects(false).followSslRedirects(false)
         .connectTimeout(15, TimeUnit.SECONDS).readTimeout(25, TimeUnit.SECONDS)
@@ -22,7 +22,7 @@ class MyWarwickApi(session: AuthSession) {
     private fun getResponse(path: String, user: SignedInUser? = null): JsonResponse {
         val request = Request.Builder().url(MY_WARWICK + path)
             .header("Accept", "application/json")
-            .header("User-Agent", "MyWarwickPlus/0.1 (Android)")
+            .header("User-Agent", "MyWarwickPlus/${uk.ac.warwick.plus.BuildConfig.VERSION_NAME} (Android)")
             .apply {
                 if (user != null && user.csrfHeader.equals("Csrf-Token", ignoreCase = true) && user.csrfToken.isNotBlank()) {
                     header("Csrf-Token", user.csrfToken)
@@ -50,7 +50,7 @@ class MyWarwickApi(session: AuthSession) {
         return ProbeSummary.parse(endpoint, response.code, (System.nanoTime() - start) / 1_000_000, response.body)
     }
 
-    fun user(): SignedInUser {
+    override fun user(): SignedInUser {
         val root = JSONObject(get("/user/info"))
         val user = root.optJSONObject("user") ?: throw SignInRequiredException()
         if (root.opt("refresh") is String || !user.optBoolean("authenticated")) throw SignInRequiredException()
@@ -58,5 +58,6 @@ class MyWarwickApi(session: AuthSession) {
             user.optString("csrfHeader"), user.optString("csrfToken"))
     }
 
-    fun timetable(user: SignedInUser) = TimetableParser.parse(get("/api/tiles/content/timetable", user))
+    override fun timetable(user: SignedInUser) = TimetableParser.parse(get("/api/tiles/content/timetable", user))
+    override fun coursework(user: SignedInUser) = CourseworkParser.parse(get("/api/tiles/content/coursework", user))
 }

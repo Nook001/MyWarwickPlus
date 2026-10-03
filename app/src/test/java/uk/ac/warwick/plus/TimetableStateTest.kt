@@ -23,6 +23,7 @@ class TimetableStateTest {
         var operation: suspend ((SignedInUser, CachedTimetable) -> Unit) -> CachedTimetable = { cache }
         var calls = 0
         override suspend fun cached() = cache
+        override suspend fun syncCoursework(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit) = cache
         override suspend fun sync(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): CachedTimetable {
             calls++; return operation(onAuthenticated)
         }

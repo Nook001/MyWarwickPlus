@@ -42,7 +42,7 @@ links: { login, logout }
 | `/api/tiles/content/coursework` | `data.coursework.content.{defaultText,items}`；当前 3 条；条目字段 `id,title,text,href,date` | 足以制作近期截止日期列表和外部详情入口，未确认完整历史、已提交状态或所有来源覆盖 |
 | `/api/tiles/content/library` | `data.library.content.{href,defaultText,items}`；当前 0 条 | 只能确认空列表可访问，条目结构、借阅/欠费等功能尚无证据 |
 
-Coursework 日期实际有 `2026-10-15T12:00:00.000+01` 和 `2026-10-30T12:00:00.000Z` 两种形式；未来解析器必须支持小时级 offset，并按 Instant 与英国时区处理。当前三条 `href` 指向 Tabula。此处日期仅用于格式证据，不保存作业标题、链接路径或个人标识。
+Coursework 日期实际有 `2026-10-15T12:00:00.000+01` 和 `2026-10-30T12:00:00.000Z` 两种形式；0.3.0 解析器已支持小时级 offset，并按 Instant 与英国时区处理。当前三条 `href` 指向 Tabula。此处日期仅用于格式证据，文档不保存作业标题、链接路径或个人标识；设备 Room 缓存保存业务展示所需字段。
 
 默认说明提到未来一个月、Tabula/Moodle/my.wbs 聚合及在这些系统以外提交的作业不出现；这不是可自行推定的完整作业清单。条目没有独立结构化提交状态字段，不把文本或列表缺失当作“已提交”。
 
@@ -50,7 +50,6 @@ Coursework 日期实际有 `2026-10-15T12:00:00.000+01` 和 `2026-10-30T12:00:00
 
 ## 后续候选
 
-- `GET /api/tiles/content/coursework`：`content.items[]`，含 `id,title,text,href,date`。
 - `GET /api/tiles/content/eventsmerge`：合并事件。
 - `GET /api/tiles/content/library`、`modules`、`calendar`、`mail`、`todo`：聚合卡片内容，不能当作完整源系统 API。
 - `GET /api/streams/notifications?limit=100&since={id}`：增量通知；标记已读是独立写操作。
