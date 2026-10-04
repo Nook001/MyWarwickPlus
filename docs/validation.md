@@ -9,7 +9,7 @@
 - 最终构建、44 项 JVM 测试、Lint 通过（0 errors / 15 warnings）。模拟器初轮 20 项首页/课表/服务 UI 测试通过；调整大字体标题宽度后，最终首页/课表 11 项再次通过。未更改认证、API、数据库，没有重跑真实登录 smoke 或 cookie 清理测试。
 - 位置验收验证 NEXT 内容上下留白差不超过 1dp、箭头垂直居中、普通字体卡片高度不超过 100dp；单行无课卡片不超过 56dp，Deadlines 与跳转入口同行。验证卡片与箭头实际触摸都打开完整详情，无障碍点击标签保留；320dp、1.8 倍字体下仍可进入详情和 Coursework。
 - 已检查浅色、深色和窄屏大字体模拟器截图，全部使用虚构课程和账户。手机视觉效果等待用户复核，没有截取手机上的其他应用。
-- 尝试通过 `adb install -r` 覆盖安装，但手机返回 `INSTALL_FAILED_ABORTED: User rejected permissions`，此次安装未完成；不卸载或清除手机数据。新版 APK 已保存，等待手机确认或用户自行安装。
+- 首次 `adb install -r` 被手机拒绝；用户要求重试后覆盖安装成功。已确认 vivo V2502A 上 versionCode 6 / versionName 0.5.1，Activity 启动 `Status: ok`。保留既有登录数据与缓存，未卸载或清除数据；手机实际布局等待用户手动复核。
 
 手动复核：NEXT 上下留白与箭头位置；点击卡片不同位置均进入详情；Today 无课仅一行；Deadlines 右侧入口仍能进入 Coursework；下拉刷新保持正常。
 
