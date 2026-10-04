@@ -143,7 +143,8 @@ class TimetableUiTest {
                 ProbeResult(endpoint, 200, 5, true, listOf("items"), 3, listOf("date", "title"))
             })
         } }
-        compose.onNodeWithTag("home-list").performScrollToNode(hasText("Developer tools"))
+        compose.onNodeWithTag("more-tab").performClick()
+        compose.onNodeWithTag("more-list").performScrollToNode(hasText("Developer tools"))
         compose.onNodeWithText("Developer tools").performClick()
         compose.onNodeWithText("API explorer").assertIsDisplayed()
         org.junit.Assert.assertEquals(0, calls.get())

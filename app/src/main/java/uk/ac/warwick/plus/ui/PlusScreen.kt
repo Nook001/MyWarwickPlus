@@ -183,10 +183,9 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
                 }
                 !state.hasSavedData && state.needsLogin -> Welcome(onLogin)
                 else -> {
-                    if (tab == 0) Home(state, today, now, { selectedId = it.id }, { courseworkId = it.id }, { tab = 2 },
-                        if (probe != null) ({ showProbe = true }) else null)
+                    if (tab == 0) Home(state, today, now, { selectedId = it.id }, { courseworkId = it.id }, { tab = 2 })
                     else if (tab == 2) CourseworkContent(state.coursework, now, state.busy, onRefresh, { courseworkId = it.id })
-                    else Schedule(state, today, now, LocalDate.ofEpochDay(selectedDay), weekView,
+                    else Schedule(state, today, LocalDate.ofEpochDay(selectedDay), weekView,
                         { selectedDay = it.toEpochDay() }, { weekView = it }, { selectedId = it.id })
                 }
             }
@@ -227,7 +226,7 @@ private fun Welcome(onLogin: () -> Unit) {
 
 @Composable
 private fun Home(state: TimetableState, today: LocalDate, now: Long, onSelect: (EventEntity) -> Unit,
-    onCoursework: (CourseworkEntity) -> Unit, onAllCoursework: () -> Unit, onProbe: (() -> Unit)?) {
+    onCoursework: (CourseworkEntity) -> Unit, onAllCoursework: () -> Unit) {
     val next = state.events.filter { it.endMillis > now }.minByOrNull { it.startMillis }
     val todayEvents = eventsOnDate(state.events, today)
     LazyColumn(Modifier.fillMaxSize().testTag("home-list"),
@@ -268,9 +267,6 @@ private fun Home(state: TimetableState, today: LocalDate, now: Long, onSelect: (
                 "Check Coursework for the saved feed and source-service links.")
         }
         items(upcoming, key = { "coursework/${it.id}" }) { entry -> CourseworkRow(entry, now) { onCoursework(entry) } }
-        item { CourseworkSyncNote(state.coursework) }
-        item { SyncNote(state, now) }
-        if (onProbe != null) item { TextButton(onClick = onProbe) { Text("Developer tools") } }
     }
 }
 
@@ -312,7 +308,7 @@ private fun NextClassCard(event: EventEntity, now: Long, onSelect: () -> Unit) {
 }
 
 @Composable
-private fun Schedule(state: TimetableState, today: LocalDate, now: Long, selected: LocalDate, weekView: Boolean,
+private fun Schedule(state: TimetableState, today: LocalDate, selected: LocalDate, weekView: Boolean,
     onDate: (LocalDate) -> Unit, onMode: (Boolean) -> Unit, onSelect: (EventEntity) -> Unit) {
     val start = monday(selected)
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(Spacing.page),
@@ -362,7 +358,6 @@ private fun Schedule(state: TimetableState, today: LocalDate, now: Long, selecte
                 items(events, key = { "${date}/${it.id}" }) { EventRow(it, it.id in conflictingEventIds(events)) { onSelect(it) } }
             }
         }
-        item { SyncNote(state, now) }
     }
 }
 

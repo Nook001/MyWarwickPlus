@@ -78,7 +78,6 @@ fun FeedContent(kind: FeedKind, state: FeedState, busy: Boolean, needsLogin: Boo
             FeedKind.MESSAGES -> "https://my.warwick.ac.uk/alerts"
         }
         item { OutlinedButton(onClick = { onOpen(site) }, modifier = Modifier.fillMaxWidth()) { Text("Open ${kind.label.lowercase()} website") } }
-        state.lastSynced?.let { saved -> item { Text("Saved on this device · updated ${deadlineTime(saved)}", style = MaterialTheme.typography.bodySmall) } }
     }
 }
 

@@ -11,8 +11,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import uk.ac.warwick.plus.data.EventEntity
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 object Spacing {
     val page = 20.dp
@@ -74,18 +72,5 @@ fun LocationLink(event: EventEntity) {
     if (uri.scheme == "https" && uri.host != null) {
         OutlinedButton(onClick = { runCatching { CustomTabsIntent.Builder().build().launchUrl(context, uri) } },
             modifier = Modifier.fillMaxWidth()) { Text("Open location") }
-    }
-}
-
-@Composable
-fun SyncNote(state: TimetableState, now: Long) {
-    val saved = state.lastSynced
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(if (saved == null) "Waiting for your first timetable update"
-            else if (now - saved > 24 * 60 * 60_000L) "Saved timetable · check for updates"
-            else "Saved on this device · available offline",
-            style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        if (saved != null) Text("Last updated ${atWarwick(saved).format(DateTimeFormatter.ofPattern("d MMM, HH:mm", Locale.UK))}",
-            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

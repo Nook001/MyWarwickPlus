@@ -7,7 +7,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import uk.ac.warwick.plus.BuildConfig
 import uk.ac.warwick.plus.data.FeedKind
@@ -40,11 +39,10 @@ fun MoreContent(state: TimetableState, onLogin: () -> Unit, onSignOut: () -> Uni
                     Text(when {
                         state.logoutFailed -> "Sign-out needs to be retried"
                         state.needsLogin -> "Sign in to update saved data"
-                        state.signedIn -> "Session verified this visit"
+                        state.signedIn -> "Signed in"
                         state.hasSavedData -> "Saved account · session not yet verified"
                         else -> "Not signed in"
                     }, style = MaterialTheme.typography.bodySmall)
-                    if (state.sessionCheckedAt != null) Text("Checked ${timeLabel(state.sessionCheckedAt)} · Warwick time", style = MaterialTheme.typography.bodySmall)
                     if (!state.logoutFailed && (state.needsLogin || !state.signedIn)) Button(onClick = onLogin) { Text("Sign in with Warwick") }
                     if (state.hasSavedData || state.signedIn || state.logoutFailed) OutlinedButton(onClick = { confirmSignOut = true }) {
                         Text(if (state.logoutFailed) "Retry sign-out" else "Sign out of this app")
@@ -66,13 +64,6 @@ fun MoreContent(state: TimetableState, onLogin: () -> Unit, onSignOut: () -> Uni
             }
         }
         item {
-            SectionLabel("SAVED DATA")
-            Spacer(Modifier.height(12.dp))
-            SyncRow("Timetable", state.lastSynced)
-            SyncRow("Coursework", state.coursework.lastSynced)
-            FeedKind.entries.forEach { SyncRow(it.label, state.feed(it).lastSynced) }
-        }
-        item {
             SectionLabel("QUICK LINKS")
             Text("These services open in your browser and may require a separate sign-in.", style = MaterialTheme.typography.bodySmall)
             Services.forEach { service ->
@@ -87,13 +78,4 @@ fun MoreContent(state: TimetableState, onLogin: () -> Unit, onSignOut: () -> Uni
         text = { Text("This removes this app's sign-in session and saved data. Your system browser sessions are kept.") },
         confirmButton = { TextButton(onClick = { confirmSignOut = false; onSignOut() }) { Text("Sign out") } },
         dismissButton = { TextButton(onClick = { confirmSignOut = false }) { Text("Cancel") } })
-}
-
-@Composable
-private fun SyncRow(label: String, saved: Long?) {
-    Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-        Text(label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-        Text(saved?.let { deadlineTime(it) } ?: "Not downloaded yet", style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
 }

@@ -6,12 +6,13 @@
 
 官方 SSO WebView 登录 → CookieManager → OkHttp 原生读取课表 → Room 原子缓存 → Compose 首页 / 日课表 / 周课表。
 
-- 首页：下一节课、开始倒计时、今日安排、上次同步时间；优先展示完整模块名称，保留原始课表条目代码。
+- 首页：下一节课、开始倒计时、今日安排与截止日期；优先展示完整模块名称，保留原始课表条目代码。
 - 0.5.0 首页：16sp 招呼语带短名字；移除顶部 Refresh、首页消息按钮及当前日期区。NEXT 卡片紧凑展示日期/时间、课程名/代码、地点/详情三行；长名称省略后可在详情阅读，正常刷新通过下拉触发。
 - 0.5.1 首页：NEXT 移除独立文字按钮，三行内容上下留白一致，右侧居中箭头提示整卡可进入详情；保留点击反馈和无障碍操作说明。Today 无课只显示一行，Deadlines 与 View all coursework 同行。
 - 0.6.0 外观：More → Settings → Appearance 提供 Forest、Lake、Heather、Sand、Rosewood 五套固定颜色，选择立即生效并保存，不跟随系统明暗。三层非线性渐变背景在后台生成，最多缓存两张；Fine texture 开关提供固定细颗粒材质，默认关闭。
+- 0.6.1 信息清理：移除各页的 Saved on this device / Last updated 等常态页脚，More 移除保存时间列表和账户检查时间，Developer tools 只保留在 More。刷新失败、登录过期与未加载提示仍按状态出现；数据缓存不受影响。
 - Coursework：首页最多 3 个未来截止日期；独立页面按时间展示返回条目与过去截止日期，提供详情及原站链接。时间按 Warwick 时区显示，不推断提交状态。
-- 0.4.0 的 More：账户与会话状态、五类数据的同步时间、仅退出本应用及重新登录、常用学校服务入口。
+- More：账户与会话状态、外观设置、仅退出本应用及重新登录、常用学校服务入口。
 - Messages：只读列表、搜索、完整详情、手动加载更早消息；HTML 转为纯文本，查看不标记网站已读。
 - Modules：模块名称、代码、学年、公告/评估数量与 Moodle 入口。Library：学校返回的账户摘要、空状态及账户入口；非空借阅结构仍待验证。
 - 首页、课表、Coursework 和 More 的滚动页面支持下拉刷新；Coursework 支持搜索与 All / Upcoming / Next 7 days / Past 筛选，重叠课程会提示冲突，详情保留长标题与大字体阅读。
@@ -23,7 +24,7 @@
 - 未登录时打开 Warwick 官方网站，用户自行输入账号并完成 MFA。
 - 缓存可在应用重启和离线时使用；失败响应不会覆盖已保存课表。
 - 启动时先显示缓存，再检查会话与同步；登录过期保留缓存并提供登录入口，联网或重新登录后可刷新。
-- 区分未取得数据、确实无课、过期缓存和同步失败。
+- 区分未取得数据、确实无课、会话过期和同步失败。
 - 本版不注册课表 token、推送，不提交作业，也不标记通知已读。
 
 ## 开发
@@ -57,7 +58,7 @@ adb -s <模拟器序列号> shell am instrument -w -r uk.ac.warwick.plus.test/an
 
 ## 接口探查
 
-调试包首页底部或 More 的 `Developer tools` 打开 API explorer，手动选择 Coursework / Library / Timetable / Messages / Modules 并点击 `Run request`。仅允许这五个固定 GET 路径，显示 HTTP 状态、总耗时（含会话检查）、envelope 成功与否、条目数、content 和首条条目的字段名。失败时显示连接/认证/服务错误，不显示原始异常信息。发布包不显示入口，API 方法也禁止在发布包执行。
+调试包 More 的 `Developer tools` 打开 API explorer，手动选择 Coursework / Library / Timetable / Messages / Modules 并点击 `Run request`。仅允许这五个固定 GET 路径，显示 HTTP 状态、总耗时（含会话检查）、envelope 成功与否、条目数、content 和首条条目的字段名。失败时显示连接/认证/服务错误，不显示原始异常信息。发布包不显示入口，API 方法也禁止在发布包执行。
 
 此前真机原生 Coursework 已返回 3 条，Library 返回 0 条。0.4.0 浏览器验证 Messages 69 条、Modules 1 条和 Library 0 条；该版本随后覆盖安装到手机，用户反馈手动测试正常。Library 非空条目结构仍待验证。探查工具不会保存原始响应、个人字段值或认证信息，也不会自动批量探测；业务缓存仅保存显示需要的字段。
 
@@ -91,4 +92,4 @@ Web 接口是内部协议，没有稳定性承诺。新安装应用的 WebView �
 
 当前账号 cookie 在应用私有 WebView 数据中保存。不要将调试包作为已完成的公共发行版本；卸载或通过系统清除此应用数据可移除本地会话和缓存，不需要修改学校账户。
 
-接入进度见 [docs/api-progress.md](docs/api-progress.md)，接口证据见 [docs/protocol.md](docs/protocol.md)，验收记录见 [docs/validation.md](docs/validation.md)。每轮验证完成后提交 Git；提交情况会在交付回复中列出。
+接入进度见 [docs/api-progress.md](docs/api-progress.md)，接口证据见 [docs/protocol.md](docs/protocol.md)，验收记录见 [docs/validation.md](docs/validation.md)，下一步课表布局草案见 [docs/schedule-design.md](docs/schedule-design.md)。每轮验证完成后提交 Git；提交情况会在交付回复中列出。

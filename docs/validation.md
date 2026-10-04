@@ -1,5 +1,17 @@
 # 原型验收
 
+## 0.6.1：移除常态诊断文字，规划课表布局
+
+日期：2026-10-04。已移除首页、Schedule、Coursework、Messages、Modules、Library 的 Saved on this device / Last updated 等保存页脚；More 移除五类同步时间列表与账户 Checked 时间，已登录状态缩短为 Signed in。Developer tools 仅从 More 进入。
+
+- 没有改变 API、认证、Room schema 4、缓存时间的存储或同步策略。未加载、同步失败、登录过期、重试与本地退出确认保持原有行为；不再按正常缓存年龄常驻显示底部说明。
+- 构建、47 项 JVM 测试及 Lint 完成（0 errors / 17 warnings）。指定 emulator-5556，首页/课表/服务 20 项既有 UI 测试通过，runner `OK (20 tests)`，66.217 秒。只调整现有探查入口测试为从 More 进入；没有新增重复实现的删除文字测试。
+- 已检查虚构数据的首页、课表、Coursework、More、Messages、Modules、Library 原生截图，确认页脚清理和主要内容/入口保留。未重跑真实登录 smoke 或数据/认证清理设备测试；上述协议无改动，旧证据不作为本轮新接口验收。
+- Schedule 本轮仅规划新布局。连续日期列表和按周列表两份交互草案已检查日期选择、返回 Today、切周、整行详情、对话框背景不可操作以及 320px 宽度；没有横向溢出或脚本错误。课程/时间使用用户截图中 2026-10-05 至 2026-10-09 的记录，未重新请求学校 API。
+- `adb install -r` 成功覆盖安装到 vivo V2502A；确认 versionCode 8 / versionName 0.6.1，MainActivity 启动 `Status: ok`。没有卸载、清除数据或截取手机画面，既有会话与缓存保留。
+
+课表实施建议与验收边界见 [schedule-design.md](schedule-design.md)。手机的清理效果仍需用户手动确认。
+
 ## 0.6.0：固定颜色主题与外观设置
 
 日期：2026-10-04。五套完整固定配色 Forest / Lake / Heather / Sand / Rosewood，共用布局和渲染流程。默认 Forest，细纹理关闭；不提供明暗模式或跟随系统开关。

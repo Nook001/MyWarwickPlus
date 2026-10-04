@@ -1,12 +1,12 @@
 # API 接入进度
 
-更新：2026-10-04，版本 0.6.0。每次接入接口时同步更新此表；协议细节见 [protocol.md](protocol.md)。本轮新增本地外观设置及全局颜色主题，不新增 API。
+更新：2026-10-04，版本 0.6.1。每次接入接口时同步更新此表；协议细节见 [protocol.md](protocol.md)。本轮清理各页面常态保存/同步说明，不新增 API；Schedule 新布局仍为设计草案。
 
 | API / 方法 | 接入情况 | 如何使用与展示 | 验证 / 限制 |
 | --- | --- | --- | --- |
-| `GET /user/info` | 已接入 | 启动、刷新和登录回跳时检查账户、会话与 CSRF 信息；More 展示账户和检查时间 | 原生已验证；cookie/token 不写入日志或 Git |
+| `GET /user/info` | 已接入 | 启动、刷新和登录回跳时检查账户、会话与 CSRF 信息；More 展示账户和登录状态，0.6.1 移除检查时间 | 原生已验证；cookie/token 不写入日志或 Git |
 | `GET /api/tiles/content/timetable` | 已接入 | 首页 NEXT 三行（日期/时间、名称/代码、地点），右侧居中箭头提示整卡进入详情；Today 无课单行；日/周课表、地点链接、重叠提示；缓存与下拉刷新 | 此前真机 143 条；英国时区；失败保留整批旧缓存；长标题可在详情读完整 |
-| `GET /api/tiles/content/coursework` | 已接入 | 首页最近 3 个未来截止日期，Deadlines 标题与 View all coursework 同行；列表搜索、All / Upcoming / Next 7 days / Past 筛选、完整详情、原站入口；独立缓存与同步提示 | 此前浏览器及真机 3 条；支持 `+01` 和 `Z`。近期聚合，不推断已提交状态；原站浏览器可能需独立登录 |
+| `GET /api/tiles/content/coursework` | 已接入 | 首页最近 3 个未来截止日期，Deadlines 标题与 View all coursework 同行；列表搜索、All / Upcoming / Next 7 days / Past 筛选、完整详情、原站入口；独立缓存与失败提示 | 此前浏览器及真机 3 条；支持 `+01` 和 `Z`。近期聚合，不推断已提交状态；原站浏览器可能需独立登录 |
 | `GET /api/tiles/content/library` | 摘要页面已接入；非空结构待验证 | More → Library；学校空列表说明、账户入口、独立缓存与重试；非空条目仅展示实际存在的 title/text/href 或通用原站提示 | 当前浏览器 200 / 0 条；此前原生 0 条。借阅、到期日、欠费等字段未确认，不推定业务含义 |
 | `GET /api/tiles/content/eventsmerge` | 待验证 | 评估与课表合并事件，避免重复日程 | 前端候选；当前无业务展示 |
 | `GET /api/tiles/content/modules` | 已接入 | More → Modules；名称、代码、学年、搜索、详情、公告/评估条数及 Moodle 链接；独立缓存 | 0.4.0 浏览器 200 / 1 条；id 为数字，announcements/evaluations 当时为空。不等同完整选课清单；公告正文仍在原站查看 |
@@ -20,6 +20,8 @@
 认证统一使用官方 WebView 登录得到的 MyWarwick session cookie，原生请求严格限定 MyWarwick HTTPS origin。当前业务接口都是只读 GET。五类页面独立缓存与同步时间；切换账户清除全部缓存，单接口失败不覆盖另一份缓存。More 的本地退出取消/等待同步并清除应用 cookie、WebStorage、缓存与数据库，不调用学校账户写接口。
 
 0.6.0 五类页面及详情共用所选固定 palette；More → Settings → Appearance 只保存主题 ID 和细纹理开关，不读取新的学校接口。背景按主题、纹理和尺寸档后台生成并有界缓存；切主题、设置页滑动不触发数据刷新。认证协议、业务缓存与 Room schema 4 不变。
+
+0.6.1 移除首页、课表、Coursework、Messages、Modules、Library 的保存/更新时间页脚，以及 More 的保存时间列表与会话检查时间。后台仍记录独立同步时间，失败不覆盖缓存，错误与重新登录操作继续显示。Developer tools 只在 More；课表的新日期分组列表尚未接入，方案见 [schedule-design.md](schedule-design.md)。
 
 0.4.0 构建时手机不可用；随后已覆盖安装到 vivo V2502A，用户反馈手动测试均正常、未发现异常。该反馈不补充新的接口数量证据，也不补全 Library 非空借阅结构或 Modules 公告正文的验证。
 

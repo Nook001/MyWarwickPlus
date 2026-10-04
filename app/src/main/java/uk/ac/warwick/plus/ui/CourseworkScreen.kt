@@ -93,7 +93,6 @@ fun CourseworkContent(state: CourseworkState, now: Long, busy: Boolean, onRefres
                 }
             }
         }
-        item { CourseworkSyncNote(state) }
     }
 }
 
@@ -106,14 +105,6 @@ fun filterCoursework(entries: List<CourseworkEntity>, query: String, filter: Str
             "Past" -> entry.dueMillis < now
             else -> true
         }
-    }
-}
-
-@Composable
-fun CourseworkSyncNote(state: CourseworkState) {
-    state.lastSynced?.let { saved ->
-        Text("Saved on this device · updated ${atWarwick(saved).format(DateTimeFormatter.ofPattern("d MMM, HH:mm", Locale.UK))}",
-            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
