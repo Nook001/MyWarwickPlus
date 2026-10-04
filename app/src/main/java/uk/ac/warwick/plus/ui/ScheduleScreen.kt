@@ -40,8 +40,7 @@ fun ScheduleContent(state: TimetableState, today: LocalDate, now: Long, from: Lo
     val days = remember(state.events, from) { scheduleDays(state.events, from) }
     val conflicts = remember(state.events) { conflictingEventIds(state.events) }
     val nextId = remember(state.events, now) {
-        state.events.filter { !it.allDay && it.startMillis > now }
-            .minWithOrNull(compareBy<EventEntity> { it.startMillis }.thenBy { it.id })?.id
+        nextTimedClass(state.events, now)?.id
     }
     LazyColumn(Modifier.fillMaxSize().testTag("schedule-list"), state = listState,
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
@@ -72,7 +71,7 @@ fun ScheduleContent(state: TimetableState, today: LocalDate, now: Long, from: Lo
 }
 
 @Composable
-private fun ScheduleClassRow(event: EventEntity, date: LocalDate, status: String?, conflict: Boolean, onSelect: () -> Unit) {
+internal fun ScheduleClassRow(event: EventEntity, date: LocalDate, status: String?, conflict: Boolean, onSelect: () -> Unit) {
     val title = event.moduleName.ifBlank { event.title.ifBlank { "Class" } }
     val code = if (event.moduleName.isNotBlank() && event.title != title) event.title else event.module.takeUnless { it == title }.orEmpty()
     val time = scheduleTime(event, date)

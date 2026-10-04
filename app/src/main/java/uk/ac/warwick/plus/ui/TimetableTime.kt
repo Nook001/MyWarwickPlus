@@ -65,6 +65,15 @@ fun scheduleTime(event: EventEntity, date: LocalDate): ScheduleTime {
 fun pickerMillis(date: LocalDate): Long = date.toEpochDay() * 86_400_000L
 fun pickerDate(millis: Long): LocalDate = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
 
+fun nextTimedClass(events: List<EventEntity>, now: Long): EventEntity? = events
+    .filter { !it.allDay && it.startMillis > now }
+    .minWithOrNull(compareBy<EventEntity> { it.startMillis }.thenBy { it.id })
+
+fun currentOrNextClass(events: List<EventEntity>, now: Long): EventEntity? = events
+    .filter { !it.allDay && it.startMillis <= now && it.endMillis > now }
+    .minWithOrNull(compareBy<EventEntity> { it.startMillis }.thenBy { it.id })
+    ?: nextTimedClass(events, now)
+
 fun nextClassLabel(event: EventEntity, now: Long): String = when {
     event.startMillis <= now -> "Happening now"
     event.startMillis - now < 60 * 60_000 -> "In ${(event.startMillis - now + 59_999) / 60_000} min"

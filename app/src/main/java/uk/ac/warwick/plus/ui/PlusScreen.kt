@@ -6,7 +6,6 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,14 +24,17 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import uk.ac.warwick.plus.data.*
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import java.util.Locale
 
 private val HomeIcon = ImageVector.Builder("Home", 24.dp, 24.dp, 24f, 24f).apply {
@@ -271,29 +273,42 @@ private fun Welcome(onLogin: () -> Unit) {
 @Composable
 private fun Home(state: TimetableState, today: LocalDate, now: Long, onSelect: (EventEntity) -> Unit,
     onCoursework: (CourseworkEntity) -> Unit, onAllCoursework: () -> Unit) {
-    val next = state.events.filter { it.endMillis > now }.minByOrNull { it.startMillis }
+    val next = currentOrNextClass(state.events, now)
+    val nextId = nextTimedClass(state.events, now)?.id
     val todayEvents = eventsOnDate(state.events, today)
+    val conflicts = remember(state.events) { conflictingEventIds(state.events) }
     LazyColumn(Modifier.fillMaxSize().testTag("home-list"),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
-            SectionLabel("NEXT")
+            SectionLabel(if (next != null && next.startMillis <= now) "NOW" else "NEXT")
             Spacer(Modifier.height(6.dp))
             when {
-                state.lastSynced == null -> EmptyCard("Your timetable hasn't loaded yet", "Refresh to try again.")
-                next == null -> EmptyCard("Nothing coming up", "There are no upcoming classes in your saved timetable.")
+                state.lastSynced == null -> HomeEmptyCard(if (state.busy) "Loading timetable…" else "Timetable hasn't loaded yet")
+                next == null -> HomeEmptyCard("No upcoming classes")
                 else -> NextClassCard(next, now) { onSelect(next) }
             }
         }
-        item { SectionLabel("TODAY", if (state.lastSynced != null) classCountLabel(todayEvents.size) else null) }
-        if (todayEvents.isEmpty() && state.lastSynced != null) item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-                shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth().testTag("today-empty")) {
-                Text("No classes today", style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp))
+        if (state.lastSynced != null) item {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                SectionLabel("TODAY", classCountLabel(todayEvents.size))
+                if (todayEvents.isEmpty()) HomeEmptyCard("No classes today", Modifier.testTag("today-empty"))
+                else Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerLow) {
+                    Column {
+                        todayEvents.forEachIndexed { index, event ->
+                            if (index > 0) HomeRowDivider()
+                            val status = when {
+                                !event.allDay && event.startMillis <= now && event.endMillis > now -> "Now"
+                                event.id == nextId -> "Next"
+                                else -> null
+                            }
+                            ScheduleClassRow(event, today, status, event.id in conflicts) { onSelect(event) }
+                        }
+                    }
+                }
             }
         }
-        items(todayEvents, key = { it.id }) { EventRow(it, it.id in conflictingEventIds(todayEvents)) { onSelect(it) } }
         item {
             Row(Modifier.fillMaxWidth().testTag("deadlines-header"), verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween) {
@@ -305,11 +320,54 @@ private fun Home(state: TimetableState, today: LocalDate, now: Long, onSelect: (
             }
         }
         val upcoming = state.coursework.entries.filter { it.dueMillis >= now }.sortedBy { it.dueMillis }.take(3)
-        if (upcoming.isEmpty()) item {
-            EmptyCard(if (state.coursework.lastSynced == null) "Coursework hasn't loaded yet" else "No upcoming deadlines returned",
-                "Check Coursework for the saved feed and source-service links.")
+        item {
+            if (state.coursework.lastSynced == null) HomeEmptyCard(if (state.busy) "Loading coursework…" else "Coursework hasn't loaded yet")
+            else if (upcoming.isEmpty()) HomeEmptyCard("No upcoming deadlines in this feed")
+            else Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerLow) {
+                Column {
+                    upcoming.forEachIndexed { index, entry ->
+                        if (index > 0) HomeRowDivider()
+                        HomeDeadlineRow(entry, now) { onCoursework(entry) }
+                    }
+                }
+            }
         }
-        items(upcoming, key = { "coursework/${it.id}" }) { entry -> CourseworkRow(entry, now) { onCoursework(entry) } }
+    }
+}
+
+@Composable
+private fun HomeEmptyCard(text: String, modifier: Modifier = Modifier) {
+    Surface(modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
+        Text(text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp))
+    }
+}
+
+@Composable
+private fun HomeRowDivider() = HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .4f))
+
+@Composable
+private fun HomeDeadlineRow(entry: CourseworkEntity, now: Long, onSelect: () -> Unit) {
+    val due = atWarwick(entry.dueMillis).toLocalDate()
+    val today = atWarwick(now).toLocalDate()
+    val days = ChronoUnit.DAYS.between(today, due)
+    val date = due.format(DateTimeFormatter.ofPattern(if (due.year > today.year) "dd-MM-yyyy" else "dd-MM", Locale.UK))
+    val countdownWidth = with(LocalDensity.current) { 72.sp.toDp() }
+    Surface(onClick = onSelect, color = Color.Transparent,
+        modifier = Modifier.fillMaxWidth().testTag("home-deadline-${entry.id}")
+            .semantics { onClick(label = "View coursework details", action = null) }) {
+        Row(Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(horizontal = 12.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("$days ${if (days == 1L) "day" else "days"}", style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary,
+                softWrap = false, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.width(countdownWidth))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(entry.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(date, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Icon(DetailsChevron, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 

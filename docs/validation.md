@@ -1,5 +1,15 @@
 # 原型验收
 
+## 0.9.0：首页紧凑列表与 NOW / NEXT
+
+2026-10-04。Today 与 Schedule 共用课程行，同一天共用底色与分隔线，保留时间、课程/条目代码、地点、Now/Next、冲突及跨午夜提示；没课仍为单行 No classes today。主卡片正在进行时标为 NOW，否则为 NEXT；全日项只进入当天列表，不占用主卡片。重叠课程全部保留，主卡片按开始时间、id 稳定选择。
+
+Deadlines 最多三项，共用列表底色，左列 n days（单数 1 day、当天未过期 0 days），右列一行原始标题与一行 dd-MM；仅下一年及以后追加年份。英国自然日计算天数，详情仍显示准确时间、完整标题与原站入口。倒计时列宽随系统字号调整，长标题省略，整行点击且带详情箭头和无障碍操作说明。未加载和无返回条目使用不同单行文案，不推断提交状态。
+
+assembleDebug 成功，17 项既有 JVM 检查通过（TimetablePresentationTest 4、SchedulePresentationTest 3、CourseworkTest 10）。没有新增/修改测试、编写或运行 UI Test，也没有启动模拟器。本轮未运行 Lint、真实学校接口 smoke 或截图验收；布局观感、大字体、当天/跨年日期及 NOW 转换由用户在物理手机手动复核。认证、Room schema 4、学校接口与缓存协议不变。
+
+明确指定物理手机 10AG4S2KQJ0066R，adb install -r 成功覆盖安装；vivo V2502A 确认 versionCode 12 / versionName 0.9.0，MainActivity 冷启动 Status: ok（374ms）。保留登录与缓存，没有卸载或清除数据。
+
 ## 0.8.1：以卡片颜色区分背景
 
 2026-10-04。按用户反馈移除 0.8.0 新增的所有卡片边框及相关 palette 字段，仅调整 Forest / Rosewood 的普通、空状态和 NEXT 底色，并调亮次要文字；其余主题、渐变、导航、认证、缓存和重试不变。
