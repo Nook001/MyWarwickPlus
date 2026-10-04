@@ -26,7 +26,7 @@ val Services = listOf(
 
 @Composable
 fun MoreContent(state: TimetableState, onLogin: () -> Unit, onSignOut: () -> Unit,
-    onFeed: (FeedKind) -> Unit, onOpen: (String) -> Unit, onProbe: (() -> Unit)?) {
+    onFeed: (FeedKind) -> Unit, onOpen: (String) -> Unit, onProbe: (() -> Unit)?, onSettings: () -> Unit = {}) {
     var confirmSignOut by remember { mutableStateOf(false) }
     LazyColumn(Modifier.fillMaxSize().testTag("more-list"), contentPadding = PaddingValues(Spacing.page),
         verticalArrangement = Arrangement.spacedBy(Spacing.section)) {
@@ -50,6 +50,11 @@ fun MoreContent(state: TimetableState, onLogin: () -> Unit, onSignOut: () -> Uni
                         Text(if (state.logoutFailed) "Retry sign-out" else "Sign out of this app")
                     }
                 }
+            }
+        }
+        item {
+            TextButton(onClick = onSettings, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("appearance-settings")) {
+                Text("Settings", style = MaterialTheme.typography.titleMedium)
             }
         }
         item {

@@ -19,6 +19,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import uk.ac.warwick.plus.data.MyWarwickApi
 import uk.ac.warwick.plus.ui.PlusTheme
+import uk.ac.warwick.plus.PlusApplication
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /** Login stays on the official service. No JavaScript bridge or credential interception. */
 class LoginActivity : ComponentActivity() {
@@ -32,7 +34,8 @@ class LoginActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            PlusTheme {
+            val appearance by (application as PlusApplication).appearance.state.collectAsStateWithLifecycle()
+            PlusTheme(appearance) {
                 BackHandler {
                     if (webView?.canGoBack() == true) webView?.goBack() else finish()
                 }

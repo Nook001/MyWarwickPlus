@@ -21,8 +21,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            PlusTheme {
-                val app = application as PlusApplication
+            val app = application as PlusApplication
+            val appearance by app.appearance.state.collectAsStateWithLifecycle()
+            PlusTheme(appearance, app.appearance::update) {
                 val model: TimetableViewModel = viewModel(factory = viewModelFactory {
                     initializer { TimetableViewModel(app.repository) }
                 })

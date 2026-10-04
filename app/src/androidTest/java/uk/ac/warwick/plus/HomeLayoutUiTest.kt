@@ -45,7 +45,7 @@ class HomeLayoutUiTest {
         }
         bitmap.recycle()
     }
-    @Test fun compactHomeShowsDeadlineOnFirstScreenAndRetainsAlignedDetailsInBothThemes() {
+    @Test fun compactHomeShowsDeadlineOnFirstScreenAndRetainsAlignedDetailsInTwoColourThemes() {
         var dark by mutableStateOf(false)
         compose.setContent {
             val configuration = Configuration(LocalConfiguration.current).apply {
@@ -53,7 +53,7 @@ class HomeLayoutUiTest {
                     if (dark) Configuration.UI_MODE_NIGHT_YES else Configuration.UI_MODE_NIGHT_NO
             }
             CompositionLocalProvider(LocalConfiguration provides configuration) {
-                PlusTheme { PlusScreen(fixture(), {}, {}) }
+                PlusTheme(Appearance(if (dark) ColourTheme.FOREST else ColourTheme.LAKE)) { PlusScreen(fixture(), {}, {}) }
             }
         }
         compose.onNodeWithTag("home-greeting").assertTextContains(", Avery", substring = true)

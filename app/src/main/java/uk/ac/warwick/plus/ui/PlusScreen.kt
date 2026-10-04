@@ -71,6 +71,7 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
     var courseworkId by rememberSaveable { mutableStateOf<String?>(null) }
     var showProbe by rememberSaveable { mutableStateOf(false) }
     var feedRoute by rememberSaveable { mutableStateOf<Int?>(null) }
+    var showAppearance by rememberSaveable { mutableStateOf(false) }
     var feedEntryId by rememberSaveable { mutableStateOf<String?>(null) }
     val route = FeedKind.entries.firstOrNull { it.key == feedRoute }
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -110,10 +111,14 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
         if (feedEntryId != null && (route == null || state.feed(route).entries.none { it.id == feedEntryId })) feedEntryId = null
     }
     BackHandler(tab != 0 && selectedId == null && courseworkId == null && feedEntryId == null && !showProbe) {
-        if (tab == 3 && route != null) feedRoute = null else tab = 0
+        if (tab == 3 && showAppearance) showAppearance = false
+        else if (tab == 3 && route != null) feedRoute = null else tab = 0
     }
 
-    Scaffold(snackbarHost = { SnackbarHost(snackbar) }, bottomBar = {
+    Box(Modifier.fillMaxSize()) {
+    ThemeBackground(Modifier.matchParentSize())
+    Scaffold(containerColor = Color.Transparent, contentColor = MaterialTheme.colorScheme.onBackground,
+        snackbarHost = { SnackbarHost(snackbar) }, bottomBar = {
         NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
             NavigationBarItem(selected = tab == 0, onClick = { tab = 0 },
                 icon = { Icon(HomeIcon, null) }, label = { Text("Home") })
@@ -121,7 +126,7 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
                 icon = { Icon(ScheduleIcon, null) }, label = { Text("Schedule") })
             NavigationBarItem(selected = tab == 2, onClick = { tab = 2 },
                 icon = { Icon(CourseworkIcon, null) }, label = { Text("Coursework", maxLines = 1, overflow = TextOverflow.Ellipsis) })
-            NavigationBarItem(selected = tab == 3, onClick = { tab = 3; feedRoute = null; feedEntryId = null }, modifier = Modifier.testTag("more-tab"),
+            NavigationBarItem(selected = tab == 3, onClick = { tab = 3; feedRoute = null; feedEntryId = null; showAppearance = false }, modifier = Modifier.testTag("more-tab"),
                 icon = { Text("•••", style = MaterialTheme.typography.titleLarge) }, label = { Text("More") })
         }
     }) { padding ->
@@ -132,14 +137,14 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(if (tab == 0) 2.dp else 4.dp)) {
                     Text("MY WARWICK +", style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                    Text(if (tab == 3) route?.label ?: "More" else if (tab == 1) "Timetable" else if (tab == 2) "Coursework deadlines" else greeting,
+                    Text(if (tab == 3) (if (showAppearance) "Appearance" else route?.label ?: "More") else if (tab == 1) "Timetable" else if (tab == 2) "Coursework deadlines" else greeting,
                         style = if (tab == 0) MaterialTheme.typography.titleMedium else MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.SemiBold, modifier = if (tab == 0) Modifier.testTag("home-greeting") else Modifier)
                 }
-                if (tab == 3 && route != null) TextButton(onClick = { feedRoute = null; feedEntryId = null }) { Text("Back") }
+                if (tab == 3 && (route != null || showAppearance)) TextButton(onClick = { feedRoute = null; feedEntryId = null; showAppearance = false }) { Text("Back") }
             }
             if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-            if (!state.signingOut && state.message != null &&
+            if (!(tab == 3 && showAppearance) && !state.signingOut && state.message != null &&
                 (tab == 3 && (state.needsLogin || state.logoutFailed) || tab != 3 && (state.hasSavedData || !state.needsLogin))) {
                 Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(16.dp),
                     modifier = Modifier.padding(horizontal = Spacing.page)) {
@@ -153,6 +158,7 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
                     }
                 }
             }
+            if (tab == 3 && showAppearance && !state.signingOut) AppearanceContent() else {
             PullToRefreshBox(isRefreshing = state.busy && !state.signingOut,
                 onRefresh = { if (!state.signingOut && !state.logoutFailed) {
                     if (tab == 3 && route != null && onFeedRefresh != null) onFeedRefresh(route) else onRefresh()
@@ -161,7 +167,8 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
                 state.signingOut -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Signing out…") }
                 tab == 3 -> {
                     if (route == null) MoreContent(state, onLogin, onSignOut, { feedRoute = it.key }, openLink,
-                        if (probe != null && !state.logoutFailed) ({ showProbe = true }) else null)
+                        if (probe != null && !state.logoutFailed) ({ showProbe = true }) else null,
+                        onSettings = { showAppearance = true })
                     else {
                         FeedContent(route, state.feed(route), state.busy, state.needsLogin,
                             { onFeedRefresh?.invoke(route) ?: onRefresh() }, onMoreMessages, { feedEntryId = it.id }, openLink)
@@ -184,7 +191,9 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
                 }
             }
             }
+            }
         }
+    }
     }
     if (!state.signingOut) state.events.firstOrNull { it.id == selectedId }?.let { event ->
         EventDetails(event, event.id in conflictingEventIds(state.events), onDismiss = { selectedId = null })
