@@ -51,7 +51,7 @@ fun ScheduleContent(state: TimetableState, today: LocalDate, now: Long, from: Lo
         } else items(days, key = { it.date.toEpochDay() }) { day ->
             Column(Modifier.fillMaxWidth().testTag("schedule-day-${day.date}"), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 SectionLabel(scheduleDateLabel(day.date, today))
-                Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surfaceContainerLow, border = cardBorder()) {
+                Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
                     if (day.events.isEmpty()) Text(if (day.date == today) "No classes today" else "No classes on this day",
                         style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp))
                     else Column {

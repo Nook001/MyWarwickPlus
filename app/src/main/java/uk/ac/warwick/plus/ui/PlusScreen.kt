@@ -287,7 +287,7 @@ private fun Home(state: TimetableState, today: LocalDate, now: Long, onSelect: (
         }
         item { SectionLabel("TODAY", if (state.lastSynced != null) classCountLabel(todayEvents.size) else null) }
         if (todayEvents.isEmpty() && state.lastSynced != null) item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer), border = cardBorder(),
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth().testTag("today-empty")) {
                 Text("No classes today", style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp))
@@ -323,7 +323,7 @@ private fun NextClassCard(event: EventEntity, now: Long, onSelect: () -> Unit) {
         "${endDate.format(DateTimeFormatter.ofPattern("EEE d MMM", Locale.UK))} ${timeLabel(event.endMillis)}"
         else timeLabel(event.endMillis)
     val time = if (event.allDay) "All day" else "${timeLabel(event.startMillis)} – $end"
-    Card(onClick = onSelect, border = cardBorder(),
+    Card(onClick = onSelect,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
         shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth().testTag("next-class-card")
             .semantics { onClick(label = "View class details", action = null) }) {

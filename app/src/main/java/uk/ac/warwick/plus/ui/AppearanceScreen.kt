@@ -26,7 +26,7 @@ fun AppearanceContent() {
         item { SectionLabel("COLOUR THEME") }
         items(ColourTheme.entries, key = { it.id }) { theme ->
             val selected = appearance.theme == theme
-            Surface(shape = RoundedCornerShape(18.dp), border = cardBorder(),
+            Surface(shape = RoundedCornerShape(18.dp),
                 color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
                 contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface) {
                 Row(Modifier.fillMaxWidth().selectable(selected, role = Role.RadioButton,
@@ -43,7 +43,7 @@ fun AppearanceContent() {
             }
         }
         item {
-            Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceContainerLow, border = cardBorder()) {
+            Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
                 Row(Modifier.fillMaxWidth().toggleable(appearance.texture, role = Role.Switch,
                     onValueChange = { update(appearance.copy(texture = it)) }).testTag("fine-texture")
                     .padding(14.dp), verticalAlignment = Alignment.CenterVertically,

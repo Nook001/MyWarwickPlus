@@ -34,7 +34,7 @@ fun deadlineTime(due: Long): String = atWarwick(due).format(DateTimeFormatter.of
 
 @Composable
 fun CourseworkRow(entry: CourseworkEntity, now: Long, onSelect: () -> Unit) {
-    Card(onClick = onSelect, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), border = cardBorder(),
+    Card(onClick = onSelect, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(deadlineLabel(entry.dueMillis, now), style = MaterialTheme.typography.labelMedium,

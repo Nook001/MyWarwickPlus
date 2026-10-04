@@ -48,7 +48,7 @@ fun FeedContent(kind: FeedKind, state: FeedState, busy: Boolean, needsLogin: Boo
                 state.description.ifBlank { "This saved feed is empty. Check the source service for the full record." }) }
             filtered.isEmpty() -> item { EmptyCard("No matches", "Try another search or clear the search field.") }
             else -> items(filtered, key = { it.id }) { entry ->
-                Card(onClick = { focus.clearFocus(); onSelect(entry) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), border = cardBorder(),
+                Card(onClick = { focus.clearFocus(); onSelect(entry) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
                     Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         val label = if (kind == FeedKind.MODULES) listOf(entry.moduleCode, entry.academicYear).filter { it.isNotBlank() }.joinToString(" · ") else entry.provider
