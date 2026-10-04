@@ -39,10 +39,6 @@ fun FeedContent(kind: FeedKind, state: FeedState, busy: Boolean, needsLogin: Boo
                 keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { focus.clearFocus() }),
                 modifier = Modifier.fillMaxWidth().padding(top = 12.dp))
         }
-        state.message?.let { message -> item {
-            Text(message, style = MaterialTheme.typography.bodyMedium)
-            TextButton(onClick = onRefresh, enabled = !busy) { Text("Retry ${kind.label.lowercase()}") }
-        } }
         when {
             state.lastSynced == null -> item { EmptyCard(if (state.loading) "Loading ${kind.label.lowercase()}…" else when (kind) {
                 FeedKind.LIBRARY -> "Your Library summary hasn't loaded yet"
@@ -52,7 +48,7 @@ fun FeedContent(kind: FeedKind, state: FeedState, busy: Boolean, needsLogin: Boo
                 state.description.ifBlank { "This saved feed is empty. Check the source service for the full record." }) }
             filtered.isEmpty() -> item { EmptyCard("No matches", "Try another search or clear the search field.") }
             else -> items(filtered, key = { it.id }) { entry ->
-                Card(onClick = { focus.clearFocus(); onSelect(entry) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp),
+                Card(onClick = { focus.clearFocus(); onSelect(entry) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), border = cardBorder(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
                     Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         val label = if (kind == FeedKind.MODULES) listOf(entry.moduleCode, entry.academicYear).filter { it.isNotBlank() }.joinToString(" · ") else entry.provider

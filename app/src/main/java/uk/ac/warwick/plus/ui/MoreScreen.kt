@@ -32,7 +32,7 @@ fun MoreContent(state: TimetableState, onLogin: () -> Unit, onSignOut: () -> Uni
         item {
             SectionLabel("ACCOUNT")
             Spacer(Modifier.height(12.dp))
-            Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
+            Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceContainerLow, border = cardBorder()) {
                 Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(state.name.ifBlank { "Your Warwick account" }, style = MaterialTheme.typography.titleLarge)
                     if (state.accountCode.isNotBlank()) Text(state.accountCode, style = MaterialTheme.typography.bodyMedium)

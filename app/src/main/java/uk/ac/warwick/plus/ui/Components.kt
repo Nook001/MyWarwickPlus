@@ -32,7 +32,7 @@ fun SectionLabel(text: String, trailing: String? = null) {
 
 @Composable
 fun EmptyCard(title: String, detail: String) {
-    Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
+    Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceContainerLow, border = cardBorder()) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
             Text(detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -42,7 +42,7 @@ fun EmptyCard(title: String, detail: String) {
 
 @Composable
 fun EventRow(event: EventEntity, conflict: Boolean = false, onSelect: () -> Unit) {
-    Card(onClick = onSelect, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp),
+    Card(onClick = onSelect, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), border = cardBorder(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
         Row(Modifier.padding(18.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Column(Modifier.width(52.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {

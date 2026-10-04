@@ -1,6 +1,8 @@
 package uk.ac.warwick.plus.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,6 +23,7 @@ import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -53,6 +56,30 @@ private val CourseworkIcon = ImageVector.Builder("Coursework", 24.dp, 24.dp, 24f
     }
 }.build()
 
+private val MoreIcon = ImageVector.Builder("More", 24.dp, 24.dp, 24f, 24f).apply {
+    path(fill = SolidColor(Color.Black)) {
+        for (x in listOf(5f, 12f, 19f)) {
+            moveTo(x - 2f, 12f); curveTo(x - 2f, 9.3f, x + 2f, 9.3f, x + 2f, 12f)
+            curveTo(x + 2f, 14.7f, x - 2f, 14.7f, x - 2f, 12f); close()
+        }
+    }
+}.build()
+
+@Composable
+private fun RowScope.CompactTab(label: String, selected: Boolean, onSelect: () -> Unit,
+    tag: String = "tab-${label.lowercase()}", icon: @Composable () -> Unit) {
+    Column(Modifier.weight(1f).selectable(selected, role = Role.Tab, onClick = onSelect).testTag(tag)
+        .heightIn(min = 64.dp).padding(vertical = 6.dp), horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically)) {
+        Surface(shape = RoundedCornerShape(50), color = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+            contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant) {
+            Box(Modifier.padding(horizontal = 12.dp, vertical = 3.dp), contentAlignment = Alignment.Center) { icon() }
+        }
+        Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis,
+            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
 internal val DetailsChevron = ImageVector.Builder("DetailsChevron", 24.dp, 24.dp, 24f, 24f, autoMirror = true).apply {
     path(fill = SolidColor(Color.Black)) {
         moveTo(9f, 6f); lineTo(7.6f, 7.4f); lineTo(12.2f, 12f)
@@ -65,7 +92,8 @@ internal val DetailsChevron = ImageVector.Builder("DetailsChevron", 24.dp, 24.dp
 fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit,
     probe: ((ProbeEndpoint) -> ProbeResult)? = null, onCourseworkLink: ((String) -> Unit)? = null,
     onSignOut: () -> Unit = {}, onFeedRefresh: ((FeedKind) -> Unit)? = null,
-    onMoreMessages: () -> Unit = {}, onExternalLink: ((String) -> Unit)? = null) {
+    onMoreMessages: () -> Unit = {}, onExternalLink: ((String) -> Unit)? = null,
+    onNoticeConsumed: (Long) -> Unit = {}) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
     var courseworkId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -77,6 +105,19 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
+    LaunchedEffect(state.notice?.id) {
+        state.notice?.let { notice ->
+            try {
+                val result = snackbar.showSnackbar(notice.message,
+                    actionLabel = if (state.needsLogin) "Sign in" else "Retry", duration = SnackbarDuration.Short)
+                if (result == SnackbarResult.ActionPerformed) {
+                    if (state.needsLogin) onLogin()
+                    else if (notice.olderMessages) onMoreMessages()
+                    else notice.feed?.let { kind -> onFeedRefresh?.invoke(kind) ?: onRefresh() } ?: onRefresh()
+                }
+            } finally { onNoticeConsumed(notice.id) }
+        }
+    }
     val openLink: (String) -> Unit = { raw ->
         val url = safeExternalUrl(raw)
         val failed = url == null || runCatching {
@@ -126,27 +167,28 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
     Box(Modifier.fillMaxSize()) {
     ThemeBackground(Modifier.matchParentSize())
     Scaffold(containerColor = Color.Transparent, contentColor = MaterialTheme.colorScheme.onBackground,
+        contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
         snackbarHost = { SnackbarHost(snackbar) }, bottomBar = {
-        NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
-            NavigationBarItem(selected = tab == 0, onClick = { tab = 0 },
-                icon = { Icon(HomeIcon, null) }, label = { Text("Home") })
-            NavigationBarItem(selected = tab == 1, onClick = { tab = 1 }, modifier = Modifier.testTag("schedule-tab"),
-                icon = { Icon(ScheduleIcon, null) }, label = { Text("Schedule") })
-            NavigationBarItem(selected = tab == 2, onClick = { tab = 2 },
-                icon = { Icon(CourseworkIcon, null) }, label = { Text("Coursework", maxLines = 1, overflow = TextOverflow.Ellipsis) })
-            NavigationBarItem(selected = tab == 3, onClick = { tab = 3; feedRoute = null; feedEntryId = null; showAppearance = false }, modifier = Modifier.testTag("more-tab"),
-                icon = { Text("•••", style = MaterialTheme.typography.titleLarge) }, label = { Text("More") })
+        Surface(color = MaterialTheme.colorScheme.surface) {
+            Row(Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal))
+                .padding(horizontal = 20.dp).selectableGroup().testTag("compact-tab-bar"), verticalAlignment = Alignment.CenterVertically) {
+                CompactTab("Home", tab == 0, { tab = 0 }) { Icon(HomeIcon, null, Modifier.size(22.dp)) }
+                CompactTab("Schedule", tab == 1, { tab = 1 }, "schedule-tab") { Icon(ScheduleIcon, null, Modifier.size(22.dp)) }
+                CompactTab("Coursework", tab == 2, { tab = 2 }) { Icon(CourseworkIcon, null, Modifier.size(22.dp)) }
+                CompactTab("More", tab == 3, { tab = 3; feedRoute = null; feedEntryId = null; showAppearance = false }, "more-tab") {
+                    Icon(MoreIcon, null, Modifier.size(22.dp))
+                }
+            }
         }
     }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = if (tab <= 1) 16.dp else Spacing.page,
-                vertical = if (tab <= 1) 8.dp else 16.dp),
+            Row(Modifier.fillMaxWidth().testTag("page-header").padding(horizontal = 16.dp, vertical = 2.dp),
                 verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(if (tab == 0) 2.dp else 4.dp)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text("MY WARWICK +", style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     Text(if (tab == 3) (if (showAppearance) "Appearance" else route?.label ?: "More") else if (tab == 1) "Schedule" else if (tab == 2) "Coursework deadlines" else greeting,
-                        style = if (tab <= 1) MaterialTheme.typography.titleMedium else MaterialTheme.typography.headlineSmall,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold, modifier = if (tab == 0) Modifier.testTag("home-greeting") else Modifier)
                 }
                 if (tab == 1) {
@@ -159,20 +201,6 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
                 if (tab == 3 && (route != null || showAppearance)) TextButton(onClick = { feedRoute = null; feedEntryId = null; showAppearance = false }) { Text("Back") }
             }
             if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-            if (!(tab == 3 && showAppearance) && !state.signingOut && state.message != null &&
-                (tab == 3 && (state.needsLogin || state.logoutFailed) || tab != 3 && (state.hasSavedData || !state.needsLogin))) {
-                Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.padding(horizontal = Spacing.page)) {
-                    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-                        Text(state.message, style = MaterialTheme.typography.bodyMedium)
-                        when {
-                            state.logoutFailed -> TextButton(onClick = onSignOut) { Text("Retry sign-out") }
-                            state.needsLogin -> TextButton(onClick = onLogin) { Text("Sign in") }
-                            else -> TextButton(onClick = onRefresh, enabled = !state.busy) { Text("Try again") }
-                        }
-                    }
-                }
-            }
             if (tab == 3 && showAppearance && !state.signingOut) AppearanceContent() else {
             PullToRefreshBox(isRefreshing = state.busy && !state.signingOut,
                 onRefresh = { if (!state.signingOut && !state.logoutFailed) {
@@ -259,7 +287,7 @@ private fun Home(state: TimetableState, today: LocalDate, now: Long, onSelect: (
         }
         item { SectionLabel("TODAY", if (state.lastSynced != null) classCountLabel(todayEvents.size) else null) }
         if (todayEvents.isEmpty() && state.lastSynced != null) item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer), border = cardBorder(),
                 shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth().testTag("today-empty")) {
                 Text("No classes today", style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp))
@@ -275,7 +303,6 @@ private fun Home(state: TimetableState, today: LocalDate, now: Long, onSelect: (
                     Text("View all coursework")
                 }
             }
-            state.coursework.message?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
         }
         val upcoming = state.coursework.entries.filter { it.dueMillis >= now }.sortedBy { it.dueMillis }.take(3)
         if (upcoming.isEmpty()) item {
@@ -296,7 +323,7 @@ private fun NextClassCard(event: EventEntity, now: Long, onSelect: () -> Unit) {
         "${endDate.format(DateTimeFormatter.ofPattern("EEE d MMM", Locale.UK))} ${timeLabel(event.endMillis)}"
         else timeLabel(event.endMillis)
     val time = if (event.allDay) "All day" else "${timeLabel(event.startMillis)} – $end"
-    Card(onClick = onSelect,
+    Card(onClick = onSelect, border = cardBorder(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
         shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth().testTag("next-class-card")
             .semantics { onClick(label = "View class details", action = null) }) {

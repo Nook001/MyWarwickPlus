@@ -34,7 +34,7 @@ fun deadlineTime(due: Long): String = atWarwick(due).format(DateTimeFormatter.of
 
 @Composable
 fun CourseworkRow(entry: CourseworkEntity, now: Long, onSelect: () -> Unit) {
-    Card(onClick = onSelect, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp),
+    Card(onClick = onSelect, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), border = cardBorder(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(deadlineLabel(entry.dueMillis, now), style = MaterialTheme.typography.labelMedium,
@@ -71,10 +71,6 @@ fun CourseworkContent(state: CourseworkState, now: Long, busy: Boolean, onRefres
                 }
             }
         }
-        state.message?.let { message -> item {
-            Text(message, style = MaterialTheme.typography.bodyMedium)
-            TextButton(onClick = onRefresh, enabled = !busy) { Text("Retry coursework") }
-        } }
         when {
             state.lastSynced == null -> item {
                 EmptyCard(if (busy) "Loading coursework…" else "Coursework hasn't loaded yet", "Refresh to retrieve deadlines from MyWarwick.")

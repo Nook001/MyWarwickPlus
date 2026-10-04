@@ -46,7 +46,8 @@ class TimetableUiTest {
         compose.onNodeWithText("Coursework", useUnmergedTree = true).performClick()
         compose.onNodeWithText("Past assignment").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Deadline passed").assertIsDisplayed()
-        compose.onNodeWithText("Sign in").assertIsDisplayed()
+        compose.onNodeWithTag("more-tab").performClick()
+        compose.onNodeWithText("Sign in with Warwick").assertIsDisplayed()
     }
     @Test fun emptyFeedDoesNotImplyAllAssignmentsAreSubmitted() {
         compose.setContent { PlusTheme {
@@ -73,10 +74,11 @@ class TimetableUiTest {
     }
     @Test fun authenticatedButFailedSyncOffersRetryInsteadOfLogin() {
         compose.setContent { PlusTheme {
-            PlusScreen(TimetableState(signedIn = true, message = "You're signed in, but your timetable couldn't be loaded. Try refreshing."), {}, {})
+            PlusScreen(TimetableState(signedIn = true, message = "Your timetable couldn't be loaded.",
+                notice = SyncNotice(1, "Your timetable couldn't be loaded.")), {}, {})
         } }
         compose.onNodeWithText("Sign in with Warwick").assertDoesNotExist()
-        compose.onNodeWithText("Try again").assertIsDisplayed()
+        compose.onNodeWithText("Retry").assertIsDisplayed()
         compose.onNodeWithText("No classes today").assertDoesNotExist()
     }
     @Test fun savedClassCanBeViewedOnScheduleWithoutLogin() {
@@ -125,7 +127,8 @@ class TimetableUiTest {
             PlusScreen(TimetableState(events = listOf(event), lastSynced = 1L, needsLogin = true,
                 message = "Your session has expired. Sign in to update your saved timetable."), {}, { requested = true })
         } }
-        compose.onNodeWithText("Sign in").performClick()
+        compose.onNodeWithTag("more-tab").performClick()
+        compose.onNodeWithText("Sign in with Warwick").performClick()
         assertTrue(requested)
         compose.onNodeWithTag("schedule-tab").performClick()
         compose.onNodeWithText("Cached seminar").performScrollTo().assertIsDisplayed()
