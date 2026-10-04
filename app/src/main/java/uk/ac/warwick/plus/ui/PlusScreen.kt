@@ -86,6 +86,10 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) { while (true) { now = System.currentTimeMillis(); delay(30_000) } }
     val today = atWarwick(now).toLocalDate()
+    val firstName = state.name.trim().split(Regex("\\s+"), limit = 2).firstOrNull().orEmpty()
+    val greeting = when (atWarwick(now).hour) {
+        in 0..11 -> "Good morning"; in 12..17 -> "Good afternoon"; else -> "Good evening"
+    } + if (firstName.isNotBlank()) ", $firstName" else ""
     var selectedDay by rememberSaveable { mutableLongStateOf(today.toEpochDay()) }
     var weekView by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(state.events, selectedId) {
@@ -114,18 +118,17 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
         }
     }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.page, vertical = 16.dp),
+            Row(Modifier.fillMaxWidth().padding(horizontal = if (tab == 0) 16.dp else Spacing.page,
+                vertical = if (tab == 0) 8.dp else 16.dp),
                 verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(if (tab == 0) 2.dp else 4.dp)) {
                     Text("MY WARWICK +", style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                    Text(if (tab == 3) route?.label ?: "More" else if (tab == 1) "Timetable" else if (tab == 2) "Coursework deadlines" else when (atWarwick(now).hour) {
-                        in 0..11 -> "Good morning"; in 12..17 -> "Good afternoon"; else -> "Good evening"
-                    }, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+                    Text(if (tab == 3) route?.label ?: "More" else if (tab == 1) "Timetable" else if (tab == 2) "Coursework deadlines" else greeting,
+                        style = if (tab == 0) MaterialTheme.typography.titleMedium else MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.SemiBold, modifier = if (tab == 0) Modifier.testTag("home-greeting") else Modifier)
                 }
                 if (tab == 3 && route != null) TextButton(onClick = { feedRoute = null; feedEntryId = null }) { Text("Back") }
-                TextButton(onClick = { if (tab == 3 && route != null && onFeedRefresh != null) onFeedRefresh(route) else onRefresh() },
-                    enabled = !state.busy && !state.signingOut && !state.logoutFailed) { Text("Refresh") }
             }
             if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             if (!state.signingOut && state.message != null &&
@@ -166,7 +169,6 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
                 !state.hasSavedData && state.needsLogin -> Welcome(onLogin)
                 else -> {
                     if (tab == 0) Home(state, today, now, { selectedId = it.id }, { courseworkId = it.id }, { tab = 2 },
-                        { tab = 3; feedRoute = FeedKind.MESSAGES.key },
                         if (probe != null) ({ showProbe = true }) else null)
                     else if (tab == 2) CourseworkContent(state.coursework, now, state.busy, onRefresh, { courseworkId = it.id })
                     else Schedule(state, today, now, LocalDate.ofEpochDay(selectedDay), weekView,
@@ -208,38 +210,19 @@ private fun Welcome(onLogin: () -> Unit) {
 
 @Composable
 private fun Home(state: TimetableState, today: LocalDate, now: Long, onSelect: (EventEntity) -> Unit,
-    onCoursework: (CourseworkEntity) -> Unit, onAllCoursework: () -> Unit, onMessages: () -> Unit, onProbe: (() -> Unit)?) {
+    onCoursework: (CourseworkEntity) -> Unit, onAllCoursework: () -> Unit, onProbe: (() -> Unit)?) {
     val next = state.events.filter { it.endMillis > now }.minByOrNull { it.startMillis }
     val todayEvents = eventsOnDate(state.events, today)
-    LazyColumn(Modifier.fillMaxSize().testTag("home-list"), contentPadding = PaddingValues(Spacing.page),
-        verticalArrangement = Arrangement.spacedBy(Spacing.section)) {
+    LazyColumn(Modifier.fillMaxSize().testTag("home-list"),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
-            TextButton(onClick = onMessages) { Text("View messages") }
-            Text(dateLabel(today), style = MaterialTheme.typography.titleMedium)
-            Text("Times shown in Warwick time", style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        item {
-            SectionLabel("UP NEXT")
-            Spacer(Modifier.height(12.dp))
+            SectionLabel("NEXT")
+            Spacer(Modifier.height(6.dp))
             when {
                 state.lastSynced == null -> EmptyCard("Your timetable hasn't loaded yet", "Refresh to try again.")
                 next == null -> EmptyCard("Nothing coming up", "There are no upcoming classes in your saved timetable.")
-                else -> Card(onClick = { onSelect(next) },
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                    shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(nextClassLabel(next, now), style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold)
-                        Text(if (next.allDay) "All day" else "${timeLabel(next.startMillis)} – ${timeLabel(next.endMillis)}",
-                            style = MaterialTheme.typography.titleMedium)
-                        Text(next.moduleName.ifBlank { next.title }, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
-                        if (next.moduleName.isNotBlank() && next.moduleName != next.title) Text(next.title, style = MaterialTheme.typography.labelLarge)
-                        else if (next.module.isNotBlank()) Text(next.module, style = MaterialTheme.typography.labelLarge)
-                        if (next.location.isNotBlank()) Text(next.location, style = MaterialTheme.typography.bodyMedium)
-                        Text("View class details", style = MaterialTheme.typography.labelMedium)
-                    }
-                }
+                else -> NextClassCard(next, now) { onSelect(next) }
             }
         }
         item { SectionLabel("TODAY", if (state.lastSynced != null) classCountLabel(todayEvents.size) else null) }
@@ -259,6 +242,43 @@ private fun Home(state: TimetableState, today: LocalDate, now: Long, onSelect: (
         item { CourseworkSyncNote(state.coursework) }
         item { SyncNote(state, now) }
         if (onProbe != null) item { TextButton(onClick = onProbe) { Text("Developer tools") } }
+    }
+}
+
+@Composable
+private fun NextClassCard(event: EventEntity, now: Long, onSelect: () -> Unit) {
+    val name = event.moduleName.ifBlank { event.title }
+    val code = if (event.moduleName.isNotBlank() && event.title != name) event.title
+        else event.module.takeUnless { it == name }.orEmpty()
+    val endDate = atWarwick(event.endMillis).toLocalDate()
+    val end = if (endDate != atWarwick(event.startMillis).toLocalDate())
+        "${endDate.format(DateTimeFormatter.ofPattern("EEE d MMM", Locale.UK))} ${timeLabel(event.endMillis)}"
+        else timeLabel(event.endMillis)
+    val time = if (event.allDay) "All day" else "${timeLabel(event.startMillis)} – $end"
+    Card(onClick = onSelect,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth().testTag("next-class-card")) {
+        Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("${nextClassLabel(event, now)} · $time", style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Medium, modifier = Modifier.testTag("next-when"))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f).alignByBaseline().testTag("next-name"))
+                if (code.isNotBlank()) Text(code, style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.widthIn(max = 112.dp).alignByBaseline().testTag("next-code"))
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(event.location.ifBlank { "Location not provided" }, style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f).testTag("next-location"))
+                TextButton(onClick = onSelect, modifier = Modifier.widthIn(max = 128.dp),
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)) {
+                    Text("View class details", style = MaterialTheme.typography.labelMedium)
+                }
+            }
+        }
     }
 }
 

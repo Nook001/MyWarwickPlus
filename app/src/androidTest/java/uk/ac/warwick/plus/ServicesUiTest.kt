@@ -98,16 +98,20 @@ class ServicesUiTest {
         capture("swipe-after")
         compose.waitUntil(5_000) { calls.get()>0 }
     }
-    @Test fun refreshButtonUsesCurrentPageAndDoesNotRequestOlderMessages() {
+    @Test fun pullRefreshUsesCurrentPageAndDoesNotRequestOlderMessages() {
         var globalCalls = 0
         var feed: FeedKind? = null
         var olderCalls = 0
         compose.setContent { PlusTheme { PlusScreen(state(FeedKind.MESSAGES), { globalCalls++ }, {},
             onFeedRefresh = { feed = it }, onMoreMessages = { olderCalls++ }) } }
-        compose.onNodeWithText("Refresh").performClick()
+        compose.onNodeWithText("Refresh").assertDoesNotExist()
+        compose.onNodeWithTag("home-list").performTouchInput { swipeDown(startY=10f, endY=height-10f, durationMillis=1_000) }
+        compose.waitUntil(5_000) { globalCalls == 1 }
         assertEquals(1, globalCalls); assertNull(feed)
         navigate(FeedKind.MESSAGES)
-        compose.onNodeWithText("Refresh").performClick()
+        compose.onNodeWithText("Refresh").assertDoesNotExist()
+        compose.onNodeWithTag("feed-list").performTouchInput { swipeDown(startY=10f, endY=height-10f, durationMillis=1_000) }
+        compose.waitUntil(5_000) { feed == FeedKind.MESSAGES }
         assertEquals(1, globalCalls); assertEquals(FeedKind.MESSAGES, feed); assertEquals(0, olderCalls)
     }
     @Test fun largeFontLongTitlesAndFiltersRemainUsable() {
