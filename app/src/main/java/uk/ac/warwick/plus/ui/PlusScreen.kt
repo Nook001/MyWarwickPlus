@@ -1,11 +1,11 @@
 package uk.ac.warwick.plus.ui
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -53,7 +53,7 @@ private val CourseworkIcon = ImageVector.Builder("Coursework", 24.dp, 24.dp, 24f
     }
 }.build()
 
-private val DetailsChevron = ImageVector.Builder("DetailsChevron", 24.dp, 24.dp, 24f, 24f, autoMirror = true).apply {
+internal val DetailsChevron = ImageVector.Builder("DetailsChevron", 24.dp, 24.dp, 24f, 24f, autoMirror = true).apply {
     path(fill = SolidColor(Color.Black)) {
         moveTo(9f, 6f); lineTo(7.6f, 7.4f); lineTo(12.2f, 12f)
         lineTo(7.6f, 16.6f); lineTo(9f, 18f); lineTo(15f, 12f); close()
@@ -100,7 +100,15 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
         in 0..11 -> "Good morning"; in 12..17 -> "Good afternoon"; else -> "Good evening"
     } + if (firstName.isNotBlank()) ", $firstName" else ""
     var selectedDay by rememberSaveable { mutableLongStateOf(today.toEpochDay()) }
-    var weekView by rememberSaveable { mutableStateOf(false) }
+    var followToday by rememberSaveable { mutableStateOf(true) }
+    var showDatePicker by rememberSaveable { mutableStateOf(false) }
+    val scheduleListState = rememberLazyListState()
+    val scheduleDate = if (followToday) today else LocalDate.ofEpochDay(selectedDay)
+    val scheduleScrolled by remember { derivedStateOf { scheduleListState.firstVisibleItemIndex > 0 || scheduleListState.firstVisibleItemScrollOffset > 0 } }
+    val chooseScheduleDate: (LocalDate) -> Unit = { date ->
+        selectedDay = date.toEpochDay(); followToday = date == today
+        scheduleListState.requestScrollToItem(0)
+    }
     LaunchedEffect(state.events, selectedId) {
         if (selectedId != null && state.events.none { it.id == selectedId }) selectedId = null
     }
@@ -122,7 +130,7 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
         NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
             NavigationBarItem(selected = tab == 0, onClick = { tab = 0 },
                 icon = { Icon(HomeIcon, null) }, label = { Text("Home") })
-            NavigationBarItem(selected = tab == 1, onClick = { tab = 1 },
+            NavigationBarItem(selected = tab == 1, onClick = { tab = 1 }, modifier = Modifier.testTag("schedule-tab"),
                 icon = { Icon(ScheduleIcon, null) }, label = { Text("Schedule") })
             NavigationBarItem(selected = tab == 2, onClick = { tab = 2 },
                 icon = { Icon(CourseworkIcon, null) }, label = { Text("Coursework", maxLines = 1, overflow = TextOverflow.Ellipsis) })
@@ -131,15 +139,22 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
         }
     }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = if (tab == 0) 16.dp else Spacing.page,
-                vertical = if (tab == 0) 8.dp else 16.dp),
+            Row(Modifier.fillMaxWidth().padding(horizontal = if (tab <= 1) 16.dp else Spacing.page,
+                vertical = if (tab <= 1) 8.dp else 16.dp),
                 verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(if (tab == 0) 2.dp else 4.dp)) {
                     Text("MY WARWICK +", style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                    Text(if (tab == 3) (if (showAppearance) "Appearance" else route?.label ?: "More") else if (tab == 1) "Timetable" else if (tab == 2) "Coursework deadlines" else greeting,
-                        style = if (tab == 0) MaterialTheme.typography.titleMedium else MaterialTheme.typography.headlineSmall,
+                    Text(if (tab == 3) (if (showAppearance) "Appearance" else route?.label ?: "More") else if (tab == 1) "Schedule" else if (tab == 2) "Coursework deadlines" else greeting,
+                        style = if (tab <= 1) MaterialTheme.typography.titleMedium else MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.SemiBold, modifier = if (tab == 0) Modifier.testTag("home-greeting") else Modifier)
+                }
+                if (tab == 1) {
+                    if (scheduleDate != today || scheduleScrolled) TextButton(onClick = { chooseScheduleDate(today) },
+                        modifier = Modifier.testTag("schedule-today")) { Text("Today") }
+                    IconButton(onClick = { showDatePicker = true }, modifier = Modifier.testTag("schedule-date-picker")) {
+                        Icon(CalendarPickerIcon, contentDescription = "Choose date", modifier = Modifier.size(20.dp))
+                    }
                 }
                 if (tab == 3 && (route != null || showAppearance)) TextButton(onClick = { feedRoute = null; feedEntryId = null; showAppearance = false }) { Text("Back") }
             }
@@ -185,8 +200,7 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
                 else -> {
                     if (tab == 0) Home(state, today, now, { selectedId = it.id }, { courseworkId = it.id }, { tab = 2 })
                     else if (tab == 2) CourseworkContent(state.coursework, now, state.busy, onRefresh, { courseworkId = it.id })
-                    else Schedule(state, today, LocalDate.ofEpochDay(selectedDay), weekView,
-                        { selectedDay = it.toEpochDay() }, { weekView = it }, { selectedId = it.id })
+                    else ScheduleContent(state, today, now, scheduleDate, scheduleListState) { selectedId = it.id }
                 }
             }
             }
@@ -194,6 +208,8 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
         }
     }
     }
+    if (tab == 1 && showDatePicker && !state.signingOut) ScheduleDateDialog(scheduleDate,
+        onDismiss = { showDatePicker = false }, onDate = { chooseScheduleDate(it); showDatePicker = false })
     if (!state.signingOut) state.events.firstOrNull { it.id == selectedId }?.let { event ->
         EventDetails(event, event.id in conflictingEventIds(state.events), onDismiss = { selectedId = null })
     }
@@ -303,60 +319,6 @@ private fun NextClassCard(event: EventEntity, now: Long, onSelect: () -> Unit) {
             }
             Icon(DetailsChevron, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer,
                 modifier = Modifier.size(20.dp).testTag("next-details-chevron"))
-        }
-    }
-}
-
-@Composable
-private fun Schedule(state: TimetableState, today: LocalDate, selected: LocalDate, weekView: Boolean,
-    onDate: (LocalDate) -> Unit, onMode: (Boolean) -> Unit, onSelect: (EventEntity) -> Unit) {
-    val start = monday(selected)
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(Spacing.page),
-        verticalArrangement = Arrangement.spacedBy(Spacing.item)) {
-        item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                TextButton(onClick = { onDate(selected.minusWeeks(1)) }) { Text("Previous") }
-                TextButton(onClick = { onDate(today) }) { Text("Today") }
-                TextButton(onClick = { onDate(selected.plusWeeks(1)) }) { Text("Next") }
-            }
-            Text("${start.format(DateTimeFormatter.ofPattern("d MMM", Locale.UK))} – ${start.plusDays(6).format(DateTimeFormatter.ofPattern("d MMM yyyy", Locale.UK))}",
-                style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(12.dp))
-            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                repeat(7) { offset ->
-                    val date = start.plusDays(offset.toLong())
-                    val active = date == selected
-                    Surface(onClick = { onDate(date); onMode(false) },
-                        modifier = Modifier.width(48.dp).height(68.dp).semantics { contentDescription = dateLabel(date) },
-                        shape = RoundedCornerShape(16.dp),
-                        color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerLow,
-                        contentColor = if (active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                            Text(date.format(DateTimeFormatter.ofPattern("EEE", Locale.UK)), style = MaterialTheme.typography.labelSmall)
-                            Text(date.dayOfMonth.toString(), style = MaterialTheme.typography.titleMedium)
-                            if (date == today) Text("•", style = MaterialTheme.typography.labelSmall)
-                        }
-                    }
-                }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected = !weekView, onClick = { onMode(false) }, label = { Text("Day") })
-                FilterChip(selected = weekView, onClick = { onMode(true) }, label = { Text("Week") })
-            }
-        }
-        if (state.lastSynced == null) item { EmptyCard("Your timetable hasn't loaded yet", "Refresh to try again.") }
-        else if (!weekView) {
-            val events = eventsOnDate(state.events, selected)
-            item { SectionLabel(dateLabel(selected), classCountLabel(events.size)) }
-            if (events.isEmpty()) item { EmptyCard("No classes on this day", "Your saved timetable has no events for this date.") }
-            items(events, key = { it.id }) { EventRow(it, it.id in conflictingEventIds(events)) { onSelect(it) } }
-        } else {
-            val days = (0..6).map { start.plusDays(it.toLong()) to eventsOnDate(state.events, start.plusDays(it.toLong())) }
-            if (days.all { it.second.isEmpty() }) item { EmptyCard("No classes this week", "Your saved timetable has no events for these dates.") }
-            days.filter { it.second.isNotEmpty() }.forEach { (date, events) ->
-                item(key = date.toString()) { SectionLabel(dateLabel(date), classCountLabel(events.size)) }
-                items(events, key = { "${date}/${it.id}" }) { EventRow(it, it.id in conflictingEventIds(events)) { onSelect(it) } }
-            }
         }
     }
 }

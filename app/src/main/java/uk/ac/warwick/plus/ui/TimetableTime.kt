@@ -29,6 +29,42 @@ fun eventsOnDate(events: List<EventEntity>, date: LocalDate): List<EventEntity> 
     }.sortedWith(compareBy<EventEntity> { it.startMillis }.thenBy { it.id })
 }
 
+data class ScheduleDay(val date: LocalDate, val events: List<EventEntity>)
+
+/** Include the chosen date even when empty; other empty dates do not occupy the agenda. */
+fun scheduleDays(events: List<EventEntity>, from: LocalDate): List<ScheduleDay> {
+    val grouped = sortedMapOf<LocalDate, MutableList<EventEntity>>(from to mutableListOf())
+    events.forEach { event ->
+        var date = maxOf(from, atWarwick(event.startMillis).toLocalDate())
+        val last = atWarwick(if (event.endMillis > event.startMillis) event.endMillis - 1 else event.startMillis).toLocalDate()
+        while (date <= last) {
+            grouped.getOrPut(date) { mutableListOf() }.add(event)
+            date = date.plusDays(1)
+        }
+    }
+    return grouped.map { (date, entries) -> ScheduleDay(date, entries.sortedWith(compareBy<EventEntity> { it.startMillis }.thenBy { it.id })) }
+}
+
+fun scheduleDateLabel(date: LocalDate, today: LocalDate): String = when (date) {
+    today -> "Today"
+    today.plusDays(1) -> "Tomorrow · ${date.format(DateTimeFormatter.ofPattern("d MMM", Locale.UK))}"
+    else -> date.format(DateTimeFormatter.ofPattern(if (date.year == today.year) "EEE d MMM" else "EEE d MMM yyyy", Locale.UK))
+}
+
+data class ScheduleTime(val start: String, val end: String, val continuesBefore: Boolean, val continuesAfter: Boolean)
+
+fun scheduleTime(event: EventEntity, date: LocalDate): ScheduleTime {
+    val start = date.atStartOfDay(WarwickZone).toInstant().toEpochMilli()
+    val end = date.plusDays(1).atStartOfDay(WarwickZone).toInstant().toEpochMilli()
+    return ScheduleTime(start = if (event.startMillis < start) "00:00" else timeLabel(event.startMillis),
+        end = if (event.endMillis >= end) "24:00" else timeLabel(event.endMillis),
+        continuesBefore = event.startMillis < start, continuesAfter = event.endMillis > end)
+}
+
+// Material's date picker encodes a calendar date at UTC midnight, independent of Warwick DST.
+fun pickerMillis(date: LocalDate): Long = date.toEpochDay() * 86_400_000L
+fun pickerDate(millis: Long): LocalDate = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
+
 fun nextClassLabel(event: EventEntity, now: Long): String = when {
     event.startMillis <= now -> "Happening now"
     event.startMillis - now < 60 * 60_000 -> "In ${(event.startMillis - now + 59_999) / 60_000} min"

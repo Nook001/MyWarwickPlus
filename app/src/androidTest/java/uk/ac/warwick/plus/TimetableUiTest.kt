@@ -89,12 +89,11 @@ class TimetableUiTest {
             PlusTheme { PlusScreen(TimetableState(events = listOf(event), lastSynced = 1L), {}, {}) }
         }
         capture("home")
-        compose.onNodeWithText("Schedule").performClick()
+        compose.onNodeWithTag("schedule-tab").performClick()
         compose.onNodeWithText("Example module").assertIsDisplayed()
         compose.onNodeWithText("Example room").assertIsDisplayed()
-        compose.onNodeWithText("Next").performClick()
-        compose.onNodeWithText("Week").performClick()
-        compose.onNodeWithText("No classes this week").assertIsDisplayed()
+        compose.onNodeWithTag("schedule-date-picker").assertIsDisplayed()
+        compose.onNodeWithText("Week").assertDoesNotExist()
     }
 
     @Test fun daySelectionAndDetailsShowModuleAndLocation() {
@@ -104,18 +103,15 @@ class TimetableUiTest {
             startMillis = start.toInstant().toEpochMilli(); endMillis = start.plusHours(1).toInstant().toEpochMilli()
         }
         compose.setContent { PlusTheme { PlusScreen(TimetableState(events = listOf(event), lastSynced = 1L), {}, {}) } }
-        compose.onNodeWithText("Schedule").performClick()
+        compose.onNodeWithTag("schedule-tab").performClick()
         capture("day")
-        compose.onNodeWithText("Example seminar").performClick()
+        compose.onNodeWithText("Example module name").performClick()
         compose.onNodeWithText("CLASS DETAILS").assertIsDisplayed()
         compose.onNode(hasText("EX101") and hasAnyAncestor(hasTestTag("class-details"))).assertIsDisplayed()
         compose.onNode(hasText("Example module name") and hasAnyAncestor(hasTestTag("class-details"))).assertIsDisplayed()
         capture("details")
         compose.onNodeWithText("Close details").performScrollTo().performClick()
-        compose.onNodeWithText("Next").performClick()
-        compose.onNodeWithText("No classes on this day").assertIsDisplayed()
-        compose.onNodeWithText("Today").performClick()
-        compose.onNodeWithText("Example seminar").assertIsDisplayed()
+        compose.onNodeWithText("Example module name").assertIsDisplayed()
     }
 
     @Test fun expiredSessionStillShowsCachedClassesAndOffersLogin() {
@@ -131,7 +127,7 @@ class TimetableUiTest {
         } }
         compose.onNodeWithText("Sign in").performClick()
         assertTrue(requested)
-        compose.onNodeWithText("Schedule").performClick()
+        compose.onNodeWithTag("schedule-tab").performClick()
         compose.onNodeWithText("Cached seminar").performScrollTo().assertIsDisplayed()
     }
 
