@@ -1,12 +1,12 @@
 # API 接入进度
 
-更新：2026-10-04，版本 0.5.0。每次接入接口时同步更新此表；协议细节见 [protocol.md](protocol.md)。本轮只改首页展示，不新增 API。
+更新：2026-10-04，版本 0.5.1。每次接入接口时同步更新此表；协议细节见 [protocol.md](protocol.md)。本轮只改首页展示，不新增 API。
 
 | API / 方法 | 接入情况 | 如何使用与展示 | 验证 / 限制 |
 | --- | --- | --- | --- |
 | `GET /user/info` | 已接入 | 启动、刷新和登录回跳时检查账户、会话与 CSRF 信息；More 展示账户和检查时间 | 原生已验证；cookie/token 不写入日志或 Git |
-| `GET /api/tiles/content/timetable` | 已接入 | 首页 NEXT 紧凑三行卡片（日期/时间、名称/代码、地点/详情）及今日安排；日/周课表、地点链接、重叠提示；缓存与下拉刷新 | 此前真机 143 条；英国时区；失败保留整批旧缓存；长标题可在详情读完整 |
-| `GET /api/tiles/content/coursework` | 已接入 | 首页最近 3 个未来截止日期；列表搜索、All / Upcoming / Next 7 days / Past 筛选、完整详情、原站入口；独立缓存与同步提示 | 此前浏览器及真机 3 条；支持 `+01` 和 `Z`。近期聚合，不推断已提交状态；原站浏览器可能需独立登录 |
+| `GET /api/tiles/content/timetable` | 已接入 | 首页 NEXT 三行（日期/时间、名称/代码、地点），右侧居中箭头提示整卡进入详情；Today 无课单行；日/周课表、地点链接、重叠提示；缓存与下拉刷新 | 此前真机 143 条；英国时区；失败保留整批旧缓存；长标题可在详情读完整 |
+| `GET /api/tiles/content/coursework` | 已接入 | 首页最近 3 个未来截止日期，Deadlines 标题与 View all coursework 同行；列表搜索、All / Upcoming / Next 7 days / Past 筛选、完整详情、原站入口；独立缓存与同步提示 | 此前浏览器及真机 3 条；支持 `+01` 和 `Z`。近期聚合，不推断已提交状态；原站浏览器可能需独立登录 |
 | `GET /api/tiles/content/library` | 摘要页面已接入；非空结构待验证 | More → Library；学校空列表说明、账户入口、独立缓存与重试；非空条目仅展示实际存在的 title/text/href 或通用原站提示 | 当前浏览器 200 / 0 条；此前原生 0 条。借阅、到期日、欠费等字段未确认，不推定业务含义 |
 | `GET /api/tiles/content/eventsmerge` | 待验证 | 评估与课表合并事件，避免重复日程 | 前端候选；当前无业务展示 |
 | `GET /api/tiles/content/modules` | 已接入 | More → Modules；名称、代码、学年、搜索、详情、公告/评估条数及 Moodle 链接；独立缓存 | 0.4.0 浏览器 200 / 1 条；id 为数字，announcements/evaluations 当时为空。不等同完整选课清单；公告正文仍在原站查看 |

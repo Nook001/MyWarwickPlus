@@ -7,6 +7,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.unit.Density
@@ -39,7 +40,7 @@ class HomeLayoutUiTest {
         compose.waitForIdle()
         val instrument = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
         val bitmap = instrument.uiAutomation.takeScreenshot()
-        java.io.File(instrument.targetContext.cacheDir, "ui-05-$name.png").outputStream().use {
+        java.io.File(instrument.targetContext.cacheDir, "ui-051-$name.png").outputStream().use {
             bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)
         }
         bitmap.recycle()
@@ -67,15 +68,29 @@ class HomeLayoutUiTest {
         val code = compose.onNodeWithTag("next-code", useUnmergedTree = true).getUnclippedBoundsInRoot()
         assertTrue("Name and code must share a row", code.top < name.bottom && name.top < code.bottom)
         val location = compose.onNodeWithTag("next-location", useUnmergedTree = true).getUnclippedBoundsInRoot()
-        val details = compose.onNodeWithText("View class details").getUnclippedBoundsInRoot()
-        assertTrue("Location and details must share a row", details.top < location.bottom && location.top < details.bottom)
-        assertTrue("Ordinary next card should leave room for today's data and deadlines",
-            compose.onNodeWithTag("next-class-card").getUnclippedBoundsInRoot().let { it.bottom - it.top <= 160.dp })
+        compose.onNodeWithText("View class details").assertDoesNotExist()
+        val card = compose.onNodeWithTag("next-class-card").assertHasClickAction().getUnclippedBoundsInRoot()
+        val whenRow = compose.onNodeWithTag("next-when", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val chevron = compose.onNodeWithTag("next-details-chevron", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        assertTrue("Next text must have balanced top and bottom padding",
+            kotlin.math.abs((whenRow.top - card.top - (card.bottom - location.bottom)).value) <= 1f)
+        assertTrue("Disclosure arrow must be vertically centered in the whole card",
+            kotlin.math.abs(((chevron.top + chevron.bottom - card.top - card.bottom) / 2).value) <= 1f)
+        assertTrue("Ordinary next card must not retain the text button's empty space", card.bottom - card.top <= 100.dp)
+        assertEquals("View class details", compose.onNodeWithTag("next-class-card").fetchSemanticsNode()
+            .config[SemanticsActions.OnClick].label)
+        compose.onNodeWithText("No classes today").assertIsDisplayed()
+        compose.onNodeWithText("Your saved timetable is clear for today.").assertDoesNotExist()
+        assertTrue("No-class state should only take one compact line",
+            compose.onNodeWithTag("today-empty").getUnclippedBoundsInRoot().let { it.bottom - it.top <= 56.dp })
+        val heading = compose.onNodeWithTag("deadlines-heading").getUnclippedBoundsInRoot()
+        val allCoursework = compose.onNodeWithText("View all coursework").getUnclippedBoundsInRoot()
+        assertTrue("Deadlines and navigation must share a row", allCoursework.top < heading.bottom && heading.top < allCoursework.bottom)
         capture("home-light")
         compose.runOnIdle { dark = true }
         compose.onNodeWithText("Example assignment").assertIsDisplayed()
         capture("home-dark")
-        compose.onNodeWithText("View class details").performClick()
+        compose.onNodeWithTag("next-details-chevron", useUnmergedTree = true).performTouchInput { click() }
         compose.onNodeWithText("CLASS DETAILS").assertIsDisplayed()
         compose.onNodeWithText("Close details").performScrollTo().performClick()
         compose.onNodeWithTag("next-class-card").performClick()
@@ -88,11 +103,19 @@ class HomeLayoutUiTest {
             }
         }
         compose.onNodeWithTag("next-code", useUnmergedTree = true).assertTextEquals("EX101L").assertIsDisplayed()
-        compose.onNodeWithText("View class details").assertIsDisplayed()
+        compose.onNodeWithTag("next-details-chevron", useUnmergedTree = true).assertIsDisplayed()
         capture("home-large-font")
-        compose.onNodeWithText("View class details").performClick()
+        compose.onNodeWithTag("next-class-card").performClick()
         compose.onNode(hasText("A deliberately long module name for narrow screens and larger fonts") and
             hasAnyAncestor(hasTestTag("class-details"))).assertIsDisplayed()
-        compose.onNodeWithText("Close details").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Close details").performScrollTo().performClick()
+        compose.onNodeWithText("View all coursework").performScrollTo().assertIsDisplayed()
+        val heading = compose.onNodeWithTag("deadlines-heading").getUnclippedBoundsInRoot()
+        assertTrue("Deadlines heading must remain one line even at large fonts", heading.bottom - heading.top <= 40.dp)
+        val allCoursework = compose.onNodeWithText("View all coursework").getUnclippedBoundsInRoot()
+        assertTrue("Large-font navigation must remain beside the heading",
+            allCoursework.left >= heading.right && allCoursework.top < heading.bottom && heading.top < allCoursework.bottom)
+        compose.onNodeWithText("View all coursework").performClick()
+        compose.onNodeWithText("Coursework deadlines").assertIsDisplayed()
     }
 }

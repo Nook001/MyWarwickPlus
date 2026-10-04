@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -49,6 +50,13 @@ private val CourseworkIcon = ImageVector.Builder("Coursework", 24.dp, 24.dp, 24f
         moveTo(4f, 5f); lineTo(20f, 5f); lineTo(20f, 8f); lineTo(4f, 8f); close()
         moveTo(4f, 11f); lineTo(20f, 11f); lineTo(20f, 14f); lineTo(4f, 14f); close()
         moveTo(4f, 17f); lineTo(16f, 17f); lineTo(16f, 20f); lineTo(4f, 20f); close()
+    }
+}.build()
+
+private val DetailsChevron = ImageVector.Builder("DetailsChevron", 24.dp, 24.dp, 24f, 24f, autoMirror = true).apply {
+    path(fill = SolidColor(Color.Black)) {
+        moveTo(9f, 6f); lineTo(7.6f, 7.4f); lineTo(12.2f, 12f)
+        lineTo(7.6f, 16.6f); lineTo(9f, 18f); lineTo(15f, 12f); close()
     }
 }.build()
 
@@ -226,11 +234,23 @@ private fun Home(state: TimetableState, today: LocalDate, now: Long, onSelect: (
             }
         }
         item { SectionLabel("TODAY", if (state.lastSynced != null) classCountLabel(todayEvents.size) else null) }
-        if (todayEvents.isEmpty() && state.lastSynced != null) item { EmptyCard("No classes today", "Your saved timetable is clear for today.") }
+        if (todayEvents.isEmpty() && state.lastSynced != null) item {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth().testTag("today-empty")) {
+                Text("No classes today", style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp))
+            }
+        }
         items(todayEvents, key = { it.id }) { EventRow(it, it.id in conflictingEventIds(todayEvents)) { onSelect(it) } }
         item {
-            SectionLabel("DEADLINES")
-            TextButton(onClick = onAllCoursework) { Text("View all coursework") }
+            Row(Modifier.fillMaxWidth().testTag("deadlines-header"), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween) {
+                Box(Modifier.width(IntrinsicSize.Min).testTag("deadlines-heading")) { SectionLabel("DEADLINES") }
+                TextButton(onClick = onAllCoursework, modifier = Modifier.weight(1f, fill = false).padding(start = 8.dp).widthIn(max = 168.dp),
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)) {
+                    Text("View all coursework")
+                }
+            }
             state.coursework.message?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
         }
         val upcoming = state.coursework.entries.filter { it.dueMillis >= now }.sortedBy { it.dueMillis }.take(3)
@@ -257,27 +277,27 @@ private fun NextClassCard(event: EventEntity, now: Long, onSelect: () -> Unit) {
     val time = if (event.allDay) "All day" else "${timeLabel(event.startMillis)} – $end"
     Card(onClick = onSelect,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-        shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth().testTag("next-class-card")) {
-        Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("${nextClassLabel(event, now)} · $time", style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Medium, modifier = Modifier.testTag("next-when"))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
-                    maxLines = 2, overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f).alignByBaseline().testTag("next-name"))
-                if (code.isNotBlank()) Text(code, style = MaterialTheme.typography.labelMedium,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.widthIn(max = 112.dp).alignByBaseline().testTag("next-code"))
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth().testTag("next-class-card")
+            .semantics { onClick(label = "View class details", action = null) }) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("${nextClassLabel(event, now)} · $time", style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium, modifier = Modifier.testTag("next-when"))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
+                        maxLines = 2, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f).alignByBaseline().testTag("next-name"))
+                    if (code.isNotBlank()) Text(code, style = MaterialTheme.typography.labelMedium,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.widthIn(max = 112.dp).alignByBaseline().testTag("next-code"))
+                }
                 Text(event.location.ifBlank { "Location not provided" }, style = MaterialTheme.typography.bodySmall,
                     maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f).testTag("next-location"))
-                TextButton(onClick = onSelect, modifier = Modifier.widthIn(max = 128.dp),
-                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)) {
-                    Text("View class details", style = MaterialTheme.typography.labelMedium)
-                }
+                    modifier = Modifier.fillMaxWidth().testTag("next-location"))
             }
+            Icon(DetailsChevron, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.size(20.dp).testTag("next-details-chevron"))
         }
     }
 }
