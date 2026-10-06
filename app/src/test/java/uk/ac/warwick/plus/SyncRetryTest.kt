@@ -25,18 +25,22 @@ class SyncRetryTest {
         var courseworkCalls = 0
         var timetableFailure: (Int) -> Exception? = { null }
         var courseworkFailure: Exception? = null
+        var timetableGate: CompletableDeferred<Unit>? = null
+        var feedGate: CompletableDeferred<Unit>? = null
         var feedFailure: (FeedKind, String?) -> Exception? = { _, _ -> null }
         val feeds = mutableListOf<Pair<FeedKind, String?>>()
         override suspend fun cached() = cache
         override suspend fun sync(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): CachedTimetable {
             timetableCalls++; onAuthenticated(user, cache)
+            timetableGate?.await()
             timetableFailure(timetableCalls)?.let { throw it }; return cache
         }
         override suspend fun syncCoursework(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): CachedTimetable {
-            courseworkCalls++; courseworkFailure?.let { throw it }; return cache
+            courseworkCalls++; onAuthenticated(user, cache); courseworkFailure?.let { throw it }; return cache
         }
         override suspend fun syncFeed(kind: FeedKind, before: String?, onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): CachedTimetable {
-            feeds += kind to before; feedFailure(kind, before)?.let { throw it }; return cache
+            feeds += kind to before; onAuthenticated(user, cache); feedGate?.await()
+            feedFailure(kind, before)?.let { throw it }; return cache
         }
         override suspend fun signOut() { cache = CachedTimetable(emptyList(), null) }
     }
@@ -115,5 +119,47 @@ class SyncRetryTest {
         advanceTimeBy(60_000); runCurrent(); assertEquals(3, store.timetableCalls)
         model.refreshFeed(FeedKind.MODULES); advanceUntilIdle()
         assertNull("A successful feed refresh must not re-announce an earlier timetable failure", model.state.value.notice)
+    }
+    @Test fun progressFollowsRealPhasesAndHoldsDuringRetryWithoutDoubleCounting() = runTest(dispatcher) {
+        val timetable = CompletableDeferred<Unit>()
+        val feeds = CompletableDeferred<Unit>()
+        val store = Store().apply {
+            timetableGate = timetable; feedGate = feeds
+            feedFailure = { kind, _ -> if (kind == FeedKind.MESSAGES) IOException() else null }
+        }
+        val model = TimetableViewModel(store, {}); runCurrent()
+        assertEquals(5, model.state.value.syncProgress!!.total)
+        assertEquals(.1f, model.state.value.syncProgress!!.fraction, .001f)
+        advanceTimeBy(10_000); runCurrent()
+        assertEquals(.1f, model.state.value.syncProgress!!.fraction, .001f)
+        timetable.complete(Unit); runCurrent()
+        assertEquals(.5f, model.state.value.syncProgress!!.fraction, .001f)
+        feeds.complete(Unit); runCurrent()
+        assertEquals(1, model.state.value.syncProgress!!.retry)
+        assertEquals(.5f, model.state.value.syncProgress!!.fraction, .001f)
+        advanceTimeBy(2_000); runCurrent()
+        assertEquals(2, model.state.value.syncProgress!!.retry)
+        assertEquals(.5f, model.state.value.syncProgress!!.fraction, .001f)
+        advanceUntilIdle()
+        val progress = model.state.value.syncProgress!!
+        assertEquals(5, progress.completed); assertEquals(1, progress.failures)
+        assertEquals(1f, progress.fraction, .001f); assertTrue(progress.finished)
+        assertNotNull(model.state.value.notice); assertTrue(model.state.value.hasSavedData)
+    }
+    @Test fun authStopLeavesUnstartedWorkIncompleteAndSignOutClearsSingleFeedProgress() = runTest(dispatcher) {
+        val store = Store().apply { timetableFailure = { SignInRequiredException() } }
+        val model = TimetableViewModel(store, {}); advanceUntilIdle()
+        val stopped = model.state.value.syncProgress!!
+        assertEquals(1, stopped.completed); assertTrue(stopped.fraction < 1f)
+        assertEquals(1, stopped.failures); assertTrue(stopped.finished)
+        assertTrue(store.feeds.isEmpty())
+        store.timetableFailure = { null }; model.refresh(); advanceUntilIdle()
+        store.feedGate = CompletableDeferred()
+        model.refreshFeed(FeedKind.MODULES); runCurrent()
+        assertEquals(1, model.state.value.syncProgress!!.total)
+        assertEquals(.5f, model.state.value.syncProgress!!.fraction, .001f)
+        model.signOut(); advanceUntilIdle()
+        assertNull(model.state.value.syncProgress)
+        assertFalse(model.state.value.hasSavedData)
     }
 }

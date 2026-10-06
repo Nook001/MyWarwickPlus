@@ -15,13 +15,22 @@ data class FeedState(val entries: List<FeedEntry> = emptyList(), val lastSynced:
     val description: String = "", val url: String = "", val webReadMillis: Long = 0)
 
 data class SyncNotice(val id: Long, val message: String, val feed: FeedKind? = null, val olderMessages: Boolean = false)
+// Progress measures settled resource updates, with a half-step after account verification.
+// A settled failure is finished work, not a successful download; retries never add work units.
+data class SyncProgress(val id: Long, val total: Int, val completed: Int = 0, val resource: String = "",
+    val accountChecked: Boolean = false, val retry: Int = 0, val failures: Int = 0, val finished: Boolean = false) {
+    val fraction: Float get() = ((completed + if (accountChecked) .5f else 0f) / total).coerceIn(0f, 1f)
+    val description: String get() = if (finished) "$completed of $total updates finished; $failures failed"
+        else if (retry > 0) "Retry $retry/2 · $resource"
+        else "Updating $resource · ${completed + 1}/$total"
+}
 data class TimetableState(
     val events: List<EventEntity> = emptyList(), val name: String = "", val lastSynced: Long? = null,
     val busy: Boolean = false, val signedIn: Boolean = false, val needsLogin: Boolean = false,
     val message: String? = null, val coursework: CourseworkState = CourseworkState(),
     val feeds: Map<FeedKind, FeedState> = emptyMap(), val accountCode: String = "",
     val sessionCheckedAt: Long? = null, val signingOut: Boolean = false, val logoutFailed: Boolean = false,
-    val notice: SyncNotice? = null
+    val notice: SyncNotice? = null, val syncProgress: SyncProgress? = null
 ) {
     fun feed(kind: FeedKind) = feeds[kind] ?: FeedState()
     val hasSavedData get() = lastSynced != null || coursework.lastSynced != null || feeds.values.any { it.lastSynced != null }
@@ -35,6 +44,7 @@ class TimetableViewModel(private val repository: TimetableStore,
     val state = mutable.asStateFlow()
     private var syncJob: Job? = null
     private var noticeId = 0L
+    private var syncId = 0L
     init {
         syncJob = viewModelScope.launch {
             try { applyCache(repository.cached()) }
@@ -61,7 +71,8 @@ class TimetableViewModel(private val repository: TimetableStore,
     private fun authenticated(user: SignedInUser, cache: CachedTimetable) {
         applyCache(cache)
         mutable.update { it.copy(signedIn = true, needsLogin = false, name = user.name,
-            accountCode = user.code, sessionCheckedAt = System.currentTimeMillis()) }
+            accountCode = user.code, sessionCheckedAt = System.currentTimeMillis(),
+            syncProgress = it.syncProgress?.copy(accountChecked = true)) }
     }
     private suspend fun restoreCache() {
         try { applyCache(repository.cached()) }
@@ -69,7 +80,9 @@ class TimetableViewModel(private val repository: TimetableStore,
     }
     private fun startSync(feed: FeedKind? = null, olderMessages: Boolean = false, operation: suspend () -> Unit) {
         if (mutable.value.busy || mutable.value.signingOut || mutable.value.logoutFailed) return
-        mutable.update { it.copy(busy = true, notice = null) }
+        val progress = SyncProgress(++syncId, if (feed == null) 2 + FeedKind.entries.size else 1)
+        mutable.update { it.copy(busy = true, notice = null,
+            syncProgress = progress) }
         syncJob = viewModelScope.launch {
             try { operation() } finally {
                 if (!mutable.value.signingOut) {
@@ -82,12 +95,23 @@ class TimetableViewModel(private val repository: TimetableStore,
                         else if (failures.size > 1) "Couldn't update some information. Your saved data has been kept."
                         else failures.single().second,
                         failures.singleOrNull()?.first, olderMessages)
-                    mutable.update { it.copy(busy = false, notice = notice) }
+                    mutable.update { it.copy(busy = false, notice = notice,
+                        syncProgress = it.syncProgress?.copy(finished = true)) }
                 }
             }
         }
     }
     fun consumeNotice(id: Long) = mutable.update { if (it.notice?.id == id) it.copy(notice = null) else it }
+    private fun beginResource(label: String) = mutable.update {
+        it.copy(syncProgress = it.syncProgress?.copy(resource = label, accountChecked = false, retry = 0))
+    }
+    private suspend fun finishResource(failed: Boolean) {
+        if (!currentCoroutineContext().isActive || mutable.value.signingOut) return
+        mutable.update { state -> state.copy(syncProgress = state.syncProgress?.let {
+            it.copy(completed = (it.completed + 1).coerceAtMost(it.total), accountChecked = false,
+                retry = 0, failures = it.failures + if (failed) 1 else 0)
+        }) }
+    }
     // Only transient read failures are retried; successful resources are never downloaded again.
     private suspend fun <T> withSyncRetry(operation: suspend () -> T): T {
         for (attempt in 0..2) {
@@ -95,6 +119,7 @@ class TimetableViewModel(private val repository: TimetableStore,
             try { return operation() } catch (error: Exception) {
                 val transient = error is IOException || error is ServiceException && (error.status == 408 || error.status in 500..599)
                 if (error is CancellationException || !transient || attempt == 2) throw error
+                mutable.update { it.copy(syncProgress = it.syncProgress?.copy(retry = attempt + 1)) }
                 delay(if (attempt == 0) 2_000L else 5_000L)
             }
         }
@@ -115,6 +140,7 @@ class TimetableViewModel(private val repository: TimetableStore,
             if (it.needsLogin) "Sign in to update coursework." else "Couldn't update coursework. Connect and refresh to try again.")) }
     }
     private suspend fun refreshTimetable() {
+        beginResource("Timetable")
         try {
             applyCache(withSyncRetry { repository.sync(::authenticated) })
             mutable.update { it.copy(needsLogin = false, signedIn = true) }
@@ -129,13 +155,14 @@ class TimetableViewModel(private val repository: TimetableStore,
                     is ServiceException -> "MyWarwick is unavailable (${error.status}). Try again later."
                     else -> if (current.lastSynced != null) "Couldn't read the timetable. Your saved data has been kept." else "Your timetable couldn't be loaded. Try refreshing."
                 }) }
-        }
+        } finally { finishResource(mutable.value.message != null) }
     }
     private fun sessionFailure(error: Exception) {
         if (error is SignInRequiredException) mutable.update { it.copy(needsLogin = true, signedIn = false,
             message = "Your session has expired. Sign in to update your saved data.") }
     }
     private suspend fun refreshCoursework() {
+        beginResource("Coursework")
         try {
             applyCache(withSyncRetry { repository.syncCoursework(::authenticated) })
             mutable.update { it.copy(coursework = it.coursework.copy(message = null)) }
@@ -143,19 +170,23 @@ class TimetableViewModel(private val repository: TimetableStore,
             if (error is CancellationException) throw error
             reportFailure(error); restoreCache(); sessionFailure(error)
             mutable.update { it.copy(coursework = it.coursework.copy(message = failureMessage("coursework", error))) }
-        }
+        } finally { finishResource(mutable.value.coursework.message != null) }
     }
     private fun updateFeed(kind: FeedKind, transform: (FeedState) -> FeedState) = mutable.update {
         it.copy(feeds = it.feeds + (kind to transform(it.feed(kind))))
     }
     private suspend fun syncFeed(kind: FeedKind, before: String? = null) {
+        beginResource(if (before != null) "Older messages" else kind.label)
         updateFeed(kind) { it.copy(loading = true, message = null) }
         try { applyCache(withSyncRetry { repository.syncFeed(kind, before, ::authenticated) }) }
         catch (error: Exception) {
             if (error is CancellationException) throw error
             reportFailure(error); restoreCache(); sessionFailure(error)
             updateFeed(kind) { it.copy(message = failureMessage(kind.label.lowercase(), error)) }
-        } finally { updateFeed(kind) { it.copy(loading = false) } }
+        } finally {
+            updateFeed(kind) { it.copy(loading = false) }
+            finishResource(mutable.value.feed(kind).message != null)
+        }
     }
     fun refreshFeed(kind: FeedKind) = startSync(kind) { syncFeed(kind) }
     fun loadMoreMessages() {
@@ -167,7 +198,7 @@ class TimetableViewModel(private val repository: TimetableStore,
     fun signOut() {
         if (mutable.value.signingOut) return
         val previous = syncJob
-        mutable.update { it.copy(signingOut = true, busy = true) }
+        mutable.update { it.copy(signingOut = true, busy = true, syncProgress = null) }
         syncJob = viewModelScope.launch {
             previous?.cancelAndJoin()
             mutable.value = TimetableState(busy = true, signingOut = true)

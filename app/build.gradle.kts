@@ -10,8 +10,8 @@ android {
         applicationId = "uk.ac.warwick.plus"
         minSdk = 28
         targetSdk = 36
-        versionCode = 13
-        versionName = "0.9.1"
+        versionCode = 14
+        versionName = "0.10.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         javaCompileOptions.annotationProcessorOptions.arguments["room.schemaLocation"] = "$projectDir/schemas"
     }

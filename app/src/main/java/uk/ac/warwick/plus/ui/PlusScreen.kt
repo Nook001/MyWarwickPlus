@@ -1,6 +1,8 @@
 package uk.ac.warwick.plus.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
@@ -187,7 +189,8 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
             Row(Modifier.fillMaxWidth().testTag("page-header").padding(horizontal = 16.dp, vertical = 2.dp),
                 verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text("MY WARWICK +", style = MaterialTheme.typography.labelSmall,
+                    Text(if (state.busy) state.syncProgress?.description ?: "MY WARWICK +" else "MY WARWICK +",
+                        style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     Text(if (tab == 3) (if (showAppearance) "Appearance" else route?.label ?: "More") else if (tab == 1) "Schedule" else if (tab == 2) "Coursework deadlines" else greeting,
                         style = MaterialTheme.typography.titleMedium,
@@ -202,12 +205,12 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
                 }
                 if (tab == 3 && (route != null || showAppearance)) TextButton(onClick = { feedRoute = null; feedEntryId = null; showAppearance = false }) { Text("Back") }
             }
-            if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
+            SyncProgressBar(state.syncProgress)
             if (tab == 3 && showAppearance && !state.signingOut) AppearanceContent() else {
             PullToRefreshBox(isRefreshing = state.busy && !state.signingOut,
                 onRefresh = { if (!state.signingOut && !state.logoutFailed) {
                     if (tab == 3 && route != null && onFeedRefresh != null) onFeedRefresh(route) else onRefresh()
-                } }, modifier = Modifier.fillMaxSize().testTag("refresh-container")) {
+                } }, indicator = {}, modifier = Modifier.fillMaxSize().testTag("refresh-container")) {
             when {
                 state.signingOut -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Signing out…") }
                 tab == 3 -> {
@@ -250,6 +253,21 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
         FeedDetails(route, it, openLink, { feedEntryId = null })
     }
     if (showProbe && probe != null && !state.signingOut) ApiProbeSheet(probe, onLogin, { showProbe = false })
+}
+
+@Composable
+private fun SyncProgressBar(progress: SyncProgress?) {
+    if (progress == null) return
+    key(progress.id) {
+        var visible by remember { mutableStateOf(!progress.finished) }
+        LaunchedEffect(progress.finished) {
+            if (progress.finished) { delay(250); visible = false }
+        }
+        val fraction by animateFloatAsState(progress.fraction, animationSpec = tween(200), label = "API progress")
+        if (visible) LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth()
+            .semantics { contentDescription = progress.description },
+            color = if (progress.finished && progress.failures > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
+    }
 }
 
 @Composable
