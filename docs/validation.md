@@ -1,5 +1,11 @@
 # 原型验收
 
+## 0.12.2：Tab 整体高亮与无按压遮罩
+
+2026-10-06。仅在底部 Tab 的 selectable 移除 indication，保留 interactionSource、Role.Tab、选中语义和完整点击区域。按住不再绘制深色水波纹/遮罩，点击仍切换页面。选中底色改为图标与文字共用的 18dp 圆角容器，160ms 颜色过渡；图标仍为未选中轮廓/选中实心，选中图标和文字共用 onPrimaryContainer，未选中共用 onSurfaceVariant。每个 Tab 内侧各 4dp 留白，底栏普通字体下仍为最小 64dp，并保留原 20dp 两侧内收和一次系统安全区；大字体自然增高。
+
+assembleDebug 成功，git diff --check 通过。本轮简单 UI 调整没有新增测试、运行单元/UI 测试或启动模拟器；未运行 Lint、真实接口 smoke 或截图验收。物理手机 10AG4S2KQJ0066R 的前两次安装被拒绝，用户确认后第三次 adb install -r 覆盖安装成功，确认 versionCode 18 / versionName 0.12.2；MainActivity 冷启动 Status: ok（577ms），没有卸载或清除数据。用户手动复核长按无深色遮罩、点击切页、图标与标签整体高亮、Coursework 标签及大字体表现。
+
 ## 0.12.1：顶部对齐与导航语义
 
 2026-10-06。原标题 Row 按子内容高度测量并垂直居中，Schedule 的日历按钮比双行标题高，导致品牌文字较其他页下移；服务/外观页的 Back 也有同类差异。所有页现在共用最小 48dp 内容高度和上下各 2dp 外边距，标题保持单行省略，品牌/进度文字和标题的对齐不再受日历、Today 或 Back 控件有无影响；大字体允许整体自然增高。

@@ -1,9 +1,11 @@
 package uk.ac.warwick.plus.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
@@ -44,17 +46,21 @@ import java.util.Locale
 @Composable
 private fun RowScope.CompactTab(label: String, selected: Boolean, onSelect: () -> Unit,
     tag: String = "tab-${label.lowercase()}", icon: @Composable () -> Unit) {
-    Column(Modifier.weight(1f).selectable(selected, role = Role.Tab, onClick = onSelect).testTag(tag)
-        .heightIn(min = 64.dp).padding(vertical = 6.dp), horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically)) {
-        Surface(modifier = Modifier.size(width = 56.dp, height = 32.dp),
-            shape = RoundedCornerShape(50), color = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+    val interactionSource = remember { MutableInteractionSource() }
+    val highlight by animateColorAsState(if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+        animationSpec = tween(160), label = "tab-highlight")
+    Box(Modifier.weight(1f).selectable(selected, interactionSource = interactionSource, indication = null,
+        role = Role.Tab, onClick = onSelect).testTag(tag)
+        .heightIn(min = 64.dp).padding(horizontal = 4.dp, vertical = 4.dp), contentAlignment = Alignment.Center) {
+        Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), color = highlight,
             contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant) {
-            Box(contentAlignment = Alignment.Center) { icon() }
+            Column(Modifier.padding(horizontal = 4.dp, vertical = 6.dp), horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) { icon() }
+                Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium)
+            }
         }
-        Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
