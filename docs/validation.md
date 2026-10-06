@@ -10,7 +10,7 @@
 
 ## 最新代码：0.19.0 / versionCode 27
 
-2026-10-07：A1/A2/A3实施，随同前台时钟和少量语法清理；页面布局、依赖、API/认证协议与schema5保持不变。
+2026-10-07：代码提交fc5cc01，A1/A2/A3实施，随同前台时钟和少量语法清理；页面布局、依赖、API/认证协议与schema5保持不变。
 
 | 检查 | 本次结果 / 边界 |
 | --- | --- |
@@ -20,7 +20,7 @@
 | Room | 导出schema5无差异；生成identity hash仍为a201057e1b8a41788b3c7026be00cfee；未改变列/迁移，未新增真实SQLite验证 |
 | 兼容入口 | 既有AndroidTest源码只编译核对，未改写/扩展/执行；未运行instrumentation |
 | 编译器报告 | 最终源码全量编译核对：HomeContent、ScheduleContent、CourseworkContent 均 restartable / skippable；不作为帧率或实际重组计数 |
-| 物理部署 | 两次指定10AG4S2KQJ0066R执行install -r，均返回INSTALL_FAILED_ABORTED / User rejected permissions；第二次经用户授权“重试”。**0.19.0尚未装上**，未卸载/清除登录缓存，待用户允许安装 |
+| 物理部署 | 两次指定10AG4S2KQJ0066R执行install -r被手机拒绝；再次经用户授权“重试”后成功。dumpsys确认versionCode27 / versionName0.19.0；am start -W -S返回Status:ok / COLD / TotalTime553ms，单次启动值不作为性能基准。覆盖安装未卸载/清除登录缓存，界面与真实SQLite手动验收待反馈 |
 | 未执行 | UI Test、模拟器、自动点击/截图、自动退出或清真实cookie、登录态浏览器API抓取、真机帧时间基线 |
 
 命令：`./gradlew.bat :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:compileDebugAndroidTestKotlin -PcomposeReports=true`；完整Compose报告另用 `:app:compileDebugKotlin -PcomposeReports=true --rerun-tasks`，避免增量报告只涵盖改动文件。JDK21沿用下面配置。
