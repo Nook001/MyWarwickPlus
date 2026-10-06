@@ -10,23 +10,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import uk.ac.warwick.plus.data.CourseworkEntity
-import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
-import java.util.Locale
-
-fun deadlineLabel(due: Long, now: Long): String {
-    if (due < now) return "Deadline passed"
-    val days = ChronoUnit.DAYS.between(atWarwick(now).toLocalDate(), atWarwick(due).toLocalDate())
-    return when (days) {
-        0L -> "Due today"; 1L -> "Due tomorrow"; else -> "Due in $days days"
-    }
-}
-
-fun deadlineTime(due: Long): String = atWarwick(due).format(DateTimeFormatter.ofPattern("EEE d MMM yyyy · HH:mm", Locale.UK))
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CourseworkContent(state: CourseworkState, now: Long, busy: Boolean, onRefresh: () -> Unit,
+fun CourseworkContent(state: CourseworkState, now: Long, busy: Boolean,
     feedback: @Composable () -> Unit = {}, showFeedback: Boolean = false,
     filterOverride: String? = null, onFilterChanged: ((String) -> Unit)? = null,
     onSelect: (CourseworkEntity) -> Unit) {
@@ -66,12 +53,5 @@ fun CourseworkContent(state: CourseworkState, now: Long, busy: Boolean, onRefres
                 }
             }
         }
-    }
-}
-
-fun filterCoursework(entries: List<CourseworkEntity>, query: String, filter: String, now: Long): List<CourseworkEntity> {
-    return entries.filter { entry ->
-        (query.isBlank() || entry.title.contains(query.trim(), true) || entry.description.contains(query.trim(), true)) &&
-            (if (filter == "Past") entry.dueMillis < now else entry.dueMillis >= now)
     }
 }

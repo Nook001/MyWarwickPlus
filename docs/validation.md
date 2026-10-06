@@ -1,6 +1,18 @@
 # 原型验收
 
+## 0.17.0：共享函数、链接反馈与入口配置
+
+2026-10-06。第三批完成：StudentDates 统一 London 时区、缓存不可变 Locale.UK 日期格式器、天数/过期判断；ClassPresentation 共用名称/代码、跨日范围和问候语；筛选/Feed 纯文本函数独立，消息快照的纯文本在筛选/列表之间复用。Coursework / Feed 的网络日期解析共用原 hour-only offset 兼容逻辑；Timetable 的严格原解析沿用。BrowserLinks 合并 URL 基础校验，BrowserActions 是唯一 Custom Tabs 打开实现，页面保留 Snackbar，详情内使用可见失败文字。地点链接不再静默忽略打开失败，额外拒绝 userinfo/非 443 端口并支持 MyWarwick 相对地址。ServiceCatalog 统一入口地址、短标签、图标和首页资格；布局和八个服务的内容/顺序保留。
+
+assembleDebug 及 56 项聚焦既有 JVM 检查全部通过：CourseworkTest 10、TimetableParserTest 8、FeedParserTest 10、TimetablePresentationTest 4、SchedulePresentationTest 3、TimetableStateTest 6、SyncRetryTest 10、FeedStateTest 5。没有新增测试；既有 deadline label 测试改为验证当前使用的 DeadlineTiming 四个午夜/过期场景，删除仅测试已退役 monday 函数的周视图检查。没有编写/修改/运行 UI Test 或 Android instrumentation，也没有运行模拟器、Lint、学校接口 smoke、手机截图或自动点击链接。git diff --check 通过；认证、Repository、ViewModel、Room schema 和设备测试源码无改动。
+
+指定物理手机 10AG4S2KQJ0066R 的第一次 adb install -r 返回 INSTALL_FAILED_ABORTED / User rejected permissions；用户授权重试后覆盖安装成功，确认 versionCode 25 / versionName 0.17.0，MainActivity 冷启动 Status: ok（394ms）。未卸载或清除数据，保留登录与缓存；成功启动不替代页面与跳转的手动验收。
+
+手动重点：Next 与 Classes 的名称/代码、跨日时间和详情一致；首页简略 deadline 日期、Tasks 精确时间、不同年份与 Today/Passed；首页/Me 四个常用入口，以及 Me 八个网站的短标签/图标/跳转与返回；课程地点、作业原站、消息/模块详情点击后才打开浏览器，失败提示在详情里可见且重试成功清除；消息搜索/清除/详情纯文本，切页和账号恢复行为。浏览器失败/无有效地点 URL 等稀有场景未在物理手机自动制造，不能以构建或成功启动代替这些反馈验收。
+
 ## 0.16.0：组件标准与四个主页面复用迁移
+
+用户随后反馈“验收通过了”，本批四页组件迁移的手动验收已通过；该反馈不补充新的 API 或 Library 非空结构证据。
 
 2026-10-06。完成规划前两批：公共 AppCard、颜色/形状/间距标准、SectionCard、连续列表首尾圆角/分隔线、MetricListRow、ActionTile、SearchField、详情面板和页面标题。首页、导航、进度条、欢迎页和三类业务详情拆成独立文件；PlusScreen 继续拥有路由、返回、日期/列表位置和账户变更选择清理。删除无调用方的旧 EmptyCard / EventRow，业务日期函数和同步整理留到后续。
 

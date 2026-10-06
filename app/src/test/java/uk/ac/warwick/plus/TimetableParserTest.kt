@@ -54,9 +54,6 @@ class TimetableParserTest {
         assertTrue(TimetableParser.parse(response("")).isEmpty())
         assertThrows(Exception::class.java) { TimetableParser.parse("""{"success":false,"status":"error"}""") }
     }
-    @Test fun weekStartsOnMondayAcrossYearBoundary() {
-        assertEquals(LocalDate.of(2026, 12, 28), monday(LocalDate.of(2027, 1, 3)))
-    }
     @Test fun moduleFullNameIsKeptWithoutOverwritingOriginalEntryTitle() {
         val body = """{"success":true,"data":{"timetable":{"content":{"items":[{
             "id":"module-name","title":"EX101L","start":"2026-10-05T10:00:00+01:00[Europe/London]",

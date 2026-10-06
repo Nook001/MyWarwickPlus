@@ -10,8 +10,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
@@ -35,7 +33,6 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
     var courseworkFilter by rememberSaveable { mutableStateOf("Upcoming") }
     var feedEntryId by rememberSaveable { mutableStateOf<String?>(null) }
     val route = FeedKind.entries.firstOrNull { it.key == feedRoute }
-    val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
     val refreshResource: (SyncResource) -> Unit = { resource ->
@@ -61,13 +58,9 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
             } finally { onNoticeConsumed(notice.id) }
         }
     }
+    val launchBrowser = rememberBrowserOpener(onExternalLink)
     val openLink: (String) -> Unit = { raw ->
-        val url = safeExternalUrl(raw)
-        val failed = url == null || runCatching {
-            if (onExternalLink != null) onExternalLink(url)
-            else androidx.browser.customtabs.CustomTabsIntent.Builder().build().launchUrl(context, android.net.Uri.parse(url))
-        }.isFailure
-        if (failed) scope.launch { snackbar.showSnackbar("Couldn't open this link. Try again.") }
+        if (!launchBrowser(raw)) scope.launch { snackbar.showSnackbar("Couldn't open this link. Try again.") }
     }
     var previousAccount by rememberSaveable { mutableStateOf(state.accountCode) }
     LaunchedEffect(state.accountCode) {
@@ -80,10 +73,7 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) { while (true) { now = System.currentTimeMillis(); delay(30_000) } }
     val today = atWarwick(now).toLocalDate()
-    val firstName = state.name.trim().split(Regex("\\s+"), limit = 2).firstOrNull().orEmpty()
-    val greeting = when (atWarwick(now).hour) {
-        in 0..11 -> "Good morning"; in 12..17 -> "Good afternoon"; else -> "Good evening"
-    } + if (firstName.isNotBlank()) ", $firstName" else ""
+    val greeting = greeting(state.name, now)
     var selectedDay by rememberSaveable { mutableLongStateOf(today.toEpochDay()) }
     var followToday by rememberSaveable { mutableStateOf(true) }
     var showDatePicker by rememberSaveable { mutableStateOf(false) }
@@ -164,7 +154,6 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
                                 if (tab == 0) HomeContent(state, today, now, { selectedId = it.id }, { courseworkId = it.id },
                                     { courseworkFilter = "Upcoming"; tab = 2 }, { courseworkFilter = "Past"; tab = 2 }, onLogin, recoverResource, openLink)
                                 else if (tab == 2) CourseworkContent(state.coursework, now, state.busy,
-                                    { refreshResource(SyncResource.COURSEWORK) },
                                     feedback = { ResourceRecoveryRow(state, SyncResource.COURSEWORK, onLogin) { recoverResource(SyncResource.COURSEWORK) } },
                                     showFeedback = state.needsLogin || state.coursework.message != null,
                                     filterOverride = courseworkFilter, onFilterChanged = { courseworkFilter = it }) { courseworkId = it.id }
@@ -180,13 +169,13 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
     if (tab == 1 && showDatePicker && !state.signingOut) ScheduleDateDialog(scheduleDate,
         onDismiss = { showDatePicker = false }, onDate = { chooseScheduleDate(it); showDatePicker = false })
     if (!state.signingOut) state.events.firstOrNull { it.id == selectedId }?.let { event ->
-        EventDetails(event, event.id in conflictingEventIds(state.events), onDismiss = { selectedId = null })
+        EventDetails(event, event.id in conflictingEventIds(state.events), onDismiss = { selectedId = null }, onOpen = onExternalLink)
     }
     if (!state.signingOut) state.coursework.entries.firstOrNull { it.id == courseworkId }?.let { entry ->
-        CourseworkDetails(entry, { courseworkId = null }, onCourseworkLink)
+        CourseworkDetails(entry, { courseworkId = null }, onCourseworkLink ?: onExternalLink)
     }
     if (!state.signingOut && route != null) state.feed(route).entries.firstOrNull { it.id == feedEntryId }?.let {
-        FeedDetails(route, it, openLink, { feedEntryId = null })
+        FeedDetails(route, it, onExternalLink, { feedEntryId = null })
     }
     if (showProbe && probe != null && !state.signingOut) ApiProbeSheet(probe, onLogin, { showProbe = false })
 }

@@ -44,12 +44,12 @@ class CourseworkTest {
         listOf("", "javascript:alert(1)", "http://warwick.ac.uk/", "https://warwick.ac.uk.attacker.example/",
             "https://warwick.ac.uk:444/", "https://user@warwick.ac.uk/", "//attacker.example/").forEach { assertNull(it, safeCourseworkUrl(it)) }
     }
-    @Test fun deadlineLabelsUseWarwickMidnightAndDoNotInferSubmission() {
+    @Test fun deadlineTimingUsesWarwickMidnightAndDoNotInferSubmission() {
         val now = Instant.parse("2026-10-03T22:30:00Z").toEpochMilli()
-        assertEquals("Due today", deadlineLabel(now + 1_000, now))
-        assertEquals("Due tomorrow", deadlineLabel(now + 3_600_000, now))
-        assertEquals("Deadline passed", deadlineLabel(now - 1, now))
-        assertEquals("Due in 2 days", deadlineLabel(now + 2 * 86_400_000, now))
+        assertEquals(DeadlineTiming(0, false), deadlineTiming(now + 1_000, now))
+        assertEquals(DeadlineTiming(1, false), deadlineTiming(now + 3_600_000, now))
+        assertEquals(DeadlineTiming(0, true), deadlineTiming(now - 1, now))
+        assertEquals(DeadlineTiming(2, false), deadlineTiming(now + 2 * 86_400_000, now))
     }
     private val user = SignedInUser("student", "Example", "", "")
     private fun cache() = CachedTimetable(listOf(EventEntity().apply { id = "class" }),

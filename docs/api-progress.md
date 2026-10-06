@@ -1,6 +1,8 @@
 # API 接入进度
 
-更新：2026-10-06，版本 0.16.0。每次接入接口时同步更新此表；协议细节见 [protocol.md](protocol.md)。本轮完成公共组件标准与页面迁移，接口接入情况和原展示字段沿用。
+更新：2026-10-06，版本 0.17.0。每次接入接口时同步更新此表；协议细节见 [protocol.md](protocol.md)。本轮完成第三批共享函数、浏览器跳转和服务配置整理，接口接入情况和原展示字段沿用。
+
+0.17.0：UI 的英国时区与日期格式集中到 StudentDates，课程名称/代码和跨日时间共用 ClassPresentation；Coursework 与 Feed 共用 networkDate，旧 date/URL helper 从具体 parser 移到公共文件。域名限制仍区分 Warwick 作业/模块与普通 HTTPS 外部链接；浏览器只在显式点击后打开，不导出 cookie/CSRF。课程地点链接也共用校验和浏览器打开入口：支持相对地址、拒绝 userinfo/非 443 端口，打开失败在详情内显示并可重试。首页与 Me 八个外部服务的短名称、图标和地址由 ServiceCatalog 集中维护，Feed Library/Moodle 回退地址共用配置；这些仍是跳转入口，不是新增 API。完整同步、资源重试/进度、账户隔离、分页游标与 Room schema 5 沿用。56 项既有检查和构建通过；用户授权重试后物理手机覆盖安装成功，确认 0.17.0 / versionCode 25，冷启动成功（394ms），页面与跳转待手动验收。0.16.0 已获用户手动验收通过。
 
 0.16.0 UI 整理：Home / Schedule / Tasks / Me 复用 AppCard 与统一颜色/形状标准；首页与 Tasks 共用 DeadlineRow 的 Home/List 变体，首页 Today 与 Schedule 的课程行共用 MetricListRow 的居中信息列；Tasks 连续列表共用首尾圆角和分隔线。首页快捷入口与 Me 网格共用 ActionTile，Tasks 与 Messages/Modules 共用紧凑搜索框；课程/作业/消息详情和按需状态工具共用底部面板骨架。Lake 强调颜色判断集中到主题，首页 Next 的右对齐日期/右下角箭头、首行紧凑留白、Home 0 days / Tasks Today-Passed 等规则保留。规范见 [component-standards.md](component-standards.md)。
 

@@ -71,8 +71,7 @@ fun ScheduleContent(state: TimetableState, today: LocalDate, now: Long, from: Lo
 @Composable
 internal fun ScheduleClassRow(event: EventEntity, date: LocalDate, status: String?, conflict: Boolean,
     compactTop: Boolean = false, onSelect: () -> Unit) {
-    val title = event.moduleName.ifBlank { event.title.ifBlank { "Class" } }
-    val code = if (event.moduleName.isNotBlank() && event.title != title) event.title else event.module.takeUnless { it == title }.orEmpty()
+    val identity = classIdentity(event)
     val time = scheduleTime(event, date)
     MetricListRow(onSelect, "View class details", Modifier.testTag("schedule-class-${date}-${event.id}"),
         compactTop = compactTop, metric = {
@@ -81,11 +80,11 @@ internal fun ScheduleClassRow(event: EventEntity, date: LocalDate, status: Strin
             if (!event.allDay) Text(time.end, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1, softWrap = false)
     }) {
-        Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Text(identity.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             if (status != null) Text(status, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary)
-            if (code.isNotBlank()) Text(code, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+            if (identity.code.isNotBlank()) Text(identity.code, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
             if (event.location.isNotBlank()) Text(event.location, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (!event.allDay && (time.continuesBefore || time.continuesAfter)) Text(

@@ -1,8 +1,6 @@
 package uk.ac.warwick.plus.data
 
 import org.json.JSONObject
-import java.net.URI
-import java.time.ZonedDateTime
 
 enum class FeedKind(val key: Int, val label: String, val tile: String) {
     MESSAGES(3, "Messages", "notifications"), LIBRARY(4, "Library", "library"), MODULES(5, "Modules", "modules");
@@ -13,15 +11,6 @@ enum class FeedKind(val key: Int, val label: String, val tile: String) {
 data class ParsedFeed(val entries: List<FeedEntry>, val meta: FeedMeta)
 data class CachedFeed(val entries: List<FeedEntry>, val meta: FeedMeta?, val sync: SyncEntity?)
 
-fun networkDate(value: String): Long = ZonedDateTime.parse(value.replace(Regex("([+-]\\d{2})$"), "$1:00"))
-    .toInstant().toEpochMilli()
-
-/** Links open only after a user gesture in the system browser, without our cookie jar. */
-fun safeExternalUrl(raw: String): String? = runCatching {
-    val uri = URI("https://my.warwick.ac.uk/").resolve(raw)
-    if (raw.isNotBlank() && uri.scheme == "https" && !uri.host.isNullOrBlank() &&
-        uri.rawUserInfo == null && uri.port in listOf(-1, 443)) uri.toASCIIString() else null
-}.getOrNull()
 
 object FeedParser {
     fun parse(kind: FeedKind, body: String): ParsedFeed {

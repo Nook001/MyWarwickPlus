@@ -15,8 +15,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import uk.ac.warwick.plus.data.*
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 @Composable
 internal fun HomeContent(state: TimetableState, today: LocalDate, now: Long, onSelect: (EventEntity) -> Unit,
@@ -96,14 +94,8 @@ internal fun HomeContent(state: TimetableState, today: LocalDate, now: Long, onS
 
 @Composable
 private fun NextClassCard(event: EventEntity, now: Long, onSelect: () -> Unit) {
-    val name = event.moduleName.ifBlank { event.title }
-    val code = if (event.moduleName.isNotBlank() && event.title != name) event.title
-        else event.module.takeUnless { it == name }.orEmpty()
-    val endDate = atWarwick(event.endMillis).toLocalDate()
-    val end = if (endDate != atWarwick(event.startMillis).toLocalDate())
-        "${endDate.format(DateTimeFormatter.ofPattern("EEE d MMM", Locale.UK))} ${timeLabel(event.endMillis)}"
-        else timeLabel(event.endMillis)
-    val time = if (event.allDay) "All day" else "${timeLabel(event.startMillis)} – $end"
+    val identity = classIdentity(event)
+    val time = classTimeRange(event, includeWeekday = true)
     val colours = appCardColours(CardTone.Featured)
     AppCard(onClick = onSelect, tone = CardTone.Featured, shape = AppShapes.featured,
         modifier = Modifier.fillMaxWidth().testTag("next-class-card"), actionLabel = "View class details") {
@@ -118,10 +110,10 @@ private fun NextClassCard(event: EventEntity, now: Long, onSelect: () -> Unit) {
                     modifier = Modifier.weight(1f).alignByBaseline().testTag("next-when"))
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
+                Text(identity.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
                     maxLines = 2, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f).alignByBaseline().testTag("next-name"))
-                if (code.isNotBlank()) Text(code, style = MaterialTheme.typography.labelMedium,
+                if (identity.code.isNotBlank()) Text(identity.code, style = MaterialTheme.typography.labelMedium,
                     maxLines = 1, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.widthIn(max = 112.dp).alignByBaseline().testTag("next-code"))
             }

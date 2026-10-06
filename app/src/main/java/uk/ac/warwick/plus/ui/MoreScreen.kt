@@ -19,19 +19,6 @@ import kotlinx.coroutines.delay
 import uk.ac.warwick.plus.BuildConfig
 import uk.ac.warwick.plus.data.FeedKind
 
-data class ServiceLink(val label: String, val url: String, val homeIcon: ImageVector? = null, val homeLabel: String = label)
-val Services = listOf(
-    ServiceLink("Moodle", "https://moodle.warwick.ac.uk/", ServiceIcons.moodle),
-    ServiceLink("Email", "https://warwick.ac.uk/mymail", ServiceIcons.email),
-    ServiceLink("Tabula", "https://tabula.warwick.ac.uk/", ServiceIcons.tabula),
-    ServiceLink("Library account", "https://warwick.ac.uk/services/library/account", ServiceIcons.library, "Library"),
-    ServiceLink("Academic support", "https://warwick.ac.uk/academic-support/"),
-    ServiceLink("Wellbeing and Student Support", "https://warwick.ac.uk/wellbeing/students/"),
-    ServiceLink("Safety and emergency support", "https://warwick.ac.uk/students/safety-and-support/emergency-support/"),
-    ServiceLink("MyWarwick help", "https://warwick.ac.uk/mw-support")
-)
-internal val HomeServices = Services.filter { it.homeIcon != null }
-
 @Composable
 fun MoreContent(state: TimetableState, onLogin: () -> Unit, onSignOut: () -> Unit,
     onFeed: (FeedKind) -> Unit, onOpen: (String) -> Unit, onProbe: (() -> Unit)?, onSettings: () -> Unit = {},
@@ -55,20 +42,9 @@ fun MoreContent(state: TimetableState, onLogin: () -> Unit, onSignOut: () -> Uni
             })
         }
         item {
-            MeGrid("Websites", Services.map { service ->
-                val label = when (service.label) {
-                    "Wellbeing and Student Support" -> "Wellbeing"
-                    "Safety and emergency support" -> "Safety"
-                    "MyWarwick help" -> "Help"
-                    else -> service.label
-                }
-                val icon = service.homeIcon ?: when (service.label) {
-                    "Academic support" -> ServiceIcons.moodle
-                    "Wellbeing and Student Support" -> MeIcons.wellbeing
-                    "Safety and emergency support" -> MeIcons.safety
-                    else -> MeIcons.help
-                }
-                MeAction(label, icon, { onOpen(service.url) }, external = true, actionLabel = "Open ${service.label} in browser")
+            MeGrid("Websites", WarwickService.entries.map { service ->
+                MeAction(service.shortLabel, service.icon, { onOpen(service.url) },
+                    external = true, actionLabel = "Open ${service.label} in browser")
             })
         }
         item { Text("MyWarwick+ ${BuildConfig.VERSION_NAME} · Independent student app", style = MaterialTheme.typography.labelSmall,

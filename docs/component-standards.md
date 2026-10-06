@@ -1,6 +1,6 @@
 # UI 组件规范
 
-更新：2026-10-06，0.16.0。适用于前两批 UI 整理：公共标准与页面迁移。现有五个固定颜色主题、信息密度和业务行为沿用；同步执行、缓存快照、网络日期解析和链接策略属于后续批次。
+更新：2026-10-06，0.17.0。已完成公共标准、页面迁移和第三批共享函数整理。现有五个固定颜色主题、信息密度沿用；同步执行与缓存快照属于第四批。
 
 ## 分层与职责
 
@@ -42,7 +42,22 @@
 - DetailsSheet 提供 LazyListScope，业务以 item 组合内容，保留长内容滚动；类详情保留 24/16dp 留白，其余详情 24dp。Feed 的类别与标题仍是独立条目，保留原间距。Data status / API explorer 使用同一面板骨架，但保留自己的间距。
 - query、筛选、列表位置和选中项仍在原来持有状态的层；这次抽离不改变 rememberSaveable 的输入、请求触发或页面返回行为。
 - 不通过基础容器叠加第二层卡片；也不为每个文字节点建立仅包装 Text 的组件。领域差异用少数明确变体表达，新增变体先寻找真实的两个以上使用场景。
-- 当前链接域名校验、浏览器会话和失败处理沿用。后续第三批统一链接打开函数时再处理地点链接的失败反馈，避免与布局抽离混在一起。
+- 普通页面通过 rememberBrowserOpener 打开链接并显示失败 Snackbar；详情使用 ExternalLinkButton，同一浏览器入口的失败文字在面板内显示，避免被遮罩挡住。课程地点链接也使用这一入口。
+
+## 共享函数与服务配置
+
+| 来源 | 职责与规则 |
+| --- | --- |
+| StudentDates | WarwickZone / atWarwick、共享不可变 Locale.UK 格式器、日期/时间与 DeadlineTiming。首页仅下一年显示年份，Tasks 不同年显示年份且保留时间；天数按 London 自然日计算，过期仍按精确时间 |
+| ClassPresentation | 首页、Classes 和详情共享课程名称/代码选择、跨日时间范围、问候语；名称和原始课表代码保持独立，原完整字段继续在详情展示。缺失课程名称和原始标题时统一回退为 Class |
+| CourseworkPresentation / FeedPresentation | 纯筛选及纯文本展示函数；搜索词只 trim 一次，消息 HTML 仍作为惰性源数据保存并转成纯文本显示。FeedContent 每个条目快照只做一次纯文本转换，搜索和列表共用结果，快照更新/账号清空时重新建立 |
+| NetworkDates | Coursework 与 Feed 共用时区日期解析及缓存的 hour-only offset 正则，保留 +01、Z 和区域后缀；Timetable 原 ISO_ZONED_DATE_TIME 解析沿用。缺少时区仍拒绝整批响应 |
+| BrowserLinks / BrowserActions | 共用 URI 解析、HTTPS/default-or-443、无 userinfo 校验；作业/模块原站入口额外限制 Warwick 域名，消息等普通外部链接仍允许其他 HTTPS 网站。只显式点击打开 Custom Tab，不导出应用 cookie/header，不自动探测地址 |
+| ServiceCatalog | WarwickService 按稳定标识集中八个入口地址、短标签、图标、首页资格；首页四项与 Me 八项从同一配置取得。Feed 的 Library/Moodle 回退网站也复用该配置，不匹配 label 文本 |
+
+地点链接现在与普通 HTTPS 链接共用校验：支持 MyWarwick 相对地址，拒绝带 userinfo 或非 443 端口的 URL；无效链接不提供打开按钮。打开失败时在详情面板可见，重试成功后清除提示。Coursework 的 onCourseworkLink 注入回调优先级保留，其余入口共用 onExternalLink；浏览器打开实现仅一处，回调异常不记录链接值，协程取消继续传播。
+
+原 deadlineLabel、monday 和 CourseworkContent 未使用的 onRefresh 参数已移除；既有截止日期检查改为验证页面实际使用的天数/过期结构，过时周视图检查移除。不得为保持无用途的测试而保留旧业务函数；也不为本轮简单函数逐项新建测试。
 
 ## 维护与验证
 

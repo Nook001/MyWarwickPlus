@@ -51,9 +51,10 @@ internal object ServiceIcons {
 internal fun HomeQuickLinks(onOpen: (String) -> Unit) {
     Row(Modifier.fillMaxWidth().testTag("home-quick-links"), horizontalArrangement = Arrangement.spacedBy(Spacing.grid)) {
         HomeServices.forEach { service ->
-            ActionTile(service.homeLabel, requireNotNull(service.homeIcon), { onOpen(service.url) },
+            val label = requireNotNull(service.homeLabel)
+            ActionTile(label, service.icon, { onOpen(service.url) },
                 layout = ActionTileLayout.Compact,
-                modifier = Modifier.weight(1f).testTag("home-service-${service.homeLabel.lowercase()}"),
+                modifier = Modifier.weight(1f).testTag("home-service-${label.lowercase()}"),
                 actionLabel = "Open ${service.label} in browser")
         }
     }

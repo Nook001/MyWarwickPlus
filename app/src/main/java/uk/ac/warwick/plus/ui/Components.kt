@@ -1,16 +1,12 @@
 package uk.ac.warwick.plus.ui
 
-import android.net.Uri
-import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Alignment
-import uk.ac.warwick.plus.data.EventEntity
 
 fun classCountLabel(count: Int) = if (count == 1) "1 class" else "$count classes"
 
@@ -61,14 +57,4 @@ fun ResourceRecoveryRow(state: TimetableState, resource: SyncResource, onLogin: 
     DataRecoveryRow(state.syncedAt(resource), state.issue(resource), state.updating(resource), state.needsLogin,
         !state.busy && !state.signingOut && !state.logoutFailed, onLogin, onRefresh,
         resource.feed?.let { state.feed(it).olderPageFailed } == true)
-}
-
-@Composable
-fun LocationLink(event: EventEntity) {
-    val context = LocalContext.current
-    val uri = Uri.parse(event.locationUrl)
-    if (uri.scheme == "https" && uri.host != null) {
-        OutlinedButton(onClick = { runCatching { CustomTabsIntent.Builder().build().launchUrl(context, uri) } },
-            modifier = Modifier.fillMaxWidth()) { Text("Open location") }
-    }
 }

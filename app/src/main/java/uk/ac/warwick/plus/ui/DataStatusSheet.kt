@@ -7,8 +7,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,7 +31,7 @@ fun DataStatusSheet(state: TimetableState, onLogin: () -> Unit, onRefresh: ((Syn
                         else -> "Data available"
                     }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     state.syncedAt(resource)?.let { time ->
-                        Text("Last updated ${atWarwick(time).format(DateTimeFormatter.ofPattern("d MMM yyyy · HH:mm", Locale.UK))} · Warwick time",
+                        Text("Last updated ${updatedTimeLabel(time)} · Warwick time",
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
