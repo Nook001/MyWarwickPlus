@@ -1,12 +1,12 @@
 # API 接入进度
 
-更新：2026-10-06，版本 0.11.0。每次接入接口时同步更新此表；协议细节见 [protocol.md](protocol.md)。本轮统一空状态、按数据源恢复、登录提示与按需状态详情，不新增 API。
+更新：2026-10-06，版本 0.12.0。每次接入接口时同步更新此表；协议细节见 [protocol.md](protocol.md)。本轮精简 Coursework 搜索、分类和连续列表，不新增 API。
 
 | API / 方法 | 接入情况 | 如何使用与展示 | 验证 / 限制 |
 | --- | --- | --- | --- |
 | `GET /user/info` | 已接入 | 启动、刷新和登录回跳时检查账户、会话与 CSRF 信息；More 展示账户和登录状态，0.6.1 移除检查时间 | 原生已验证；cookie/token 不写入日志或 Git |
 | `GET /api/tiles/content/timetable` | 已接入 | 首页 NOW / NEXT 三行与整卡详情，Today 复用 Schedule 课程行、同日共用容器；Schedule 从今天/选定日期开始连续分组，左侧时间、右侧课程/条目代码/地点，Now/Next、冲突、跨午夜提示；Today 无课小标题及单行说明；日期跳转/返回今天/历史查看，详情与地点链接；缓存与下拉刷新 | 此前真机 143 条；英国时区；NOW / NEXT 仅选择有时间的课程，全日项在当天列表保留；失败保留整批旧缓存；大字体允许行高增加，完整标题在详情阅读；列表位置在切页/刷新/状态恢复时保留 |
-| `GET /api/tiles/content/coursework` | 已接入 | 首页最近 3 个未来截止日期，共用紧凑列表：左列数字 / days 两行，右列原始标题 / d MMM（6 Oct），下一年及以后显示年份（6 Jan 2027），点击完整详情；Deadlines 与 View all coursework 同行；独立页面搜索、All / Upcoming / Next 7 days / Past 筛选、原站入口；独立缓存 | 此前浏览器及真机 3 条；接口没有独立课程名字段，使用原始 title；天数按英国自然日计算，当天未过期数字为 0，单位固定 days；日期使用 Locale.UK 的英文月份。支持 `+01` 和 `Z`。近期聚合，不推断已提交状态；原站浏览器可能需独立登录 |
+| `GET /api/tiles/content/coursework` | 已接入 | 首页最近 3 个未来截止日期，共用紧凑列表：左列数字 / days 两行，右列原始标题 / d MMM（6 Oct），下一年及以后显示年份（6 Jan 2027）；Deadlines 与 View all coursework 同行；独立页紧凑圆角搜索、Upcoming / Past 二选一、共用背景连续列表，左列数字 / days 或 Today / Passed，右列两行以内原始标题和 d MMM · HH:mm，不同年显示年份；整行详情与原站入口；独立缓存 | 此前浏览器及真机 3 条；接口没有独立课程名字段，使用原始 title；天数按英国自然日计算，首页当天未过期仍为 0 days，独立页显示 Today；日期使用 Locale.UK 英文月份和 Warwick 时区。支持 `+01` 和 `Z`。近期聚合，不推断已提交状态；原站浏览器可能需独立登录 |
 | `GET /api/tiles/content/library` | 摘要页面已接入；非空结构待验证 | More → Library；学校空列表说明、账户入口、独立缓存与重试；非空条目仅展示实际存在的 title/text/href 或通用原站提示 | 当前浏览器 200 / 0 条；此前原生 0 条。借阅、到期日、欠费等字段未确认，不推定业务含义 |
 | `GET /api/tiles/content/eventsmerge` | 待验证 | 评估与课表合并事件，避免重复日程 | 前端候选；当前无业务展示 |
 | `GET /api/tiles/content/modules` | 已接入 | More → Modules；名称、代码、学年、搜索、详情、公告/评估条数及 Moodle 链接；独立缓存 | 0.4.0 浏览器 200 / 1 条；id 为数字，announcements/evaluations 当时为空。不等同完整选课清单；公告正文仍在原站查看 |
@@ -38,3 +38,5 @@
 0.11.0 统一未加载、真正为空及筛选为空的提示；Messages / Modules 提供 Clear search，Coursework 提供 Clear filters。失败或需要登录时才显示对应内容的轻量操作行，旧缓存可读，不恢复页脚日志或顶部错误卡片。课表与 Coursework 新增单数据源刷新入口，使用现有 GET + user 验证，不重复刷新其他资源或重报其旧错误；More → Data status 显示五类状态和独立更新时间，并支持按源刷新。登录过期用 More 小标记及对应 Sign in 恢复，不写学校账户状态。更早消息失败单独记录，Retry 沿用原缓存游标；下拉仍刷新最新消息，失去旧游标时回退普通刷新。首页近七天已过截止日期入口打开 Coursework 的 Past，筛选状态在页面切换保留、账户切换重置；不推断是否提交。认证、数据库 schema 4、已有缓存及重试预算不变。本轮没有新增接口或重跑真实学校接口验证。
 
 0.9.0 首页仅调整布局与现有数据的呈现。Today 和 Schedule 共用课程行与未来课程选择规则；NOW 优先展示正在进行的有时间课程，若同时多课按开始时间、id 稳定选择，Today 保留所有课程和冲突提示。首页 Deadlines 仍显示最多三个未过期条目；准确截止时间、完整标题和原站链接保留在详情，过去条目仍在 Coursework 的 Past 筛选查看。不改变认证、接口、缓存、重试或数据库。没有新增测试或运行 UI Test。
+
+0.12.0 Coursework 移除顶部两行说明、重复分类标题与独立大卡片；保留紧凑圆角搜索和 Upcoming / Past 二选一。连续列表左侧显示数字 / days、Today 或 Passed，右侧原始标题和英文月份的准确截止时间，不同年显示年份；每行点击详情，列表首尾圆角、中间轻分隔线。默认与首页 View all coursework 进入 Upcoming，Recently passed 进入 Past；旧 All / Next 7 days 保存状态按 Upcoming 显示。未加载、空分类及无搜索结果分别提示，Clear search 保持分类，不触发请求。完整说明放在详情；认证、接口、缓存、Room schema 4 和重试不变。

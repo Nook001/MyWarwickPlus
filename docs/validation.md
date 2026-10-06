@@ -1,5 +1,15 @@
 # 原型验收
 
+## 0.12.0：Coursework 信息密度与连续列表
+
+2026-10-06。移除顶部两行说明、重复的分类标题/计数与过去作业说明；时区、接口范围及提交状态说明留在详情。搜索改为 24dp 圆角、普通字体下 48dp 视觉高度，左侧搜索图标、输入后的清除按钮；大字体允许增高。仅保留等宽 Upcoming / Past 分类，默认 Upcoming，Upcoming 按截止时间升序、Past 降序。
+
+条目按独立 LazyColumn 行渲染，共用连续背景，只有列表首尾圆角；移除独立大卡片及行间大空隙。左列数字 / days、当天 Today、过去 Passed；右列最多两行标题和准确截止日期/时间（d MMM · HH:mm，不同年加 yyyy，英国时区）。整行点击及箭头进入原详情，完整标题与原站入口保留。空分类使用 No upcoming deadlines / No past deadlines，未加载仍独立区分；搜索无结果可 Clear search，保持分类、不请求网络。首页 View all coursework 进入 Upcoming，Recently passed 进入 Past；旧 All / Next 7 days 保存状态按 Upcoming 展示。
+
+assembleDebug 与 20 项既有 JVM 检查通过（CourseworkTest 10、FeedParserTest 10）。仅更新既有筛选检查中被移除的 Next 7 days 断言，改为 Upcoming 包含全部未来条目；没有新增测试、编写/运行 UI Test 或启动模拟器。未运行 Lint、真实学校接口 smoke 或截图验收；用户手动复核列表密度、长标题/大字体、搜索与清除、分类排序、首页入口、点击详情和下拉刷新。
+
+首轮 USB 安装被手机拒绝；用户解锁后已明确指定物理手机 10AG4S2KQJ0066R，adb install -r 覆盖安装成功，确认 versionCode 16 / versionName 0.12.0。MainActivity 冷启动 Status: ok（566ms）。保留登录与缓存，没有卸载或清除应用数据；视觉和交互待用户手动验收。
+
 ## 0.11.0：空状态、独立恢复与按需状态详情
 
 2026-10-06。各页面区分未加载、学校返回空列表与筛选为空；Messages / Modules 可 Clear search，Coursework 可 Clear filters，不触发请求。首页仍保留紧凑空状态。失败/登录过期时仅在对应内容附近显示轻量恢复行，缓存可读；重试中隐藏该行，正常状态不增加额外提示或空白列表项。登录过期在 More 入口增加小标记与无障碍说明。

@@ -48,14 +48,14 @@ class FeedParserTest {
         listOf("http://example.com/", "javascript:alert(1)", "https://user:password@example.com/", "https://example.com:444/").forEach { assertNull(safeExternalUrl(it)) }
         assertNotNull(safeExternalUrl("https://www.warwicksu.com/"))
     }
-    @Test fun courseworkFiltersUseBritishCalendarAndDoNotChangeUnderlyingData() {
+    @Test fun courseworkFiltersSeparatePastAndUpcomingWithoutChangingUnderlyingData() {
         val now = Instant.parse("2026-10-24T23:30:00Z").toEpochMilli()
         val entries = listOf(CourseworkEntity().apply { id = "past"; dueMillis = now - 1; title = "Past report" },
             CourseworkEntity().apply { id = "soon"; dueMillis = now + 60_000; title = "Compiler report" },
             CourseworkEntity().apply { id = "far"; dueMillis = now + 10 * 86_400_000; title = "Future report" })
         assertEquals(listOf("soon"), filterCoursework(entries, "compiler", "Upcoming", now).map { it.id })
         assertEquals(listOf("past"), filterCoursework(entries, "", "Past", now).map { it.id })
-        assertEquals(listOf("soon"), filterCoursework(entries, "", "Next 7 days", now).map { it.id })
+        assertEquals(listOf("soon", "far"), filterCoursework(entries, "", "Upcoming", now).map { it.id })
         assertEquals(3, entries.size)
     }
     @Test fun backToBackAllDayAndZeroDurationEventsDoNotCreateFalseConflicts() {

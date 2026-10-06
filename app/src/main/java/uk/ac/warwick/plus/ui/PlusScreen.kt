@@ -106,7 +106,7 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
     var showProbe by rememberSaveable { mutableStateOf(false) }
     var feedRoute by rememberSaveable { mutableStateOf<Int?>(null) }
     var showAppearance by rememberSaveable { mutableStateOf(false) }
-    var courseworkFilter by rememberSaveable { mutableStateOf("All") }
+    var courseworkFilter by rememberSaveable { mutableStateOf("Upcoming") }
     var feedEntryId by rememberSaveable { mutableStateOf<String?>(null) }
     val route = FeedKind.entries.firstOrNull { it.key == feedRoute }
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -147,7 +147,7 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
     LaunchedEffect(state.accountCode) {
         if (previousAccount.isNotBlank() && previousAccount != state.accountCode) {
             selectedId = null; courseworkId = null; feedEntryId = null; feedRoute = null; showProbe = false
-            courseworkFilter = "All"
+            courseworkFilter = "Upcoming"
         }
         previousAccount = state.accountCode
     }
@@ -252,7 +252,7 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
                 !state.hasSavedData && state.needsLogin -> Welcome(onLogin)
                 else -> {
                     if (tab == 0) Home(state, today, now, { selectedId = it.id }, { courseworkId = it.id },
-                        { courseworkFilter = "All"; tab = 2 }, { courseworkFilter = "Past"; tab = 2 }, onLogin, recoverResource)
+                        { courseworkFilter = "Upcoming"; tab = 2 }, { courseworkFilter = "Past"; tab = 2 }, onLogin, recoverResource)
                     else if (tab == 2) CourseworkContent(state.coursework, now, state.busy,
                         { refreshResource(SyncResource.COURSEWORK) },
                         feedback = { ResourceRecoveryRow(state, SyncResource.COURSEWORK, onLogin) { recoverResource(SyncResource.COURSEWORK) } },
