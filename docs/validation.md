@@ -6,7 +6,7 @@
 
 标题和 All 最小高度 32→28dp，采用 labelMedium / SemiBold 与 onSurfaceVariant，不再额外淡化透明度；Today / Deadlines 首行最小高度 56dp、上/下内边距 2/8dp，后续行保留 64dp / 10dp；空状态上/下内边距 2/10dp。Today 左侧时间原先 align(Top) 且默认列内左对齐，现在与右侧内容块整体垂直居中；宽度改为与 Deadlines 一样的 48sp 转 dp，水平居中、行间距 2dp，起始时间 primary / SemiBold。Schedule 共用课程行同步居中但保持原行高和内边距。字号放大时自然增高，不新增日期或额外卡片。
 
-assembleDebug 成功，git diff --check 通过。本轮简单样式调整没有新增测试或运行单元/UI Test、模拟器、Lint、学校接口 smoke、手机截图；视觉效果由物理手机手动验收。首轮指定物理手机 10AG4S2KQJ0066R 的 adb install -r 返回 INSTALL_FAILED_ABORTED / User rejected permissions，尚未安装；用户解锁后的重试结果待补充。未卸载或清除数据。
+assembleDebug 成功，git diff --check 通过。本轮简单样式调整没有新增测试或运行单元/UI Test、模拟器、Lint、学校接口 smoke、手机截图；视觉效果由物理手机手动验收。首轮指定物理手机 10AG4S2KQJ0066R 的 adb install -r 返回 INSTALL_FAILED_ABORTED / User rejected permissions；用户授权重试后覆盖安装成功，确认 versionCode 22 / versionName 0.14.1，MainActivity 冷启动 Status: ok（383ms）。未卸载或清除数据，保留登录与缓存。此次成功启动不替代用户的实际布局验收。
 
 手动重点：Next 日期贴右、箭头在最下方右侧且整卡可进入详情；Today / Deadlines 的标题到首行是否紧凑、左列中心是否一致；长课程名称、换行地点/状态、无课状态和较大字体下时间/内容的居中表现。Schedule 的日期跳转、冲突/跨日提示和列表详情仍可正常使用。
 
