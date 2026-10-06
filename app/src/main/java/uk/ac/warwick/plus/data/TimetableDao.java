@@ -5,9 +5,19 @@ import androidx.room.Insert;
 import androidx.room.Query;
 import androidx.room.Transaction;
 import java.util.List;
+import java.util.EnumMap;
+import java.util.Map;
 
 @Dao
 public abstract class TimetableDao {
+    // All persisted resources belong to one read transaction, including their sync metadata.
+    @Transaction public CachedTimetable snapshot() {
+        Map<FeedKind, CachedFeed> feeds = new EnumMap<>(FeedKind.class);
+        for (FeedKind kind : FeedKind.values()) {
+            feeds.put(kind, new CachedFeed(feedEntries(kind.getKey()), feedMeta(kind.getKey()), feedState(kind.getKey())));
+        }
+        return new CachedTimetable(events(), state(), coursework(), courseworkState(), feeds, feedState(6));
+    }
     @Query("SELECT * FROM events ORDER BY startMillis, id")
     public abstract List<EventEntity> events();
     @Query("SELECT * FROM sync_state WHERE id = 1")

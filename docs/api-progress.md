@@ -1,6 +1,8 @@
 # API 接入进度
 
-更新：2026-10-06，版本 0.17.0。每次接入接口时同步更新此表；协议细节见 [protocol.md](protocol.md)。本轮完成第三批共享函数、浏览器跳转和服务配置整理，接口接入情况和原展示字段沿用。
+更新：2026-10-06，版本 0.18.0。每次接入接口时同步更新此表；协议细节见 [protocol.md](protocol.md)。本轮完成第四批同步执行、缓存快照和状态转换整理，接口接入情况和原展示字段沿用。
+
+0.18.0：Repository 共用串行锁、账户验证、读取/事务写入和同步状态创建；DAO 在单个 Room 读事务取得六类数据快照。ViewModel 统一完整/单资源/更早消息的执行、失败恢复与进度结算；状态转换和重试策略独立维护。取消的阻塞读取返回后不再写缓存；消息合并的 ID 查找改用集合。原生 GET、cookie/CSRF、每资源账户检查、请求顺序、2 秒/5 秒重试预算、账户隔离、分页上限、schema 5 与页面内容沿用。构建及 23 项聚焦检查通过（21 项既有、2 项复杂 Repository 边界）；物理手机部署结果见 validation.md。规范见 [sync-architecture.md](sync-architecture.md)。
 
 0.17.0：UI 的英国时区与日期格式集中到 StudentDates，课程名称/代码和跨日时间共用 ClassPresentation；Coursework 与 Feed 共用 networkDate，旧 date/URL helper 从具体 parser 移到公共文件。域名限制仍区分 Warwick 作业/模块与普通 HTTPS 外部链接；浏览器只在显式点击后打开，不导出 cookie/CSRF。课程地点链接也共用校验和浏览器打开入口：支持相对地址、拒绝 userinfo/非 443 端口，打开失败在详情内显示并可重试。首页与 Me 八个外部服务的短名称、图标和地址由 ServiceCatalog 集中维护，Feed Library/Moodle 回退地址共用配置；这些仍是跳转入口，不是新增 API。完整同步、资源重试/进度、账户隔离、分页游标与 Room schema 5 沿用。56 项既有检查和构建通过；用户授权重试后物理手机覆盖安装成功，确认 0.17.0 / versionCode 25，冷启动成功（394ms），页面与跳转待手动验收。0.16.0 已获用户手动验收通过。
 

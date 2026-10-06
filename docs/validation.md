@@ -1,5 +1,15 @@
 # 原型验收
 
+## 0.18.0：同步流程与缓存快照
+
+2026-10-06。第四批完成：Repository 共用 inStore / authenticatedSync；DAO snapshot 为单个读事务，网络在数据库事务外；ViewModel 各资源共用 syncResource，TimetableState 承担缓存/错误转换，SyncRetry 承担每资源 2 秒/5 秒延迟和三次尝试预算。完整刷新仍依次 Timetable、Coursework、Messages、Library、Modules、Account；账户验证和 UI 快照在一次状态更新中应用。增加验证后/持久化前取消检查；消息合并只将已有 ID 查找改为集合，游标、排序、非推进页拒绝与 500 条上限沿用。
+
+assembleDebug 和 23 项聚焦 JVM 检查全部通过：TimetableStateTest 6、FeedStateTest 5、SyncRetryTest 10、RepositorySyncTest 2。新增两项仅验证复杂 Repository 编排：切换账户后清缓存并在请求前拒绝旧游标；已取消的阻塞下载返回后不写缓存、本地退出仍清 session/cache。内存 DAO fixture 不验证 SQLite；Room 生成 TimetableDao_Impl.snapshot 的事务包装已检查。没有编写/修改/运行 UI Test 或 Android instrumentation，未启动模拟器、运行 Lint 或登录态浏览器 API 抓取。学校 API、认证源码、数据库 schema 和页面布局无变动。
+
+指定物理手机 10AG4S2KQJ0066R，首次 adb install -r 返回 INSTALL_FAILED_ABORTED / User rejected permissions；0.18.0 尚未装上，已请求用户解锁后重试。未卸载或清除数据；真实 SQLite 快照、冷启动和刷新仍待手机验证。
+
+手动重点：冷启动已有内容可读、正常下拉进度/多次下拉不重复；断网刷新旧课表/作业/邮箱不消失，联网后恢复；Data status 单项刷新；Messages 更早页与返回；切页/详情保持。需要重新登录、换账户和真正 Sign out 的验收仅在用户愿意时进行，不自动退出或变更学校账户。
+
 ## 0.17.0：共享函数、链接反馈与入口配置
 
 2026-10-06。第三批完成：StudentDates 统一 London 时区、缓存不可变 Locale.UK 日期格式器、天数/过期判断；ClassPresentation 共用名称/代码、跨日范围和问候语；筛选/Feed 纯文本函数独立，消息快照的纯文本在筛选/列表之间复用。Coursework / Feed 的网络日期解析共用原 hour-only offset 兼容逻辑；Timetable 的严格原解析沿用。BrowserLinks 合并 URL 基础校验，BrowserActions 是唯一 Custom Tabs 打开实现，页面保留 Snackbar，详情内使用可见失败文字。地点链接不再静默忽略打开失败，额外拒绝 userinfo/非 443 端口并支持 MyWarwick 相对地址。ServiceCatalog 统一入口地址、短标签、图标和首页资格；布局和八个服务的内容/顺序保留。
