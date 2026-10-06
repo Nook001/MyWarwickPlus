@@ -8,7 +8,6 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -26,9 +25,7 @@ fun AppearanceContent() {
         item { SectionLabel("COLOUR THEME") }
         items(ColourTheme.entries, key = { it.id }) { theme ->
             val selected = appearance.theme == theme
-            Surface(shape = RoundedCornerShape(18.dp),
-                color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
-                contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface) {
+            AppCard(shape = AppShapes.featured, tone = if (selected) CardTone.Selected else CardTone.Normal) {
                 Row(Modifier.fillMaxWidth().selectable(selected, role = Role.RadioButton,
                     onClick = { update(appearance.copy(theme = theme)) }).testTag("theme-${theme.id}")
                     .padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically,
@@ -43,7 +40,7 @@ fun AppearanceContent() {
             }
         }
         item {
-            Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
+            AppCard(shape = AppShapes.featured) {
                 Row(Modifier.fillMaxWidth().toggleable(appearance.texture, role = Role.Switch,
                     onValueChange = { update(appearance.copy(texture = it)) }).testTag("fine-texture")
                     .padding(14.dp), verticalAlignment = Alignment.CenterVertically,

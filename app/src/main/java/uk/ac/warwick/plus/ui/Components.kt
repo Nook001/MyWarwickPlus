@@ -3,7 +3,6 @@ package uk.ac.warwick.plus.ui
 import android.net.Uri
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -12,12 +11,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Alignment
 import uk.ac.warwick.plus.data.EventEntity
-
-object Spacing {
-    val page = 20.dp
-    val section = 20.dp
-    val item = 12.dp
-}
 
 fun classCountLabel(count: Int) = if (count == 1) "1 class" else "$count classes"
 
@@ -32,18 +25,8 @@ fun SectionLabel(text: String, trailing: String? = null) {
 }
 
 @Composable
-fun EmptyCard(title: String, detail: String) {
-    Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
-            Text(detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
-
-@Composable
 fun DataEmptyState(text: String, detail: String? = null, action: String? = null, onAction: () -> Unit = {}) {
-    Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
+    AppCard(Modifier.fillMaxWidth(), tone = CardTone.Quiet) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(text, style = MaterialTheme.typography.bodyMedium)
             if (!detail.isNullOrBlank()) Text(detail, style = MaterialTheme.typography.bodySmall,
@@ -78,31 +61,6 @@ fun ResourceRecoveryRow(state: TimetableState, resource: SyncResource, onLogin: 
     DataRecoveryRow(state.syncedAt(resource), state.issue(resource), state.updating(resource), state.needsLogin,
         !state.busy && !state.signingOut && !state.logoutFailed, onLogin, onRefresh,
         resource.feed?.let { state.feed(it).olderPageFailed } == true)
-}
-
-@Composable
-fun EventRow(event: EventEntity, conflict: Boolean = false, onSelect: () -> Unit) {
-    Card(onClick = onSelect, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
-        Row(Modifier.padding(18.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Column(Modifier.width(52.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(if (event.allDay) "All day" else timeLabel(event.startMillis), fontWeight = FontWeight.SemiBold,
-                    style = MaterialTheme.typography.bodyMedium)
-                if (!event.allDay) Text(timeLabel(event.endMillis), style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (event.module.isNotBlank()) Text(event.module, style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary)
-                Text(event.moduleName.ifBlank { event.title }, style = MaterialTheme.typography.titleSmall)
-                if (event.moduleName.isNotBlank() && event.moduleName != event.title) Text(event.title,
-                    style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (event.location.isNotBlank()) Text(event.location, style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (conflict) Text("Overlaps another class", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
-            }
-        }
-    }
 }
 
 @Composable

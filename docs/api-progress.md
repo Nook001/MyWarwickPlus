@@ -1,6 +1,10 @@
 # API 接入进度
 
-更新：2026-10-06，版本 0.15.0。每次接入接口时同步更新此表；协议细节见 [protocol.md](protocol.md)。本轮将 Me 改为紧凑账户卡片与圆角网格，新增只读账户摘要以显示真实邮箱。
+更新：2026-10-06，版本 0.16.0。每次接入接口时同步更新此表；协议细节见 [protocol.md](protocol.md)。本轮完成公共组件标准与页面迁移，接口接入情况和原展示字段沿用。
+
+0.16.0 UI 整理：Home / Schedule / Tasks / Me 复用 AppCard 与统一颜色/形状标准；首页与 Tasks 共用 DeadlineRow 的 Home/List 变体，首页 Today 与 Schedule 的课程行共用 MetricListRow 的居中信息列；Tasks 连续列表共用首尾圆角和分隔线。首页快捷入口与 Me 网格共用 ActionTile，Tasks 与 Messages/Modules 共用紧凑搜索框；课程/作业/消息详情和按需状态工具共用底部面板骨架。Lake 强调颜色判断集中到主题，首页 Next 的右对齐日期/右下角箭头、首行紧凑留白、Home 0 days / Tasks Today-Passed 等规则保留。规范见 [component-standards.md](component-standards.md)。
+
+此次没有新增学校接口、重新抓取登录态响应、修改认证/域名校验/请求顺序/重试/分页/缓存或 Room schema（仍为 5）；常用服务入口仍是浏览器跳转。41 项既有检查与构建通过，物理手机覆盖安装 0.16.0 并冷启动成功；这不补充 Library 非空结构等接口验证，也不替代页面视觉和操作手动验收。
 
 | API / 方法 | 接入情况 | 如何使用与展示 | 验证 / 限制 |
 | --- | --- | --- | --- |

@@ -61,6 +61,13 @@ private val palettes = mapOf(
         0x674D5B, 0x5E4653, listOf(0x754153, 0x514159, 0x625039), false, 0xFFB4AB, 0x5C211D, 0x39100B, 0xFFDED9))
 
 fun ColourTheme.palette(): FixedPalette = palettes.getValue(this)
+/** The featured card role preserves Lake's softer emphasis without page-specific theme checks. */
+internal fun ColourTheme.emphasisColours(): AppCardColours {
+    val scheme = palette().scheme
+    return if (this == ColourTheme.LAKE) AppCardColours(scheme.primaryContainer, scheme.onPrimaryContainer)
+        else AppCardColours(scheme.primary, scheme.onPrimary)
+}
+
 val LocalAppearance = staticCompositionLocalOf { Appearance() }
 val LocalAppearanceChange = staticCompositionLocalOf<(Appearance) -> Unit> { {} }
 

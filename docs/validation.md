@@ -1,5 +1,17 @@
 # 原型验收
 
+## 0.16.0：组件标准与四个主页面复用迁移
+
+2026-10-06。完成规划前两批：公共 AppCard、颜色/形状/间距标准、SectionCard、连续列表首尾圆角/分隔线、MetricListRow、ActionTile、SearchField、详情面板和页面标题。首页、导航、进度条、欢迎页和三类业务详情拆成独立文件；PlusScreen 继续拥有路由、返回、日期/列表位置和账户变更选择清理。删除无调用方的旧 EmptyCard / EventRow，业务日期函数和同步整理留到后续。
+
+首页与 Tasks 共用 DeadlineRow，保留首页单行标题/数字 days/简略日期和 Tasks 两行标题/Today-Passed/准确时间；课程行保持全日/跨日/冲突、Now/Next。首页 Next 仍为三行、日期右对齐、地点行末箭头，Lake 的原配色由主题强调颜色角色提供。Me 保留邮箱显式复制、Sign out 确认、三列/大字体两列、外部角标；首页快捷链接仍为紧凑四项。消息/模块搜索从独立 OutlinedTextField 迁移到 Tasks 共用的 48dp 最小高度圆角搜索框，保留原 query 和筛选逻辑。这是本次主要可见的样式收敛。
+
+assembleDebug 成功；41 项既有 JVM 检查全部通过：AppearancePaletteTest 3、CourseworkTest 10、TimetablePresentationTest 4、SchedulePresentationTest 3、TimetableStateTest 6、SyncRetryTest 10、FeedStateTest 5。之后仅调整格式和把网格既有 8dp 值改为公共 token，最终 APK 重新构建成功。没有新增或修改单元/UI 测试，没有运行 UI Test、Android instrumentation、Lint、模拟器、学校接口 smoke、手机截图或自动页面操作。git diff --check 通过；data/auth、TimetableViewModel、Room schema 和全部测试源文件无改动。
+
+指定物理手机 10AG4S2KQJ0066R，adb install -r 成功；确认 versionCode 24 / versionName 0.16.0，MainActivity 冷启动 Status: ok（543ms）。未卸载或清除数据；未自动点击复制、外部链接或 Sign out。安装/启动结果不证明所有页面布局与状态恢复均已手动验收。
+
+手动复核：五个主题切换（重点 Lake 的 Next 与两个深色主题）；Next 日期/箭头位置和整卡详情；Today / Deadlines 左列对齐、空状态、All / Recently passed；Classes 日期跳转、返回 Today、切页保留列表位置、跨日/冲突；Tasks 搜索清除、Upcoming / Past 和详情时间；Me 网格、邮箱复制、Settings / Data status、三个原生服务与外部跳转/返回；各详情面板滚动/关闭和较大字体。断网时旧数据继续可读、刷新进度及原恢复操作可用。真正退出仅在用户愿意重新登录时测试。
+
 ## 0.15.0：Me 网格与账户邮箱
 
 2026-10-06。Me 使用 16dp 横向内收、紧凑姓名/账号、真实邮箱/复制、简化 Sign out。App 和 Websites 分别三列圆角方格，图标、短标签和整项点击；字体缩放 >1.3 或可用宽度 <280dp 改两列，方格最小高度等于列宽，字体放大可自然增高。原登录/退出恢复、确认框、原生服务路由和外部 HTTPS / Custom Tabs 处理保留；没有正常 Signed in 状态或账户阴影。

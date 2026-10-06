@@ -1,10 +1,8 @@
 package uk.ac.warwick.plus.ui
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -14,9 +12,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathBuilder
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.onClick
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
 internal fun serviceIcon(name: String, draw: PathBuilder.() -> Unit) =
@@ -54,21 +49,12 @@ internal object ServiceIcons {
 
 @Composable
 internal fun HomeQuickLinks(onOpen: (String) -> Unit) {
-    Row(Modifier.fillMaxWidth().testTag("home-quick-links"), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(Modifier.fillMaxWidth().testTag("home-quick-links"), horizontalArrangement = Arrangement.spacedBy(Spacing.grid)) {
         HomeServices.forEach { service ->
-            Surface(onClick = { onOpen(service.url) }, shape = RoundedCornerShape(14.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                modifier = Modifier.weight(1f).testTag("home-service-${service.homeLabel.lowercase()}")
-                    .semantics { onClick(label = "Open ${service.label} in browser", action = null) }) {
-                Column(Modifier.heightIn(min = 64.dp).padding(horizontal = 4.dp, vertical = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically)) {
-                    Icon(requireNotNull(service.homeIcon), contentDescription = null, modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.primary)
-                    Text(service.homeLabel, style = MaterialTheme.typography.labelMedium,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-            }
+            ActionTile(service.homeLabel, requireNotNull(service.homeIcon), { onOpen(service.url) },
+                layout = ActionTileLayout.Compact,
+                modifier = Modifier.weight(1f).testTag("home-service-${service.homeLabel.lowercase()}"),
+                actionLabel = "Open ${service.label} in browser")
         }
     }
 }

@@ -1,27 +1,22 @@
 package uk.ac.warwick.plus.ui
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import uk.ac.warwick.plus.data.EventEntity
 import java.time.LocalDate
 import java.util.Locale
@@ -45,7 +40,7 @@ fun ScheduleContent(state: TimetableState, today: LocalDate, now: Long, from: Lo
         nextTimedClass(state.events, now)?.id
     }
     LazyColumn(Modifier.fillMaxSize().testTag("schedule-list"), state = listState,
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
+        contentPadding = Spacing.compactPage,
         verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (state.needsLogin || state.message != null) item { feedback() }
         if (state.lastSynced == null) item {
@@ -53,12 +48,12 @@ fun ScheduleContent(state: TimetableState, today: LocalDate, now: Long, from: Lo
         } else items(days, key = { it.date.toEpochDay() }) { day ->
             Column(Modifier.fillMaxWidth().testTag("schedule-day-${day.date}"), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 SectionLabel(scheduleDateLabel(day.date, today))
-                Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
+                AppCard(Modifier.fillMaxWidth()) {
                     if (day.events.isEmpty()) Text(if (day.date == today) "No classes today" else "No classes on this day",
                         style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp))
                     else Column {
                         day.events.forEachIndexed { index, event ->
-                            if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .4f))
+                            if (index > 0) ListDivider(inset = 0.dp)
                             val status = when {
                                 !event.allDay && event.startMillis <= now && event.endMillis > now && day.date == today -> "Now"
                                 event.id == nextId && atWarwick(event.startMillis).toLocalDate() == day.date -> "Next"
@@ -79,33 +74,25 @@ internal fun ScheduleClassRow(event: EventEntity, date: LocalDate, status: Strin
     val title = event.moduleName.ifBlank { event.title.ifBlank { "Class" } }
     val code = if (event.moduleName.isNotBlank() && event.title != title) event.title else event.module.takeUnless { it == title }.orEmpty()
     val time = scheduleTime(event, date)
-    val timeWidth = with(LocalDensity.current) { 48.sp.toDp() }
-    Row(Modifier.fillMaxWidth().clickable(onClickLabel = "View class details", onClick = onSelect)
-        .testTag("schedule-class-${date}-${event.id}").heightIn(min = if (compactTop) 56.dp else 64.dp)
-        .padding(start = 12.dp, end = 12.dp, top = if (compactTop) 2.dp else 10.dp, bottom = if (compactTop) 8.dp else 10.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Column(Modifier.width(timeWidth), horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    MetricListRow(onSelect, "View class details", Modifier.testTag("schedule-class-${date}-${event.id}"),
+        compactTop = compactTop, metric = {
             Text(if (event.allDay) "All day" else time.start, style = if (event.allDay) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary, maxLines = 1, softWrap = false)
             if (!event.allDay) Text(time.end, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1, softWrap = false)
+    }) {
+        Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            if (status != null) Text(status, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary)
+            if (code.isNotBlank()) Text(code, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+            if (event.location.isNotBlank()) Text(event.location, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                if (status != null) Text(status, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary)
-                if (code.isNotBlank()) Text(code, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-                if (event.location.isNotBlank()) Text(event.location, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            if (!event.allDay && (time.continuesBefore || time.continuesAfter)) Text(
-                listOfNotNull(if (time.continuesBefore) "Continues from previous day" else null,
-                    if (time.continuesAfter) "Continues tomorrow" else null).joinToString(" · "),
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (conflict) Text("Overlaps another class", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
-        }
-        Icon(DetailsChevron, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (!event.allDay && (time.continuesBefore || time.continuesAfter)) Text(
+            listOfNotNull(if (time.continuesBefore) "Continues from previous day" else null,
+                if (time.continuesAfter) "Continues tomorrow" else null).joinToString(" · "),
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (conflict) Text("Overlaps another class", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
     }
 }
 
