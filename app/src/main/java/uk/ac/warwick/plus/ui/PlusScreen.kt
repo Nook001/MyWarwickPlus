@@ -351,16 +351,21 @@ private fun HomeDeadlineRow(entry: CourseworkEntity, now: Long, onSelect: () -> 
     val due = atWarwick(entry.dueMillis).toLocalDate()
     val today = atWarwick(now).toLocalDate()
     val days = ChronoUnit.DAYS.between(today, due)
-    val date = due.format(DateTimeFormatter.ofPattern(if (due.year > today.year) "dd-MM-yyyy" else "dd-MM", Locale.UK))
-    val countdownWidth = with(LocalDensity.current) { 72.sp.toDp() }
+    val date = due.format(DateTimeFormatter.ofPattern(if (due.year > today.year) "d MMM yyyy" else "d MMM", Locale.UK))
+    val countdownWidth = with(LocalDensity.current) { 48.sp.toDp() }
     Surface(onClick = onSelect, color = Color.Transparent,
         modifier = Modifier.fillMaxWidth().testTag("home-deadline-${entry.id}")
             .semantics { onClick(label = "View coursework details", action = null) }) {
         Row(Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(horizontal = 12.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("$days ${if (days == 1L) "day" else "days"}", style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary,
-                softWrap = false, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.width(countdownWidth))
+            Column(Modifier.width(countdownWidth), verticalArrangement = Arrangement.spacedBy(2.dp),
+                horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(days.toString(), style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary,
+                    softWrap = false, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("days", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    softWrap = false, maxLines = 1)
+            }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(entry.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
