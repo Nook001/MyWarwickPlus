@@ -25,8 +25,10 @@ val Services = listOf(
 
 @Composable
 fun MoreContent(state: TimetableState, onLogin: () -> Unit, onSignOut: () -> Unit,
-    onFeed: (FeedKind) -> Unit, onOpen: (String) -> Unit, onProbe: (() -> Unit)?, onSettings: () -> Unit = {}) {
+    onFeed: (FeedKind) -> Unit, onOpen: (String) -> Unit, onProbe: (() -> Unit)?, onSettings: () -> Unit = {},
+    onResourceRefresh: ((SyncResource) -> Unit)? = null) {
     var confirmSignOut by remember { mutableStateOf(false) }
+    var showDataStatus by remember { mutableStateOf(false) }
     LazyColumn(Modifier.fillMaxSize().testTag("more-list"), contentPadding = PaddingValues(Spacing.page),
         verticalArrangement = Arrangement.spacedBy(Spacing.section)) {
         item {
@@ -54,6 +56,9 @@ fun MoreContent(state: TimetableState, onLogin: () -> Unit, onSignOut: () -> Uni
             TextButton(onClick = onSettings, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("appearance-settings")) {
                 Text("Settings", style = MaterialTheme.typography.titleMedium)
             }
+            TextButton(onClick = { showDataStatus = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                Text("Data status", style = MaterialTheme.typography.titleMedium)
+            }
         }
         item {
             SectionLabel("YOUR SERVICES")
@@ -73,6 +78,7 @@ fun MoreContent(state: TimetableState, onLogin: () -> Unit, onSignOut: () -> Uni
         if (onProbe != null) item { TextButton(onClick = onProbe) { Text("Developer tools") } }
         item { Text("MyWarwick+ ${BuildConfig.VERSION_NAME}\nAn independent student app", style = MaterialTheme.typography.bodySmall) }
     }
+    if (showDataStatus) DataStatusSheet(state, onLogin, onResourceRefresh, { showDataStatus = false })
     if (confirmSignOut) AlertDialog(onDismissRequest = { confirmSignOut = false },
         title = { Text("Sign out of this app?") },
         text = { Text("This removes this app's sign-in session and saved data. Your system browser sessions are kept.") },

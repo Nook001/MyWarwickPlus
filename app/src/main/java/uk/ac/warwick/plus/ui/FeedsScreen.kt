@@ -19,7 +19,8 @@ fun feedText(entry: FeedEntry): String = if (entry.html) Html.fromHtml(entry.tex
 
 @Composable
 fun FeedContent(kind: FeedKind, state: FeedState, busy: Boolean, needsLogin: Boolean,
-    onRefresh: () -> Unit, onMore: () -> Unit, onSelect: (FeedEntry) -> Unit, onOpen: (String) -> Unit) {
+    onRefresh: () -> Unit, onMore: () -> Unit, onSelect: (FeedEntry) -> Unit, onOpen: (String) -> Unit,
+    onLogin: () -> Unit = {}) {
     var query by rememberSaveable(kind) { mutableStateOf("") }
     val focus = androidx.compose.ui.platform.LocalFocusManager.current
     val filtered = remember(state.entries, query) { state.entries.filter {
@@ -39,14 +40,19 @@ fun FeedContent(kind: FeedKind, state: FeedState, busy: Boolean, needsLogin: Boo
                 keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { focus.clearFocus() }),
                 modifier = Modifier.fillMaxWidth().padding(top = 12.dp))
         }
+        if (needsLogin || state.message != null) item {
+            DataRecoveryRow(state.lastSynced, state.message, state.loading, needsLogin, !busy,
+                onLogin, onRefresh, state.olderPageFailed)
+        }
         when {
-            state.lastSynced == null -> item { EmptyCard(if (state.loading) "Loading ${kind.label.lowercase()}…" else when (kind) {
+            state.lastSynced == null -> item { DataEmptyState(if (state.loading) "Loading ${kind.label.lowercase()}…" else if (busy)
+                "Waiting to load ${kind.label.lowercase()}…" else when (kind) {
                 FeedKind.LIBRARY -> "Your Library summary hasn't loaded yet"
                 else -> "${kind.label} haven't loaded yet"
-            }, "Refresh to try again.") }
-            state.entries.isEmpty() -> item { EmptyCard(if (kind == FeedKind.LIBRARY) "No Library items returned" else "No ${kind.label.lowercase()} returned",
-                state.description.ifBlank { "This saved feed is empty. Check the source service for the full record." }) }
-            filtered.isEmpty() -> item { EmptyCard("No matches", "Try another search or clear the search field.") }
+            }, action = if (!busy && !needsLogin && state.message == null) "Retry" else null, onAction = onRefresh) }
+            state.entries.isEmpty() -> item { DataEmptyState(if (kind == FeedKind.LIBRARY) "No Library items returned" else "No ${kind.label.lowercase()} in this feed",
+                state.description.takeIf { it.isNotBlank() }) }
+            filtered.isEmpty() -> item { DataEmptyState("No matches", action = "Clear search", onAction = { query = ""; focus.clearFocus() }) }
             else -> items(filtered, key = { it.id }) { entry ->
                 Card(onClick = { focus.clearFocus(); onSelect(entry) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {

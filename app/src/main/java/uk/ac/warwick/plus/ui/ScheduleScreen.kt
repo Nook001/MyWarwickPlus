@@ -36,7 +36,7 @@ internal val CalendarPickerIcon = ImageVector.Builder("ChooseDate", 24.dp, 24.dp
 
 @Composable
 fun ScheduleContent(state: TimetableState, today: LocalDate, now: Long, from: LocalDate,
-    listState: LazyListState, onSelect: (EventEntity) -> Unit) {
+    listState: LazyListState, feedback: @Composable () -> Unit = {}, onSelect: (EventEntity) -> Unit) {
     val days = remember(state.events, from) { scheduleDays(state.events, from) }
     val conflicts = remember(state.events) { conflictingEventIds(state.events) }
     val nextId = remember(state.events, now) {
@@ -45,8 +45,9 @@ fun ScheduleContent(state: TimetableState, today: LocalDate, now: Long, from: Lo
     LazyColumn(Modifier.fillMaxSize().testTag("schedule-list"), state = listState,
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (state.needsLogin || state.message != null) item { feedback() }
         if (state.lastSynced == null) item {
-            EmptyCard(if (state.busy) "Loading timetable…" else "Your timetable hasn't loaded yet", "Refresh to try again.")
+            DataEmptyState(if (state.busy) "Loading timetable…" else "Timetable hasn't loaded yet")
         } else items(days, key = { it.date.toEpochDay() }) { day ->
             Column(Modifier.fillMaxWidth().testTag("schedule-day-${day.date}"), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 SectionLabel(scheduleDateLabel(day.date, today))

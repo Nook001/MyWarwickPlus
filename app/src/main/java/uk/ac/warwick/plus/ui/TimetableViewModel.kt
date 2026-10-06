@@ -12,9 +12,15 @@ import java.io.IOException
 data class CourseworkState(val entries: List<CourseworkEntity> = emptyList(), val lastSynced: Long? = null, val message: String? = null)
 data class FeedState(val entries: List<FeedEntry> = emptyList(), val lastSynced: Long? = null,
     val message: String? = null, val loading: Boolean = false, val hasMore: Boolean = false,
-    val description: String = "", val url: String = "", val webReadMillis: Long = 0)
+    val description: String = "", val url: String = "", val webReadMillis: Long = 0, val olderPageFailed: Boolean = false)
 
-data class SyncNotice(val id: Long, val message: String, val feed: FeedKind? = null, val olderMessages: Boolean = false)
+enum class SyncResource(val label: String, val feed: FeedKind? = null) {
+    TIMETABLE("Timetable"), COURSEWORK("Coursework"), MESSAGES("Messages", FeedKind.MESSAGES),
+    LIBRARY("Library", FeedKind.LIBRARY), MODULES("Modules", FeedKind.MODULES);
+    companion object { fun forFeed(kind: FeedKind) = entries.first { it.feed == kind } }
+}
+data class SyncNotice(val id: Long, val message: String, val feed: FeedKind? = null, val olderMessages: Boolean = false,
+    val resource: SyncResource? = null)
 // Progress measures settled resource updates, with a half-step after account verification.
 // A settled failure is finished work, not a successful download; retries never add work units.
 data class SyncProgress(val id: Long, val total: Int, val completed: Int = 0, val resource: String = "",
@@ -34,6 +40,18 @@ data class TimetableState(
 ) {
     fun feed(kind: FeedKind) = feeds[kind] ?: FeedState()
     val hasSavedData get() = lastSynced != null || coursework.lastSynced != null || feeds.values.any { it.lastSynced != null }
+    fun syncedAt(resource: SyncResource): Long? = when (resource) {
+        SyncResource.TIMETABLE -> lastSynced
+        SyncResource.COURSEWORK -> coursework.lastSynced
+        else -> feed(resource.feed!!).lastSynced
+    }
+    fun issue(resource: SyncResource): String? = when (resource) {
+        SyncResource.TIMETABLE -> message
+        SyncResource.COURSEWORK -> coursework.message
+        else -> feed(resource.feed!!).message
+    }
+    fun updating(resource: SyncResource): Boolean = if (resource.feed != null) feed(resource.feed).loading
+        else busy && syncProgress?.resource == resource.label
 }
 
 class TimetableViewModel(private val repository: TimetableStore,
@@ -78,23 +96,26 @@ class TimetableViewModel(private val repository: TimetableStore,
         try { applyCache(repository.cached()) }
         catch (error: Exception) { if (error is CancellationException) throw error }
     }
-    private fun startSync(feed: FeedKind? = null, olderMessages: Boolean = false, operation: suspend () -> Unit) {
+    private fun startSync(feed: FeedKind? = null, olderMessages: Boolean = false, resource: SyncResource? = null,
+        operation: suspend () -> Unit) {
         if (mutable.value.busy || mutable.value.signingOut || mutable.value.logoutFailed) return
-        val progress = SyncProgress(++syncId, if (feed == null) 2 + FeedKind.entries.size else 1)
+        val target = resource ?: feed?.let(SyncResource::forFeed)
+        val progress = SyncProgress(++syncId, if (target == null) SyncResource.entries.size else 1,
+            resource = if (olderMessages) "Older messages" else target?.label ?: "Timetable")
         mutable.update { it.copy(busy = true, notice = null,
             syncProgress = progress) }
         syncJob = viewModelScope.launch {
             try { operation() } finally {
                 if (!mutable.value.signingOut) {
                     val current = mutable.value
-                    val failures = if (feed != null) listOfNotNull(current.feed(feed).message?.let { feed to it })
-                        else listOfNotNull(current.message?.let { null to it }, current.coursework.message?.let { null to it }) +
-                            FeedKind.entries.mapNotNull { kind -> current.feed(kind).message?.let { kind to it } }
+                    val failures = (target?.let(::listOf) ?: SyncResource.entries).mapNotNull { kind ->
+                        current.issue(kind)?.let { kind to it }
+                    }
                     val notice = if (failures.isEmpty()) null else SyncNotice(++noticeId,
                         if (current.needsLogin) "Sign in to update your information."
                         else if (failures.size > 1) "Couldn't update some information. Your saved data has been kept."
                         else failures.single().second,
-                        failures.singleOrNull()?.first, olderMessages)
+                        failures.singleOrNull()?.first?.feed, olderMessages, target ?: failures.singleOrNull()?.first)
                     mutable.update { it.copy(busy = false, notice = notice,
                         syncProgress = it.syncProgress?.copy(finished = true)) }
                 }
@@ -127,7 +148,7 @@ class TimetableViewModel(private val repository: TimetableStore,
     }
     fun refresh() = startSync {
         mutable.update { it.copy(message = null, coursework = it.coursework.copy(message = null),
-            feeds = it.feeds.mapValues { (_, feed) -> feed.copy(message = null) }) }
+            feeds = it.feeds.mapValues { (_, feed) -> feed.copy(message = null, olderPageFailed = false) }) }
         refreshTimetable()
         if (mutable.value.signedIn && !mutable.value.needsLogin) {
             refreshCoursework()
@@ -177,18 +198,29 @@ class TimetableViewModel(private val repository: TimetableStore,
     }
     private suspend fun syncFeed(kind: FeedKind, before: String? = null) {
         beginResource(if (before != null) "Older messages" else kind.label)
-        updateFeed(kind) { it.copy(loading = true, message = null) }
+        updateFeed(kind) { it.copy(loading = true, message = null, olderPageFailed = false) }
         try { applyCache(withSyncRetry { repository.syncFeed(kind, before, ::authenticated) }) }
         catch (error: Exception) {
             if (error is CancellationException) throw error
             reportFailure(error); restoreCache(); sessionFailure(error)
-            updateFeed(kind) { it.copy(message = failureMessage(kind.label.lowercase(), error)) }
+            updateFeed(kind) { it.copy(message = failureMessage(kind.label.lowercase(), error), olderPageFailed = before != null) }
         } finally {
             updateFeed(kind) { it.copy(loading = false) }
             finishResource(mutable.value.feed(kind).message != null)
         }
     }
     fun refreshFeed(kind: FeedKind) = startSync(kind) { syncFeed(kind) }
+    fun refreshResource(resource: SyncResource) {
+        when (resource) {
+            SyncResource.TIMETABLE -> startSync(resource = resource) {
+                mutable.update { it.copy(message = null) }; refreshTimetable()
+            }
+            SyncResource.COURSEWORK -> startSync(resource = resource) {
+                mutable.update { it.copy(coursework = it.coursework.copy(message = null)) }; refreshCoursework()
+            }
+            else -> refreshFeed(resource.feed!!)
+        }
+    }
     fun loadMoreMessages() {
         val feed = mutable.value.feed(FeedKind.MESSAGES)
         if (!feed.hasMore || mutable.value.needsLogin) return

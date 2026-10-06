@@ -103,9 +103,11 @@ class SyncRetryTest {
         model.loadMoreMessages(); advanceUntilIdle()
         assertEquals(List(3) { FeedKind.MESSAGES to "cursor" }, store.feeds.filter { it.second != null })
         assertTrue(model.state.value.notice!!.olderMessages)
+        assertTrue(model.state.value.feed(FeedKind.MESSAGES).olderPageFailed)
         store.feedFailure = { _, _ -> null }
         model.loadMoreMessages(); advanceUntilIdle()
         assertNull(model.state.value.notice)
+        assertFalse(model.state.value.feed(FeedKind.MESSAGES).olderPageFailed)
     }
     @Test fun repeatedFailuresStopAtThreeAttemptsAndSummarizeWithoutClearingSavedData() = runTest(dispatcher) {
         val store = Store().apply {
@@ -161,5 +163,24 @@ class SyncRetryTest {
         model.signOut(); advanceUntilIdle()
         assertNull(model.state.value.syncProgress)
         assertFalse(model.state.value.hasSavedData)
+    }
+    @Test fun targetedCoreRefreshDoesNotRepeatOtherRequestsOrReportTheirOldErrors() = runTest(dispatcher) {
+        val store = Store().apply { courseworkFailure = ServiceException(502) }
+        val model = TimetableViewModel(store, {}); advanceUntilIdle()
+        val timetableCalls = store.timetableCalls
+        val feedCalls = store.feeds.size
+        val courseworkCalls = store.courseworkCalls
+        model.refreshResource(SyncResource.TIMETABLE); advanceUntilIdle()
+        assertEquals(timetableCalls + 1, store.timetableCalls)
+        assertEquals(courseworkCalls, store.courseworkCalls); assertEquals(feedCalls, store.feeds.size)
+        assertNull(model.state.value.notice)
+        assertNotNull(model.state.value.coursework.message)
+        model.refreshResource(SyncResource.COURSEWORK); advanceUntilIdle()
+        assertEquals(SyncResource.COURSEWORK, model.state.value.notice!!.resource)
+        assertEquals(1, model.state.value.syncProgress!!.total)
+        store.courseworkFailure = null
+        model.refreshResource(SyncResource.COURSEWORK); advanceUntilIdle()
+        assertEquals(timetableCalls + 1, store.timetableCalls); assertEquals(feedCalls, store.feeds.size)
+        assertNull(model.state.value.coursework.message); assertNull(model.state.value.notice)
     }
 }

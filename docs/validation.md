@@ -1,5 +1,15 @@
 # 原型验收
 
+## 0.11.0：空状态、独立恢复与按需状态详情
+
+2026-10-06。各页面区分未加载、学校返回空列表与筛选为空；Messages / Modules 可 Clear search，Coursework 可 Clear filters，不触发请求。首页仍保留紧凑空状态。失败/登录过期时仅在对应内容附近显示轻量恢复行，缓存可读；重试中隐藏该行，正常状态不增加额外提示或空白列表项。登录过期在 More 入口增加小标记与无障碍说明。
+
+More → Data status 按需查看五类状态、各自缓存更新时间（英国日期/时区）、单资源操作。Timetable / Coursework 新增单资源重试，成功不重报其他资源旧失败，进度为一项。消息历史分页失败单独记忆，重试保留游标；正常下拉仍刷新最新消息，旧游标不可用时回退普通刷新。首页 Recently passed 统计近七天缓存内已过截止日期，进入 Coursework / Past；说明过去不代表未提交，All 入口与账户切换重置筛选。学校接口、认证、Room schema 4、已有缓存和重试预算不变。
+
+构建及 30 项限定 JVM 检查通过（SyncRetryTest 9、TimetableStateTest 6、FeedStateTest 5、CourseworkTest 10）。仅新增一项独立课表/作业恢复检查，验证请求范围、单资源进度、不重报另一资源旧错误，以及失败后恢复；既有分页检查增加历史失败标记的设置/清除断言。没有新增 UI Test 或简单布局测试，没有运行 UI Test 或启动模拟器。未运行 Lint、真实学校接口 smoke 或截图验收；视觉和手动操作待用户复核。
+
+明确指定物理手机 10AG4S2KQJ0066R，adb install -r 覆盖安装成功，确认 versionCode 15 / versionName 0.11.0；MainActivity 冷启动 Status: ok（616ms）。保留登录和缓存，没有卸载或清除数据。
+
 ## 0.10.0：实际阶段进度与单一刷新指示
 
 2026-10-06。常规刷新移除 PullToRefreshBox 的旋转指示，保留下拉手势。顶部改为确定进度条，原品牌小字位置显示当前数据源/任务序号或重试次数，不增加新行。

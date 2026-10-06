@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.Alignment
 import uk.ac.warwick.plus.data.EventEntity
 
 object Spacing {
@@ -38,6 +39,45 @@ fun EmptyCard(title: String, detail: String) {
             Text(detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
+}
+
+@Composable
+fun DataEmptyState(text: String, detail: String? = null, action: String? = null, onAction: () -> Unit = {}) {
+    Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(text, style = MaterialTheme.typography.bodyMedium)
+            if (!detail.isNullOrBlank()) Text(detail, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (action != null) TextButton(onClick = onAction, contentPadding = PaddingValues(horizontal = 4.dp)) { Text(action) }
+        }
+    }
+}
+
+@Composable
+fun DataRecoveryRow(lastSynced: Long?, issue: String?, updating: Boolean, needsLogin: Boolean,
+    enabled: Boolean, onLogin: () -> Unit, onRefresh: () -> Unit, olderPageFailed: Boolean = false) {
+    if (updating || (!needsLogin && issue == null)) return
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(when {
+            needsLogin && lastSynced != null -> "Saved data · sign in to update"
+            needsLogin -> "Sign in to load this information"
+            olderPageFailed -> "Older messages couldn't be loaded"
+            lastSynced != null -> "Showing previous data"
+            else -> "Couldn't load this information"
+        }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f))
+        TextButton(onClick = if (needsLogin) onLogin else onRefresh, enabled = enabled) {
+            Text(if (needsLogin) "Sign in" else "Retry")
+        }
+    }
+}
+
+@Composable
+fun ResourceRecoveryRow(state: TimetableState, resource: SyncResource, onLogin: () -> Unit, onRefresh: () -> Unit) {
+    DataRecoveryRow(state.syncedAt(resource), state.issue(resource), state.updating(resource), state.needsLogin,
+        !state.busy && !state.signingOut && !state.logoutFailed, onLogin, onRefresh,
+        resource.feed?.let { state.feed(it).olderPageFailed } == true)
 }
 
 @Composable

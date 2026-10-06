@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
@@ -11,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -97,18 +99,28 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
     probe: ((ProbeEndpoint) -> ProbeResult)? = null, onCourseworkLink: ((String) -> Unit)? = null,
     onSignOut: () -> Unit = {}, onFeedRefresh: ((FeedKind) -> Unit)? = null,
     onMoreMessages: () -> Unit = {}, onExternalLink: ((String) -> Unit)? = null,
-    onNoticeConsumed: (Long) -> Unit = {}) {
+    onNoticeConsumed: (Long) -> Unit = {}, onResourceRefresh: ((SyncResource) -> Unit)? = null) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
     var courseworkId by rememberSaveable { mutableStateOf<String?>(null) }
     var showProbe by rememberSaveable { mutableStateOf(false) }
     var feedRoute by rememberSaveable { mutableStateOf<Int?>(null) }
     var showAppearance by rememberSaveable { mutableStateOf(false) }
+    var courseworkFilter by rememberSaveable { mutableStateOf("All") }
     var feedEntryId by rememberSaveable { mutableStateOf<String?>(null) }
     val route = FeedKind.entries.firstOrNull { it.key == feedRoute }
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
+    val refreshResource: (SyncResource) -> Unit = { resource ->
+        if (onResourceRefresh != null) onResourceRefresh(resource)
+        else resource.feed?.let { onFeedRefresh?.invoke(it) ?: onRefresh() } ?: onRefresh()
+    }
+    val recoverResource: (SyncResource) -> Unit = { resource ->
+        val messages = state.feed(FeedKind.MESSAGES)
+        if (resource == SyncResource.MESSAGES && messages.olderPageFailed && messages.hasMore && messages.entries.isNotEmpty()) onMoreMessages()
+        else refreshResource(resource)
+    }
     LaunchedEffect(state.notice?.id) {
         state.notice?.let { notice ->
             try {
@@ -116,7 +128,8 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
                     actionLabel = if (state.needsLogin) "Sign in" else "Retry", duration = SnackbarDuration.Short)
                 if (result == SnackbarResult.ActionPerformed) {
                     if (state.needsLogin) onLogin()
-                    else if (notice.olderMessages) onMoreMessages()
+                    else if (notice.olderMessages) recoverResource(SyncResource.MESSAGES)
+                    else if (notice.resource != null) refreshResource(notice.resource)
                     else notice.feed?.let { kind -> onFeedRefresh?.invoke(kind) ?: onRefresh() } ?: onRefresh()
                 }
             } finally { onNoticeConsumed(notice.id) }
@@ -134,6 +147,7 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
     LaunchedEffect(state.accountCode) {
         if (previousAccount.isNotBlank() && previousAccount != state.accountCode) {
             selectedId = null; courseworkId = null; feedEntryId = null; feedRoute = null; showProbe = false
+            courseworkFilter = "All"
         }
         previousAccount = state.accountCode
     }
@@ -180,7 +194,13 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
                 CompactTab("Schedule", tab == 1, { tab = 1 }, "schedule-tab") { Icon(ScheduleIcon, null, Modifier.size(22.dp)) }
                 CompactTab("Coursework", tab == 2, { tab = 2 }) { Icon(CourseworkIcon, null, Modifier.size(22.dp)) }
                 CompactTab("More", tab == 3, { tab = 3; feedRoute = null; feedEntryId = null; showAppearance = false }, "more-tab") {
-                    Icon(MoreIcon, null, Modifier.size(22.dp))
+                    Box(Modifier.size(22.dp)) {
+                        Icon(MoreIcon, null, Modifier.size(22.dp))
+                        if ((state.needsLogin && state.hasSavedData) || state.logoutFailed) Box(Modifier.align(Alignment.TopEnd)
+                            .size(5.dp).background(MaterialTheme.colorScheme.error, CircleShape).semantics {
+                                contentDescription = if (state.logoutFailed) "Sign-out needs attention" else "Sign in required"
+                            })
+                    }
                 }
             }
         }
@@ -216,10 +236,10 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
                 tab == 3 -> {
                     if (route == null) MoreContent(state, onLogin, onSignOut, { feedRoute = it.key }, openLink,
                         if (probe != null && !state.logoutFailed) ({ showProbe = true }) else null,
-                        onSettings = { showAppearance = true })
+                        onSettings = { showAppearance = true }, onResourceRefresh = recoverResource)
                     else {
                         FeedContent(route, state.feed(route), state.busy, state.needsLogin,
-                            { onFeedRefresh?.invoke(route) ?: onRefresh() }, onMoreMessages, { feedEntryId = it.id }, openLink)
+                            { recoverResource(SyncResource.forFeed(route)) }, onMoreMessages, { feedEntryId = it.id }, openLink, onLogin)
                     }
                 }
                 !state.hasSavedData && state.busy && !state.signedIn -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -231,9 +251,15 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
                 }
                 !state.hasSavedData && state.needsLogin -> Welcome(onLogin)
                 else -> {
-                    if (tab == 0) Home(state, today, now, { selectedId = it.id }, { courseworkId = it.id }, { tab = 2 })
-                    else if (tab == 2) CourseworkContent(state.coursework, now, state.busy, onRefresh, { courseworkId = it.id })
-                    else ScheduleContent(state, today, now, scheduleDate, scheduleListState) { selectedId = it.id }
+                    if (tab == 0) Home(state, today, now, { selectedId = it.id }, { courseworkId = it.id },
+                        { courseworkFilter = "All"; tab = 2 }, { courseworkFilter = "Past"; tab = 2 }, onLogin, recoverResource)
+                    else if (tab == 2) CourseworkContent(state.coursework, now, state.busy,
+                        { refreshResource(SyncResource.COURSEWORK) },
+                        feedback = { ResourceRecoveryRow(state, SyncResource.COURSEWORK, onLogin) { recoverResource(SyncResource.COURSEWORK) } },
+                        showFeedback = state.needsLogin || state.coursework.message != null,
+                        filterOverride = courseworkFilter, onFilterChanged = { courseworkFilter = it }) { courseworkId = it.id }
+                    else ScheduleContent(state, today, now, scheduleDate, scheduleListState,
+                        feedback = { ResourceRecoveryRow(state, SyncResource.TIMETABLE, onLogin) { recoverResource(SyncResource.TIMETABLE) } }) { selectedId = it.id }
                 }
             }
             }
@@ -290,7 +316,8 @@ private fun Welcome(onLogin: () -> Unit) {
 
 @Composable
 private fun Home(state: TimetableState, today: LocalDate, now: Long, onSelect: (EventEntity) -> Unit,
-    onCoursework: (CourseworkEntity) -> Unit, onAllCoursework: () -> Unit) {
+    onCoursework: (CourseworkEntity) -> Unit, onAllCoursework: () -> Unit, onPastCoursework: () -> Unit,
+    onLogin: () -> Unit, onRecover: (SyncResource) -> Unit) {
     val next = currentOrNextClass(state.events, now)
     val nextId = nextTimedClass(state.events, now)?.id
     val todayEvents = eventsOnDate(state.events, today)
@@ -306,6 +333,7 @@ private fun Home(state: TimetableState, today: LocalDate, now: Long, onSelect: (
                 next == null -> HomeEmptyCard("No upcoming classes")
                 else -> NextClassCard(next, now) { onSelect(next) }
             }
+            ResourceRecoveryRow(state, SyncResource.TIMETABLE, onLogin) { onRecover(SyncResource.TIMETABLE) }
         }
         if (state.lastSynced != null) item {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -349,6 +377,12 @@ private fun Home(state: TimetableState, today: LocalDate, now: Long, onSelect: (
                         HomeDeadlineRow(entry, now) { onCoursework(entry) }
                     }
                 }
+            }
+            ResourceRecoveryRow(state, SyncResource.COURSEWORK, onLogin) { onRecover(SyncResource.COURSEWORK) }
+            val recentStart = atWarwick(now).minusDays(7).toInstant().toEpochMilli()
+            val recentPast = state.coursework.entries.count { it.dueMillis in recentStart until now }
+            if (state.coursework.lastSynced != null && recentPast > 0) TextButton(onClick = onPastCoursework) {
+                Text("Recently passed · $recentPast")
             }
         }
     }

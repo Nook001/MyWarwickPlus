@@ -48,9 +48,13 @@ fun CourseworkRow(entry: CourseworkEntity, now: Long, onSelect: () -> Unit) {
 
 @Composable
 fun CourseworkContent(state: CourseworkState, now: Long, busy: Boolean, onRefresh: () -> Unit,
+    feedback: @Composable () -> Unit = {}, showFeedback: Boolean = false,
+    filterOverride: String? = null, onFilterChanged: ((String) -> Unit)? = null,
     onSelect: (CourseworkEntity) -> Unit) {
     var query by rememberSaveable { mutableStateOf("") }
-    var filter by rememberSaveable { mutableStateOf("All") }
+    var localFilter by rememberSaveable { mutableStateOf("All") }
+    val filter = filterOverride ?: localFilter
+    val chooseFilter: (String) -> Unit = { localFilter = it; onFilterChanged?.invoke(it) }
     val focus = androidx.compose.ui.platform.LocalFocusManager.current
     val matching = filterCoursework(state.entries, query, filter, now)
     val upcoming = matching.filter { it.dueMillis >= now }.sortedBy { it.dueMillis }
@@ -67,24 +71,33 @@ fun CourseworkContent(state: CourseworkState, now: Long, busy: Boolean, onRefres
                 modifier = Modifier.fillMaxWidth().padding(top = 12.dp))
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("All", "Upcoming", "Next 7 days", "Past").forEach { option ->
-                    FilterChip(selected = filter == option, onClick = { filter = option; focus.clearFocus() }, label = { Text(option) })
+                    FilterChip(selected = filter == option, onClick = { chooseFilter(option); focus.clearFocus() }, label = { Text(option) })
                 }
             }
         }
+        if (showFeedback) item { feedback() }
         when {
             state.lastSynced == null -> item {
-                EmptyCard(if (busy) "Loading coursework…" else "Coursework hasn't loaded yet", "Refresh to retrieve deadlines from MyWarwick.")
+                DataEmptyState(if (busy) "Loading coursework…" else "Coursework hasn't loaded yet")
             }
             state.entries.isEmpty() -> item {
-                EmptyCard("No deadlines returned", "MyWarwick hasn't returned any coursework in this feed. Check the source service for the full record.")
+                DataEmptyState("No deadlines in this feed")
             }
-            matching.isEmpty() -> item { EmptyCard("No matching deadlines", "Clear the search or choose another filter.") }
+            matching.isEmpty() -> item {
+                DataEmptyState("No matching deadlines", action = "Clear filters", onAction = {
+                    query = ""; chooseFilter("All"); focus.clearFocus()
+                })
+            }
             else -> {
                 if (filter != "Past") item { SectionLabel("UPCOMING", upcoming.size.toString()) }
                 if (upcoming.isEmpty() && filter != "Past") item { Text("No future deadlines in this saved feed.") }
                 items(upcoming, key = { it.id }) { entry -> CourseworkRow(entry, now) { focus.clearFocus(); onSelect(entry) } }
                 if (past.isNotEmpty()) {
-                    item { SectionLabel("PAST DEADLINES", past.size.toString()) }
+                    item {
+                        SectionLabel("PAST DEADLINES", past.size.toString())
+                        Text("A passed deadline doesn't indicate whether work was submitted.",
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                     items(past, key = { it.id }) { entry -> CourseworkRow(entry, now) { focus.clearFocus(); onSelect(entry) } }
                 }
             }
