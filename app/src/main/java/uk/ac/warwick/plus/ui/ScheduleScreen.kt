@@ -17,9 +17,11 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import uk.ac.warwick.plus.data.EventEntity
 import java.time.LocalDate
 import java.util.Locale
@@ -72,16 +74,20 @@ fun ScheduleContent(state: TimetableState, today: LocalDate, now: Long, from: Lo
 }
 
 @Composable
-internal fun ScheduleClassRow(event: EventEntity, date: LocalDate, status: String?, conflict: Boolean, onSelect: () -> Unit) {
+internal fun ScheduleClassRow(event: EventEntity, date: LocalDate, status: String?, conflict: Boolean,
+    compactTop: Boolean = false, onSelect: () -> Unit) {
     val title = event.moduleName.ifBlank { event.title.ifBlank { "Class" } }
     val code = if (event.moduleName.isNotBlank() && event.title != title) event.title else event.module.takeUnless { it == title }.orEmpty()
     val time = scheduleTime(event, date)
+    val timeWidth = with(LocalDensity.current) { 48.sp.toDp() }
     Row(Modifier.fillMaxWidth().clickable(onClickLabel = "View class details", onClick = onSelect)
-        .testTag("schedule-class-${date}-${event.id}").heightIn(min = 64.dp).padding(horizontal = 12.dp, vertical = 10.dp),
+        .testTag("schedule-class-${date}-${event.id}").heightIn(min = if (compactTop) 56.dp else 64.dp)
+        .padding(start = 12.dp, end = 12.dp, top = if (compactTop) 2.dp else 10.dp, bottom = if (compactTop) 8.dp else 10.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Column(Modifier.width(IntrinsicSize.Max).widthIn(min = 48.dp).align(Alignment.Top)) {
+        Column(Modifier.width(timeWidth), horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(if (event.allDay) "All day" else time.start, style = if (event.allDay) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium, maxLines = 1, softWrap = false)
+                fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary, maxLines = 1, softWrap = false)
             if (!event.allDay) Text(time.end, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1, softWrap = false)
         }

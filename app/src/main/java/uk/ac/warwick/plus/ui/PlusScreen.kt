@@ -33,6 +33,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
@@ -336,13 +337,13 @@ private fun Home(state: TimetableState, today: LocalDate, now: Long, onSelect: (
                         event.id == nextId -> "Next"
                         else -> null
                     }
-                    ScheduleClassRow(event, today, status, event.id in conflicts) { onSelect(event) }
+                    ScheduleClassRow(event, today, status, event.id in conflicts, compactTop = index == 0) { onSelect(event) }
                 }
             }
         }
         item {
             HomeSection("Deadlines", trailing = {
-                Row(Modifier.widthIn(min = 48.dp).heightIn(min = 32.dp)
+                Row(Modifier.widthIn(min = 48.dp).heightIn(min = 28.dp)
                     .clickable(role = Role.Button, onClickLabel = "View all coursework", onClick = onAllCoursework)
                     .padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.End) {
@@ -356,7 +357,7 @@ private fun Home(state: TimetableState, today: LocalDate, now: Long, onSelect: (
                     upcoming.isEmpty() -> HomeEmptyRow("No upcoming deadlines in this feed")
                     else -> upcoming.forEachIndexed { index, entry ->
                         if (index > 0) HomeRowDivider()
-                        HomeDeadlineRow(entry, now) { onCoursework(entry) }
+                        HomeDeadlineRow(entry, now, compactTop = index == 0) { onCoursework(entry) }
                     }
                 }
                 Box(Modifier.padding(horizontal = 12.dp)) {
@@ -378,10 +379,10 @@ private fun HomeSection(title: String, trailing: @Composable () -> Unit = {}, co
     Surface(Modifier.fillMaxWidth().testTag("home-${title.lowercase()}-section"), shape = RoundedCornerShape(14.dp),
         color = MaterialTheme.colorScheme.surfaceContainerLow) {
         Column {
-            Row(Modifier.fillMaxWidth().testTag("${title.lowercase()}-header").heightIn(min = 32.dp)
+            Row(Modifier.fillMaxWidth().testTag("${title.lowercase()}-header").heightIn(min = 28.dp)
                 .padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium,
+                Text(title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f).testTag("${title.lowercase()}-heading"))
                 trailing()
@@ -394,7 +395,7 @@ private fun HomeSection(title: String, trailing: @Composable () -> Unit = {}, co
 @Composable
 private fun HomeEmptyRow(text: String, modifier: Modifier = Modifier) {
     Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp))
+        modifier = modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 2.dp, bottom = 10.dp))
 }
 
 @Composable
@@ -402,7 +403,7 @@ private fun HomeRowDivider() = HorizontalDivider(Modifier.padding(horizontal = 1
     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .4f))
 
 @Composable
-private fun HomeDeadlineRow(entry: CourseworkEntity, now: Long, onSelect: () -> Unit) {
+private fun HomeDeadlineRow(entry: CourseworkEntity, now: Long, compactTop: Boolean = false, onSelect: () -> Unit) {
     val due = atWarwick(entry.dueMillis).toLocalDate()
     val today = atWarwick(now).toLocalDate()
     val days = ChronoUnit.DAYS.between(today, due)
@@ -411,7 +412,8 @@ private fun HomeDeadlineRow(entry: CourseworkEntity, now: Long, onSelect: () -> 
     Surface(onClick = onSelect, color = Color.Transparent,
         modifier = Modifier.fillMaxWidth().testTag("home-deadline-${entry.id}")
             .semantics { onClick(label = "View coursework details", action = null) }) {
-        Row(Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(horizontal = 12.dp, vertical = 10.dp),
+        Row(Modifier.fillMaxWidth().heightIn(min = if (compactTop) 56.dp else 64.dp)
+            .padding(start = 12.dp, end = 12.dp, top = if (compactTop) 2.dp else 10.dp, bottom = if (compactTop) 8.dp else 10.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.width(countdownWidth), verticalArrangement = Arrangement.spacedBy(2.dp),
                 horizontalAlignment = Alignment.CenterHorizontally) {
@@ -449,30 +451,32 @@ private fun NextClassCard(event: EventEntity, now: Long, onSelect: () -> Unit) {
         colors = CardDefaults.cardColors(containerColor = nextBackground, contentColor = nextForeground),
         shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth().testTag("next-class-card")
             .semantics { onClick(label = "View class details", action = null) }) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(if (event.startMillis <= now) "Now" else "Next", style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold, modifier = Modifier.alignByBaseline())
-                    Text(if (event.startMillis <= now) time else "${nextClassLabel(event, now)} · $time",
-                        style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium,
-                        modifier = Modifier.weight(1f).alignByBaseline().testTag("next-when"))
-                }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
-                        maxLines = 2, overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f).alignByBaseline().testTag("next-name"))
-                    if (code.isNotBlank()) Text(code, style = MaterialTheme.typography.labelMedium,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.widthIn(max = 112.dp).alignByBaseline().testTag("next-code"))
-                }
+        Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(if (event.startMillis <= now) "Now" else "Next", style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold, modifier = Modifier.alignByBaseline())
+                Text(if (event.startMillis <= now) time else "${nextClassLabel(event, now)} · $time",
+                    style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.weight(1f).alignByBaseline().testTag("next-when"))
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f).alignByBaseline().testTag("next-name"))
+                if (code.isNotBlank()) Text(code, style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.widthIn(max = 112.dp).alignByBaseline().testTag("next-code"))
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically) {
                 Text(event.location.ifBlank { "Location not provided" }, style = MaterialTheme.typography.bodySmall,
                     maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.fillMaxWidth().testTag("next-location"))
+                    modifier = Modifier.weight(1f).testTag("next-location"))
+                Icon(DetailsChevron, contentDescription = null, tint = nextForeground,
+                    modifier = Modifier.size(20.dp).testTag("next-details-chevron"))
             }
-            Icon(DetailsChevron, contentDescription = null, tint = nextForeground,
-                modifier = Modifier.size(20.dp).testTag("next-details-chevron"))
         }
     }
 }

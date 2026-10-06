@@ -1,5 +1,15 @@
 # 原型验收
 
+## 0.14.1：首页对齐与标题内容间距
+
+2026-10-06。Next 整卡改为三行 Column，首行日期/时间占满剩余宽度并 TextAlign.End；末行地点占剩余宽度，20dp 箭头位于右侧，不再占用整卡右侧中间区域。课程名/代码仍同一行，长名称允许两行，日期时间跨日内容允许换行；整卡点击详情与 Lake 配色保留。
+
+标题和 All 最小高度 32→28dp，采用 labelMedium / SemiBold 与 onSurfaceVariant，不再额外淡化透明度；Today / Deadlines 首行最小高度 56dp、上/下内边距 2/8dp，后续行保留 64dp / 10dp；空状态上/下内边距 2/10dp。Today 左侧时间原先 align(Top) 且默认列内左对齐，现在与右侧内容块整体垂直居中；宽度改为与 Deadlines 一样的 48sp 转 dp，水平居中、行间距 2dp，起始时间 primary / SemiBold。Schedule 共用课程行同步居中但保持原行高和内边距。字号放大时自然增高，不新增日期或额外卡片。
+
+assembleDebug 成功，git diff --check 通过。本轮简单样式调整没有新增测试或运行单元/UI Test、模拟器、Lint、学校接口 smoke、手机截图；视觉效果由物理手机手动验收。首轮指定物理手机 10AG4S2KQJ0066R 的 adb install -r 返回 INSTALL_FAILED_ABORTED / User rejected permissions，尚未安装；用户解锁后的重试结果待补充。未卸载或清除数据。
+
+手动重点：Next 日期贴右、箭头在最下方右侧且整卡可进入详情；Today / Deadlines 的标题到首行是否紧凑、左列中心是否一致；长课程名称、换行地点/状态、无课状态和较大字体下时间/内容的居中表现。Schedule 的日期跳转、冲突/跨日提示和列表详情仍可正常使用。
+
 ## 0.14.0：Lake 主卡片、紧凑标题与常用服务入口
 
 2026-10-06。先修正 Lake 的 Now / Next：使用已有 primaryContainer #D6E8F1 和 onPrimaryContainer #183743，不改其他主题或全局按钮颜色。各首页分区标题最小高度从 48dp 减至 32dp；Deadlines 的 All 改为紧凑可点击 Row，避免默认 Material 按钮撑高标题；foundation clickable 默认的最小触摸范围扩展与无障碍操作标签保留，大字体自然增高。标题、内容行仍共享单层背景，未加边框。
