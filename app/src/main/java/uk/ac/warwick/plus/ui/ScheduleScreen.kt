@@ -17,10 +17,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import uk.ac.warwick.plus.data.EventContentItem
-import uk.ac.warwick.plus.data.EventEntity
 import java.time.LocalDate
 import java.util.Locale
+import uk.ac.warwick.plus.config.AppActions
+import uk.ac.warwick.plus.config.AppLabels
+import uk.ac.warwick.plus.data.EventContentItem
+import uk.ac.warwick.plus.data.EventEntity
 
 internal val CalendarPickerIcon = ImageVector.Builder("ChooseDate", 24.dp, 24.dp, 24f, 24f).apply {
     path(stroke = SolidColor(Color.Black), strokeLineWidth = 1.8f) {
@@ -70,8 +72,8 @@ internal fun ScheduleContent(state: SchedulePageState, today: LocalDate, now: Lo
                         day.events.forEachIndexed { index, event ->
                             if (index > 0) ListDivider(inset = 0.dp)
                             val status = when {
-                                !event.allDay && event.startMillis <= now && event.endMillis > now && day.date == today -> "Now"
-                                event.id == nextId && atWarwick(event.startMillis).toLocalDate() == day.date -> "Next"
+                                !event.allDay && event.startMillis <= now && event.endMillis > now && day.date == today -> AppLabels.NOW
+                                event.id == nextId && atWarwick(event.startMillis).toLocalDate() == day.date -> AppLabels.NEXT
                                 else -> null
                             }
                             ScheduleClassRow(event, day.date, status, event.id in conflicts) { onSelect(event) }
@@ -117,7 +119,7 @@ fun ScheduleDateDialog(selected: LocalDate, onDismiss: () -> Unit, onDate: (Loca
     DatePickerDialog(onDismissRequest = onDismiss,
         confirmButton = { TextButton(onClick = { picker.selectedDateMillis?.let { onDate(pickerDate(it)) } }, enabled = picker.selectedDateMillis != null,
             modifier = Modifier.testTag("schedule-date-confirm")) { Text("Go to date") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }) {
+        dismissButton = { TextButton(onClick = onDismiss) { Text(AppActions.CANCEL) } }) {
         DatePicker(picker, modifier = Modifier.verticalScroll(rememberScrollState()), title = { Text("Choose date", Modifier.padding(24.dp)) },
             headline = null, showModeToggle = true)
     }

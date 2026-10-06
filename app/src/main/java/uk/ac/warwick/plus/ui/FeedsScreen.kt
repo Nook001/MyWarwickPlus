@@ -11,6 +11,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import uk.ac.warwick.plus.config.AppActions
 import uk.ac.warwick.plus.data.*
 
 @Composable
@@ -47,10 +48,10 @@ fun FeedContent(kind: FeedKind, state: FeedState, busy: Boolean, needsLogin: Boo
                 "Waiting to load ${kind.label.lowercase()}…" else when (kind) {
                 FeedKind.LIBRARY -> "Your Library summary hasn't loaded yet"
                 else -> "${kind.label} haven't loaded yet"
-            }, action = if (!busy && !needsLogin && state.message == null) "Retry" else null, onAction = onRefresh) }
+            }, action = if (!busy && !needsLogin && state.message == null) AppActions.RETRY else null, onAction = onRefresh) }
             state.entries.isEmpty() -> item { DataEmptyState(if (kind == FeedKind.LIBRARY) "No Library items returned" else "No ${kind.label.lowercase()} in this feed",
                 state.description.takeIf { it.isNotBlank() }) }
-            filtered.isEmpty() -> item { DataEmptyState("No matches", action = "Clear search", onAction = { query = ""; focus.clearFocus() }) }
+            filtered.isEmpty() -> item { DataEmptyState("No matches", action = AppActions.CLEAR_SEARCH, onAction = { query = ""; focus.clearFocus() }) }
             else -> items(filtered, key = { it.id }) { entry ->
                 AppCard(onClick = { focus.clearFocus(); onSelect(entry) }, modifier = Modifier.fillMaxWidth(),
                     shape = AppShapes.legacyContent, actionLabel = "View ${kind.label.lowercase()} details") {

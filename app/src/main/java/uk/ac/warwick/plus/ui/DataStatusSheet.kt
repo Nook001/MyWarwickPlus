@@ -7,12 +7,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import uk.ac.warwick.plus.config.AppActions
+import uk.ac.warwick.plus.config.AppLabels
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DataStatusSheet(state: TimetableState, onLogin: () -> Unit, onRefresh: ((SyncResource) -> Unit)?, onDismiss: () -> Unit) {
     DetailsSheet(onDismiss, contentPadding = PaddingValues(20.dp), itemSpacing = 12.dp) {
-        item { Text("Data status", style = MaterialTheme.typography.titleLarge) }
+        item { Text(AppLabels.DATA_STATUS, style = MaterialTheme.typography.titleLarge) }
         if (state.needsLogin) item {
             DataRecoveryRow(null, null, false, true, !state.busy && !state.logoutFailed, onLogin, {})
         }
@@ -37,7 +39,7 @@ fun DataStatusSheet(state: TimetableState, onLogin: () -> Unit, onRefresh: ((Syn
                 }
                 if (onRefresh != null) TextButton(onClick = { onRefresh(resource) },
                     enabled = !state.busy && !state.needsLogin && !state.logoutFailed) {
-                    Text(if (state.issue(resource) != null) "Retry" else "Refresh")
+                    Text(if (state.issue(resource) != null) AppActions.RETRY else "Refresh")
                 }
             }
         }

@@ -8,7 +8,25 @@
 
 仅更新三个现有文档，不改源码/测试/依赖/schema/版本；不构建、不运行JVM/UI/设备测试、不部署或请求学校接口。核对本地引用、表格/代码块结构、评估中的源码符号及git diff --check；查阅Compose/Kotlin官方技术说明，不访问用户会话。之前0.18.0手机安装被拒和待验收状态保留。
 
-## 最新代码：0.19.0 / versionCode 27
+## 最新代码：0.20.0 / versionCode 28
+
+2026-10-07：类型化Tab/筛选/Me子页/详情、同步操作与恢复动作；集中页面命名，Classes/Tasks顶部与Tab一致，Settings/Developer tools入口标题一致。API、schema5、依赖、布局和重试预算不变。
+
+| 检查 | 本次结果 / 边界 |
+| --- | --- |
+| Debug 构建 | assembleDebug成功 |
+| JVM | 68项全部通过；原有64项 + 4项导航存档/缓存等待/归属校验与延迟恢复/会话守卫/旧游标回退检查 |
+| Lint | 0 errors / 17 warnings |
+| Room / API | schema5无diff、数据库固定Feed key不变；未新增接口抓取或真实SQLite检查 |
+| UI约定 | 既有AndroidTest仅编译核对，未改写/扩展/执行；其中旧标题断言未更新，不能记为运行通过 |
+| 物理部署 | 指定10AG4S2KQJ0066R执行install -r成功；dumpsys确认versionCode28 / versionName0.20.0，冷启动Status:ok / COLD / TotalTime379ms。单次启动值不作性能基准；未卸载或清登录缓存，交互待用户手动反馈 |
+| 未执行 | UI Test、模拟器、自动点击/截图/退出或清cookie、真机性能测量 |
+
+命令：`./gradlew.bat :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:compileDebugAndroidTestKotlin`。物理启动成功不等于手动验收通过。
+
+手动重点：Classes/Tasks顶部名称；Me→Settings/Messages/Library/Modules/Developer tools返回；Home→Tasks分类、Classes选日与滚动位置；详情关闭及旋转/后台返回；有失败时Retry仍恢复正确资源。跨账户只在用户愿意重新登录时测试。
+
+## 上一版：0.19.0 / versionCode 27
 
 2026-10-07：代码提交fc5cc01，A1/A2/A3实施，随同前台时钟和少量语法清理；页面布局、依赖、API/认证协议与schema5保持不变。
 
@@ -25,7 +43,7 @@
 
 命令：`./gradlew.bat :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:compileDebugAndroidTestKotlin -PcomposeReports=true`；完整Compose报告另用 `:app:compileDebugKotlin -PcomposeReports=true --rerun-tasks`，避免增量报告只涵盖改动文件。JDK21沿用下面配置。
 
-手动重点：刷新时内容/详情正常，Tasks搜索和分类、Classes位置保持；后台返回立即校准日期/Now/Next；断网后缓存仍可读。退出取消只有用户愿意重新登录时再测。
+用户在本轮开始前反馈“重新登录已经测试了”；记录为重新登录手动反馈，不扩充为阻塞退出计时或全页面验收。刷新/搜索/后台返回、真实SQLite和帧时间的其他手动结论尚未追加。
 
 ## 上一版：0.18.0 / versionCode 26
 

@@ -1,6 +1,6 @@
 # 架构与组件规范
 
-更新：2026-10-07，适用代码 0.19.0。前文记录已落地的组件、共享函数、同步、数据反馈、课表和主题标准；末节保留评估基线并标注实施进度。接口证据见 [protocol.md](protocol.md)，覆盖表见 [api-progress.md](api-progress.md)，验证状态见 [validation.md](validation.md)。
+更新：2026-10-07，适用代码 0.20.0。前文记录已落地的组件、共享函数、同步、数据反馈、课表和主题标准；末节保留评估基线并标注实施进度。接口证据见 [protocol.md](protocol.md)，覆盖表见 [api-progress.md](api-progress.md)，验证状态见 [validation.md](validation.md)。
 
 ## 代码职责
 
@@ -13,6 +13,8 @@
 | data/TimetableRepository、TimetableDao、TimetableDatabase | 账户隔离、串行读写/退出、事务快照与各资源原子缓存 |
 | ui/TimetableViewModel | 单份同步任务、完整/单项/分页执行、恢复缓存、阶段进度及通知 |
 | ui/TimetableState、SyncRetry | 状态类型与 withCache/withIssue/resourceFailed；独立重试策略 |
+| config/AppLabels | 页面、分类、区段名称及常用动作文案；只管显示，不作为存储/接口key |
+| ui/NavigationState、SyncOperation | 类型化Tab/筛选/Me子页/详情、轻量Saver、同步操作和当前状态恢复动作 |
 | ui/PlusScreen | 路由/返回、选择项和页面状态、账户变化后的选择清理、连接动作回调 |
 | ui/*Screen、业务详情 | 组合页面、业务展示及按需详情；不直接读写数据库 |
 | ui/components/ | 基础容器、列表、操作、输入、标题及详情骨架；沿用 ui 包名 |
@@ -43,6 +45,14 @@
 - Home / Classes 使用只包含本页数据及恢复状态的投影，进度由顶部读取；恢复回调保持引用并在点击时取最新状态。首页 next/today/deadlines、Tasks 搜索分类/排序、详情冲突集合按各自数据/时间依赖 remember；查询仍留页面本地。
 - 时钟在 Lifecycle.STARTED 期间每30秒更新，回前台立即校准，继续按 Europe/London 计算午夜与 DST；不截断原始 deadline 时间。冲突匹配仍为 O(n²)，内层索引循环避免反复 drop 临时列表。
 - 可用 `:app:compileDebugKotlin -PcomposeReports=true --rerun-tasks` 输出完整编译器报告到 app/build/reports/compose；普通构建不开启报告。报告表示可跳过性/稳定性，不是实际重组次数或帧率；本批不新增性能插件或 UI Test。[编译器 DSL](https://kotlinlang.org/docs/compose-compiler-options.html)、[取消语义](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/suspend-cancellable-coroutine.html)。
+
+## 页面命名、导航与恢复动作
+
+- 页面/入口/同步资源共享 `config/AppLabels.kt` 的名称：Home、Classes、Tasks、Me；Settings、Data status、Developer tools、Messages、Library、Modules。Tab与顶部直接使用同一个label；Home顶部继续显示个性化招呼语。Now/Next/Today/Deadlines区段与常用Sign in/Sign out/Retry/Back等动作也集中维护，说明性长句留在所属组件。
+- 显示名与身份分开：AppTab/CourseworkFilter用显式key，MeRoute只允许Overview/Settings/DeveloperTools/Feed，DetailSelection只允许None/Class/Task/Feed。Saver仅保存key、Feed现有固定数据库key与内容ID，不保存实体、HTML或列表，不使用enum.ordinal。旧数字Tab/字符串筛选值有解码回退；这不是跨应用版本Compose存档位置的迁移保证。
+- Classes选日、followToday与列表状态仍保留；Tasks查询仍在本页，不改切页后的查询产品规则。恢复详情先等资源缓存可判定，再检查ID和Feed归属；初始空身份/空缓存不当成账户切换。真正退出或账户变化仍清理详情/Me子路由/筛选；Debug工具不可用时回退Me首页。
+- SyncProgress只存SyncOperation（Refresh(resource)/OlderMessages），界面再生成文字。SyncNotice只存一个RecoveryAction（RefreshAll/Refresh(resource)/OlderMessages/SignIn），旧feed/resource/olderMessages兼容入口只转换或派生，不另存重叠状态。
+- Snackbar按notice ID执行一次；动作及消费回调用rememberUpdatedState取得最新实现。点击时检查当前busy/退出/登录状态，过期会话转登录；旧更早消息提示仅在当前仍有失败标志与有效分页入口时沿用当前游标，否则刷新最新Messages。重试预算、顺序、缓存保留与notice消费ID规则不变。
 
 ## 数据反馈
 
@@ -138,13 +148,14 @@ Me → Settings → Appearance 选择 Forest（默认）、Lake、Heather、Sand
 
 2026-10-07 静态评估基线：应用代码提交 c8a2724 / 0.18.0。审阅同步/状态/DAO、网络与登录、页面路由/展示计算、基础组件/主题缓存和相关既有检查；未运行编译器重组报告、手机测量或新学校请求。P1 表示下一轮优先处理，P2 表示随后改善；不是宣称已发生崩溃或数据泄漏。下方问题表描述0.18.0评估时的事实，不代表0.19.0仍有同样实现；现行行为以上文标准和下表状态为准。
 
-| 范围 | 0.19.0 进度 |
+| 范围 | 0.20.0 进度 |
 | --- | --- |
 | A1 | 已实现每次同步请求取消连接；真实本地阻塞响应与注册竞态检查通过，退出手动体验待验收 |
 | A2 | 已建立生产展示值快照、不可修改列表和内容相等复用；schema 5 不变，快照隔离检查通过 |
 | A3 | 已缓存 Home / Tasks 计算、缩小 Home / Classes 输入并隔离进度；完整编译器报告核对，真机性能未测 |
 | A5 | 前台生命周期时钟已实施；进一步按页面需求暂停及耗电测量未做 |
-| A4 / A6 / A7 | 类型化导航/操作身份、完整 notice 回调整理与真机性能/SQLite基线待做；恢复回调当前状态读取已随 A3 收敛 |
+| A4 / A6 | 已实施类型化导航/筛选/操作身份、统一页面命名与最新notice动作分派；存档/延迟恢复的聚焦检查通过，手机交互待手动验收 |
+| A7 | 编译器报告入口已建立；真机帧时间/内存、SQLite基线仍待做 |
 
 ### 评分与已有优势
 
@@ -194,7 +205,7 @@ Me → Settings → Appearance 选择 Forest（默认）、Lake、Heather、Sand
 ### 后续实施边界
 
 1. A1/A2/A3代码与必要检查已完成；优先手动验收刷新、搜索、后台返回及缓存恢复，不自动退出真实账号。视觉、协议、schema、重试预算及串行顺序保持原约定。
-2. A4/A6 与有触及范围的语法整理再做一小批，保留 rememberSaveable/Saver、返回与账户切换语义；A5的前台时钟已落地，剩余按页调度只在有收益时再做。不要同一提交升级工具链、重写网络、重排导航和全部Entity。
+2. A4/A6代码已在0.20.0完成，保留返回/选日和账户隔离语义；先手动验收，再转回功能开发。A5剩余按页调度只在有收益时再做；工具链/依赖升级另外分批。
 3. A7 用物理手机建立同构建/数据的前后记录。编译器报告入口已建立，接着做手动/跟踪测量；Baseline Profile、自动化benchmark、额外插件留到测量确有需要的专项，不默认扩展本批范围。当前无已证实性能提升。
 
 依据：[Compose计算与状态读取](https://developer.android.com/develop/ui/compose/performance/bestpractices)、[Compose稳定性契约](https://developer.android.com/develop/ui/compose/performance/stability/fix)、[Kotlin作用域函数](https://kotlinlang.org/docs/scope-functions.html)、[runCatching捕获范围](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/run-catching.html)。它们用于判断优化方法；具体待办来自本地源码，不代表官方对本项目的评分。

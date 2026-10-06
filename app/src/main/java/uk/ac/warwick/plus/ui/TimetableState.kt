@@ -1,7 +1,9 @@
 package uk.ac.warwick.plus.ui
 
-import uk.ac.warwick.plus.data.*
 import java.io.IOException
+import uk.ac.warwick.plus.config.AppActions
+import uk.ac.warwick.plus.config.AppLabels
+import uk.ac.warwick.plus.data.*
 
 data class CourseworkState(val entries: List<CourseworkContentItem> = emptyList(), val lastSynced: Long? = null, val message: String? = null)
 data class AccountState(val email: String = "", val lastSynced: Long? = null, val message: String? = null)
@@ -10,20 +12,36 @@ data class FeedState(val entries: List<FeedContentItem> = emptyList(), val lastS
     val description: String = "", val url: String = "", val webReadMillis: Long = 0, val olderPageFailed: Boolean = false)
 
 enum class SyncResource(val label: String, val feed: FeedKind? = null) {
-    TIMETABLE("Timetable"), COURSEWORK("Coursework"), MESSAGES("Messages", FeedKind.MESSAGES),
-    LIBRARY("Library", FeedKind.LIBRARY), MODULES("Modules", FeedKind.MODULES), ACCOUNT("Account");
+    TIMETABLE(AppLabels.CLASSES), COURSEWORK(AppLabels.TASKS), MESSAGES(AppLabels.MESSAGES, FeedKind.MESSAGES),
+    LIBRARY(AppLabels.LIBRARY, FeedKind.LIBRARY), MODULES(AppLabels.MODULES, FeedKind.MODULES), ACCOUNT(AppLabels.ACCOUNT);
     companion object { fun forFeed(kind: FeedKind) = entries.first { it.feed == kind } }
 }
-data class SyncNotice(val id: Long, val message: String, val feed: FeedKind? = null, val olderMessages: Boolean = false,
-    val resource: SyncResource? = null)
+data class SyncNotice(val id: Long, val message: String, val action: RecoveryAction = RecoveryAction.RefreshAll) {
+    // Compatibility for existing fixtures/callers; production stores only one recovery action.
+    constructor(id: Long, message: String, feed: FeedKind?, olderMessages: Boolean = false,
+        resource: SyncResource? = null) : this(id, message, when {
+        olderMessages -> RecoveryAction.OlderMessages
+        resource != null -> RecoveryAction.Refresh(resource)
+        feed != null -> RecoveryAction.Refresh(SyncResource.forFeed(feed))
+        else -> RecoveryAction.RefreshAll
+    })
+    val resource: SyncResource? get() = when (val recovery = action) {
+        is RecoveryAction.Refresh -> recovery.resource
+        RecoveryAction.OlderMessages -> SyncResource.MESSAGES
+        else -> null
+    }
+    val feed: FeedKind? get() = resource?.feed
+    val olderMessages: Boolean get() = action == RecoveryAction.OlderMessages
+}
 // Progress measures settled resource updates, with a half-step after account verification.
 // A settled failure is finished work, not a successful download; retries never add work units.
-data class SyncProgress(val id: Long, val total: Int, val completed: Int = 0, val resource: String = "",
+data class SyncProgress(val id: Long, val total: Int, val completed: Int = 0,
+    val operation: SyncOperation = SyncOperation.Refresh(SyncResource.TIMETABLE),
     val accountChecked: Boolean = false, val retry: Int = 0, val failures: Int = 0, val finished: Boolean = false) {
     val fraction: Float get() = ((completed + if (accountChecked) .5f else 0f) / total).coerceIn(0f, 1f)
     val description: String get() = if (finished) "$completed of $total updates finished; $failures failed"
-        else if (retry > 0) "Retry $retry/2 · $resource"
-        else "Updating $resource · ${completed + 1}/$total"
+        else if (retry > 0) "${AppActions.RETRY} $retry/2 · ${operation.label}"
+        else "Updating ${operation.label} · ${completed + 1}/$total"
 }
 data class TimetableState(
     val events: List<EventContentItem> = emptyList(), val name: String = "", val lastSynced: Long? = null,
@@ -49,7 +67,7 @@ data class TimetableState(
         else -> feed(resource.feed!!).message
     }
     fun updating(resource: SyncResource): Boolean = if (resource.feed != null) feed(resource.feed).loading
-        else busy && syncProgress?.resource == resource.label
+        else busy && syncProgress?.operation?.resource == resource
 }
 
 // Cache projection only replaces persisted fields; transient operation state stays with the UI.
@@ -98,8 +116,8 @@ internal fun TimetableState.resourceFailed(resource: SyncResource, error: Except
     val label = resource.label.lowercase(java.util.Locale.UK)
     val issue = when (error) {
         is SignInRequiredException -> "Sign in to update $label."
-        is IOException -> "Couldn't connect. Your saved $label has been kept."
-        is ServiceException -> "$label is unavailable (${error.status}). Your saved data has been kept."
+        is IOException -> "Couldn't connect. Your saved data has been kept."
+        is ServiceException -> "Couldn't update $label (${error.status}). Your saved data has been kept."
         else -> "Couldn't read $label. Your saved data has been kept."
     }
     return session.withIssue(resource, issue, olderMessages)

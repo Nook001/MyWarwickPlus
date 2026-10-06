@@ -4,14 +4,15 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import uk.ac.warwick.plus.config.AppActions
 
 private val SearchIcon = ImageVector.Builder("Search", 24.dp, 24.dp, 24f, 24f).apply {
     path(fill = null, stroke = SolidColor(Color.Black), strokeLineWidth = 2f) {
@@ -48,7 +49,7 @@ internal fun SearchField(query: String, onQueryChange: (String) -> Unit, placeho
                         input()
                     }
                     if (query.isNotEmpty()) IconButton(onClick = { onQueryChange("") }, modifier = Modifier.size(48.dp)) {
-                        Icon(ClearIcon, "Clear search", Modifier.size(18.dp))
+                        Icon(ClearIcon, AppActions.CLEAR_SEARCH, Modifier.size(18.dp))
                     }
                 }
             })

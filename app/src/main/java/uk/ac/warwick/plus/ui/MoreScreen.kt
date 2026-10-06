@@ -1,22 +1,24 @@
 package uk.ac.warwick.plus.ui
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import android.content.ClipData
-import android.content.ClipboardManager
+import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import uk.ac.warwick.plus.BuildConfig
+import uk.ac.warwick.plus.config.AppActions
+import uk.ac.warwick.plus.config.AppLabels
 import uk.ac.warwick.plus.data.FeedKind
 
 @Composable
@@ -33,12 +35,12 @@ fun MoreContent(state: TimetableState, onLogin: () -> Unit, onSignOut: () -> Uni
         }
         item {
             MeGrid("App", buildList {
-                add(MeAction("Settings", MeIcons.settings, onSettings, tag = "appearance-settings"))
-                add(MeAction("Data status", MeIcons.data, { showDataStatus = true }))
-                add(MeAction("Messages", MeIcons.messages, { onFeed(FeedKind.MESSAGES) }))
-                add(MeAction("Library", ServiceIcons.library, { onFeed(FeedKind.LIBRARY) }))
-                add(MeAction("Modules", ServiceIcons.moodle, { onFeed(FeedKind.MODULES) }))
-                if (onProbe != null) add(MeAction("Developer tools", MeIcons.developer, onProbe))
+                add(MeAction(AppLabels.SETTINGS, MeIcons.settings, onSettings, tag = "appearance-settings"))
+                add(MeAction(AppLabels.DATA_STATUS, MeIcons.data, { showDataStatus = true }))
+                add(MeAction(AppLabels.MESSAGES, MeIcons.messages, { onFeed(FeedKind.MESSAGES) }))
+                add(MeAction(AppLabels.LIBRARY, ServiceIcons.library, { onFeed(FeedKind.LIBRARY) }))
+                add(MeAction(AppLabels.MODULES, ServiceIcons.moodle, { onFeed(FeedKind.MODULES) }))
+                if (onProbe != null) add(MeAction(AppLabels.DEVELOPER_TOOLS, MeIcons.developer, onProbe))
             })
         }
         item {
@@ -52,10 +54,10 @@ fun MoreContent(state: TimetableState, onLogin: () -> Unit, onSignOut: () -> Uni
     }
     if (showDataStatus) DataStatusSheet(state, onLogin, onResourceRefresh, { showDataStatus = false })
     if (confirmSignOut) AlertDialog(onDismissRequest = { confirmSignOut = false },
-        title = { Text("Sign out?") },
+        title = { Text("${AppActions.SIGN_OUT}?") },
         text = { Text("This removes this app's sign-in session and saved data. Your system browser sessions are kept.") },
-        confirmButton = { TextButton(onClick = { confirmSignOut = false; onSignOut() }) { Text("Sign out") } },
-        dismissButton = { TextButton(onClick = { confirmSignOut = false }) { Text("Cancel") } })
+        confirmButton = { TextButton(onClick = { confirmSignOut = false; onSignOut() }) { Text(AppActions.SIGN_OUT) } },
+        dismissButton = { TextButton(onClick = { confirmSignOut = false }) { Text(AppActions.CANCEL) } })
 }
 
 @Composable
@@ -88,10 +90,10 @@ private fun AccountCard(state: TimetableState, onLogin: () -> Unit, onSignOut: (
                 if (state.needsLogin && !state.logoutFailed) Text("Sign in to update", style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
                 if (!state.logoutFailed && (state.needsLogin || !state.signedIn && !state.hasSavedData && !state.busy))
-                    TextButton(onClick = onLogin, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)) { Text("Sign in") }
+                    TextButton(onClick = onLogin, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)) { Text(AppActions.SIGN_IN) }
                 if (state.hasSavedData || state.signedIn || state.logoutFailed)
                     TextButton(onClick = onSignOut, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)) {
-                        Text(if (state.logoutFailed) "Retry sign-out" else "Sign out", style = MaterialTheme.typography.bodySmall)
+                        Text(if (state.logoutFailed) AppActions.RETRY_SIGN_OUT else AppActions.SIGN_OUT, style = MaterialTheme.typography.bodySmall)
                     }
             }
             if (!state.needsLogin && state.account.message != null && onResourceRefresh != null)

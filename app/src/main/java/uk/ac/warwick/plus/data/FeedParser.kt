@@ -1,9 +1,10 @@
 package uk.ac.warwick.plus.data
 
 import org.json.JSONObject
+import uk.ac.warwick.plus.config.AppLabels
 
 enum class FeedKind(val key: Int, val label: String, val tile: String) {
-    MESSAGES(3, "Messages", "notifications"), LIBRARY(4, "Library", "library"), MODULES(5, "Modules", "modules");
+    MESSAGES(3, AppLabels.MESSAGES, "notifications"), LIBRARY(4, AppLabels.LIBRARY, "library"), MODULES(5, AppLabels.MODULES, "modules");
     fun path(before: String? = null): String = if (this == MESSAGES) {
         "/api/streams/notifications?limit=100" + (before?.let { "&before=" + java.net.URLEncoder.encode(it, "UTF-8") } ?: "")
     } else "/api/tiles/content/$tile"

@@ -5,9 +5,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.*
-import uk.ac.warwick.plus.data.*
 import java.io.IOException
+import kotlinx.coroutines.*
+import uk.ac.warwick.plus.config.AppActions
+import uk.ac.warwick.plus.config.AppLabels
+import uk.ac.warwick.plus.data.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -20,7 +22,7 @@ fun ApiProbeSheet(probe: (ProbeEndpoint) -> ProbeResult, onLogin: () -> Unit, on
     val scope = rememberCoroutineScope()
     DetailsSheet(onDismiss, itemSpacing = 16.dp) {
         item {
-            Text("API explorer", style = MaterialTheme.typography.headlineSmall)
+            Text(AppLabels.DEVELOPER_TOOLS, style = MaterialTheme.typography.headlineSmall)
             Text("Debug build · manual, read-only requests. Shows field names and counts; no credentials or personal values.",
                 style = MaterialTheme.typography.bodyMedium)
         }
@@ -62,7 +64,7 @@ fun ApiProbeSheet(probe: (ProbeEndpoint) -> ProbeResult, onLogin: () -> Unit, on
             if (value.itemCount == 0) Text("An empty list doesn't establish the item schema or confirm full service coverage.",
                 style = MaterialTheme.typography.bodySmall)
         } }
-        if (problem != null) item { Text(problem!!); if (loginRequired) TextButton(onClick = { onDismiss(); onLogin() }) { Text("Sign in") } }
-        item { TextButton(onClick = onDismiss) { Text("Close explorer") } }
+        if (problem != null) item { Text(problem!!); if (loginRequired) TextButton(onClick = { onDismiss(); onLogin() }) { Text(AppActions.SIGN_IN) } }
+        item { TextButton(onClick = onDismiss) { Text(AppActions.CLOSE) } }
     }
 }

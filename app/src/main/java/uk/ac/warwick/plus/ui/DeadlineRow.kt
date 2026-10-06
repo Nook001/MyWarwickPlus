@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import uk.ac.warwick.plus.config.AppLabels
 import uk.ac.warwick.plus.data.CourseworkContentItem
 
 internal enum class DeadlinePresentation { Home, List }
@@ -16,7 +17,7 @@ internal fun DeadlineRow(entry: CourseworkContentItem, now: Long, presentation: 
     val home = presentation == DeadlinePresentation.Home
     val date = deadlineDateLabel(entry.dueMillis, now, includeTime = !home)
     MetricListRow(onSelect, "View coursework details", modifier, compactTop, metric = {
-        if (!home && (timing.passed || timing.days == 0L)) Text(if (timing.passed) "Passed" else "Today",
+        if (!home && (timing.passed || timing.days == 0L)) Text(if (timing.passed) "Passed" else AppLabels.TODAY,
             style = MaterialTheme.typography.bodySmall,
             color = if (timing.passed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary)
         else {

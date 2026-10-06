@@ -6,6 +6,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import uk.ac.warwick.plus.config.AppLabels
 import uk.ac.warwick.plus.data.*
 
 class TimetableViewModel(private val repository: TimetableStore,
@@ -41,7 +42,8 @@ class TimetableViewModel(private val repository: TimetableStore,
         operation: suspend () -> Unit) {
         if (mutable.value.busy || mutable.value.signingOut || mutable.value.logoutFailed) return
         val progress = SyncProgress(++syncId, if (resource == null) SyncResource.entries.size else 1,
-            resource = if (olderMessages) "Older messages" else resource?.label ?: "Timetable")
+            operation = if (olderMessages) SyncOperation.OlderMessages
+                else SyncOperation.Refresh(resource ?: SyncResource.TIMETABLE))
         mutable.update { it.copy(busy = true, notice = null,
             syncProgress = progress) }
         syncJob = viewModelScope.launch {
@@ -52,11 +54,17 @@ class TimetableViewModel(private val repository: TimetableStore,
                         current.issue(kind)?.let { kind to it }
                     }
                     val singleFailure = failures.singleOrNull()
+                    val recovery = when {
+                        olderMessages -> RecoveryAction.OlderMessages
+                        resource != null -> RecoveryAction.Refresh(resource)
+                        singleFailure != null -> RecoveryAction.Refresh(singleFailure.first)
+                        else -> RecoveryAction.RefreshAll
+                    }
                     val notice = if (failures.isEmpty()) null else SyncNotice(++noticeId,
                         if (current.needsLogin) "Sign in to update your information."
                         else if (failures.size > 1) "Couldn't update some information. Your saved data has been kept."
                         else failures.single().second,
-                        singleFailure?.first?.feed, olderMessages, resource ?: singleFailure?.first)
+                        recovery)
                     mutable.update { it.copy(busy = false, notice = notice,
                         syncProgress = it.syncProgress?.copy(finished = true)) }
                 }
@@ -64,8 +72,8 @@ class TimetableViewModel(private val repository: TimetableStore,
         }
     }
     fun consumeNotice(id: Long) = mutable.update { if (it.notice?.id == id) it.copy(notice = null) else it }
-    private fun beginResource(label: String) = mutable.update {
-        it.copy(syncProgress = it.syncProgress?.copy(resource = label, accountChecked = false, retry = 0))
+    private fun beginResource(operation: SyncOperation) = mutable.update {
+        it.copy(syncProgress = it.syncProgress?.copy(operation = operation, accountChecked = false, retry = 0))
     }
     private suspend fun finishResource(failed: Boolean) {
         if (!currentCoroutineContext().isActive || mutable.value.signingOut) return
@@ -89,7 +97,7 @@ class TimetableViewModel(private val repository: TimetableStore,
     }
     // Every resource shares execution/recovery; the store still owns authentication and persistence.
     private suspend fun syncResource(resource: SyncResource, before: String? = null) {
-        beginResource(if (before != null) "Older messages" else resource.label)
+        beginResource(if (before != null) SyncOperation.OlderMessages else SyncOperation.Refresh(resource))
         mutable.update { state ->
             val cleared = state.withIssue(resource, null)
             resource.feed?.let { kind -> cleared.withFeed(kind) { it.copy(loading = true) } } ?: cleared
@@ -140,7 +148,7 @@ class TimetableViewModel(private val repository: TimetableStore,
                 if (error is CancellationException) throw error
                 reportFailure(error)
                 mutable.value = TimetableState(needsLogin = true, logoutFailed = true,
-                    message = "Couldn't finish signing out. Retry from More before signing in again.")
+                    message = "Couldn't finish signing out. Retry from ${AppLabels.ME} before signing in again.")
             }
         }
     }

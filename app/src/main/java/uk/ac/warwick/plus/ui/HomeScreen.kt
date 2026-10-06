@@ -7,14 +7,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import uk.ac.warwick.plus.data.*
 import java.time.LocalDate
+import uk.ac.warwick.plus.config.AppLabels
+import uk.ac.warwick.plus.data.*
 
 @Composable
 internal fun HomeContent(state: HomePageState, today: LocalDate, now: Long, onSelect: (EventContentItem) -> Unit,
@@ -36,10 +37,10 @@ internal fun HomeContent(state: HomePageState, today: LocalDate, now: Long, onSe
         verticalArrangement = Arrangement.spacedBy(Spacing.homeSection)) {
         item {
             when {
-                state.lastSynced == null -> SectionCard("Next", modifier = Modifier.testTag("home-next-section"), headingTag = "next") {
+                state.lastSynced == null -> SectionCard(AppLabels.NEXT, modifier = Modifier.testTag("home-next-section"), headingTag = "next") {
                     SectionEmptyRow(if (state.busy) "Loading timetable…" else "Timetable hasn't loaded yet")
                 }
-                next == null -> SectionCard("Next", modifier = Modifier.testTag("home-next-section"), headingTag = "next") { SectionEmptyRow("No upcoming classes") }
+                next == null -> SectionCard(AppLabels.NEXT, modifier = Modifier.testTag("home-next-section"), headingTag = "next") { SectionEmptyRow("No upcoming classes") }
                 else -> NextClassCard(next, now) { onSelect(next) }
             }
             Box(Modifier.padding(horizontal = 12.dp)) {
@@ -49,7 +50,7 @@ internal fun HomeContent(state: HomePageState, today: LocalDate, now: Long, onSe
             HomeQuickLinks(onOpen)
         }
         if (state.lastSynced != null) item {
-            SectionCard("Today", modifier = Modifier.testTag("home-today-section"), headingTag = "today", trailing = {
+            SectionCard(AppLabels.TODAY, modifier = Modifier.testTag("home-today-section"), headingTag = "today", trailing = {
                 Text(classCountLabel(todayEvents.size), style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }) {
@@ -57,8 +58,8 @@ internal fun HomeContent(state: HomePageState, today: LocalDate, now: Long, onSe
                 else todayEvents.forEachIndexed { index, event ->
                     if (index > 0) ListDivider()
                     val status = when {
-                        !event.allDay && event.startMillis <= now && event.endMillis > now -> "Now"
-                        event.id == nextId -> "Next"
+                        !event.allDay && event.startMillis <= now && event.endMillis > now -> AppLabels.NOW
+                        event.id == nextId -> AppLabels.NEXT
                         else -> null
                     }
                     ScheduleClassRow(event, today, status, event.id in conflicts, compactTop = index == 0) { onSelect(event) }
@@ -66,7 +67,7 @@ internal fun HomeContent(state: HomePageState, today: LocalDate, now: Long, onSe
             }
         }
         item {
-            SectionCard("Deadlines", modifier = Modifier.testTag("home-deadlines-section"), headingTag = "deadlines", trailing = {
+            SectionCard(AppLabels.DEADLINES, modifier = Modifier.testTag("home-deadlines-section"), headingTag = "deadlines", trailing = {
                 Row(Modifier.widthIn(min = 48.dp).heightIn(min = 28.dp)
                     .clickable(role = Role.Button, onClickLabel = "View all coursework", onClick = onAllCoursework)
                     .padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically,
@@ -106,7 +107,7 @@ private fun NextClassCard(event: EventContentItem, now: Long, onSelect: () -> Un
         Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(if (event.startMillis <= now) "Now" else "Next", style = MaterialTheme.typography.labelMedium,
+                Text(if (event.startMillis <= now) AppLabels.NOW else AppLabels.NEXT, style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold, modifier = Modifier.alignByBaseline())
                 Text(if (event.startMillis <= now) time else "${nextClassLabel(event, now)} · $time",
                     style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium,

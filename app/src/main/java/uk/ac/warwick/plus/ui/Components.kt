@@ -3,10 +3,11 @@ package uk.ac.warwick.plus.ui
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.Alignment
+import uk.ac.warwick.plus.config.AppActions
 
 fun classCountLabel(count: Int) = if (count == 1) "1 class" else "$count classes"
 
@@ -47,7 +48,7 @@ fun DataRecoveryRow(lastSynced: Long?, issue: String?, updating: Boolean, needsL
         }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f))
         TextButton(onClick = if (needsLogin) onLogin else onRefresh, enabled = enabled) {
-            Text(if (needsLogin) "Sign in" else "Retry")
+            Text(if (needsLogin) AppActions.SIGN_IN else AppActions.RETRY)
         }
     }
 }

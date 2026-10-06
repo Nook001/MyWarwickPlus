@@ -2,6 +2,7 @@ package uk.ac.warwick.plus.ui
 
 import androidx.compose.ui.graphics.vector.ImageVector
 import uk.ac.warwick.plus.auth.MY_WARWICK
+import uk.ac.warwick.plus.config.AppLabels
 import uk.ac.warwick.plus.data.FeedKind
 
 /** Labels are presentation only; no page chooses a destination or icon by matching label text. */
@@ -10,7 +11,7 @@ internal enum class WarwickService(val label: String, val url: String, val icon:
     MOODLE("Moodle", "https://moodle.warwick.ac.uk/", ServiceIcons.moodle, homeLabel = "Moodle"),
     EMAIL("Email", "https://warwick.ac.uk/mymail", ServiceIcons.email, homeLabel = "Email"),
     TABULA("Tabula", "https://tabula.warwick.ac.uk/", ServiceIcons.tabula, homeLabel = "Tabula"),
-    LIBRARY("Library account", "https://warwick.ac.uk/services/library/account", ServiceIcons.library, homeLabel = "Library"),
+    LIBRARY("Library account", "https://warwick.ac.uk/services/library/account", ServiceIcons.library, homeLabel = AppLabels.LIBRARY),
     ACADEMIC("Academic support", "https://warwick.ac.uk/academic-support/", ServiceIcons.moodle),
     WELLBEING("Wellbeing and Student Support", "https://warwick.ac.uk/wellbeing/students/", MeIcons.wellbeing, shortLabel = "Wellbeing"),
     SAFETY("Safety and emergency support", "https://warwick.ac.uk/students/safety-and-support/emergency-support/", MeIcons.safety, shortLabel = "Safety"),

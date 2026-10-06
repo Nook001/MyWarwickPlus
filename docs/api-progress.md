@@ -14,7 +14,7 @@
 | `GET /api/tiles/content/library` | 摘要页已接入；浏览器、原生空列表已验证 | Me → Library：学校说明、账户入口；非空时只展示已知 title/text/href 或通用原站提示 | 历史样本 0 条；非空借阅、到期日与欠费结构待验证 |
 | `GET /api/tiles/content/account` | 原生解析与缓存已验证 | Me 邮箱/显式复制；独立 Account 状态与刷新。姓名/账号仍来自 user/info | 2026-10-06 前端结构证据 + 手机 schema 5、id=6、邮箱非空检查；未输出邮箱。空值不猜测地址，复制操作待手动核对 |
 
-0.19.0 未新增接口或调整认证参数：六类数据进入展示状态时转为只读值快照，内容相同则复用列表；同步 GET 与协程取消绑定。接口覆盖及页面用途保持上表所述，物理验收见 [validation.md](validation.md)。
+0.20.0 未新增接口或调整认证/缓存协议。页面、Tab、Me入口和同步资源名称共用 config/AppLabels：Classes 对应 timetable，Tasks 对应 coursework；Settings、Developer tools 等标题与入口统一。导航保存稳定key/内容ID，重试按类型和最新会话/消息游标分派。物理验收见 [validation.md](validation.md)。
 
 六类业务数据独立缓存与记录更新时间；切换账户清空旧数据，失败保留对应缓存。Data status 按需查看和单项恢复；普通页面不显示保存时间页脚。网站快捷入口只是浏览器跳转，不算新增 API。
 

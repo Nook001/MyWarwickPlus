@@ -1,6 +1,7 @@
 package uk.ac.warwick.plus.ui
 
 import java.time.*
+import uk.ac.warwick.plus.config.AppLabels
 import uk.ac.warwick.plus.data.EventContentItem
 
 fun conflictingEventIds(events: List<EventContentItem>): Set<String> = buildSet {
@@ -39,7 +40,7 @@ fun scheduleDays(events: List<EventContentItem>, from: LocalDate): List<Schedule
 }
 
 fun scheduleDateLabel(date: LocalDate, today: LocalDate): String = when (date) {
-    today -> "Today"
+    today -> AppLabels.TODAY
     today.plusDays(1) -> "Tomorrow · ${shortDateLabel(date)}"
     else -> weekdayDateLabel(date, includeYear = date.year != today.year)
 }
