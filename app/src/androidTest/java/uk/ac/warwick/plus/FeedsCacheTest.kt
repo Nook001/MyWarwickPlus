@@ -23,7 +23,7 @@ class FeedsCacheTest {
                 old.execSQL("INSERT INTO sync_state VALUES (2,'example','Example student',500)")
                 old.version=3
             }
-            val db=Room.databaseBuilder(context,TimetableDatabase::class.java,name).addMigrations(TimetableDatabase.MIGRATION_3_4).build()
+            val db=Room.databaseBuilder(context,TimetableDatabase::class.java,name).addMigrations(TimetableDatabase.MIGRATION_3_4, TimetableDatabase.MIGRATION_4_5).build()
             try {
                 val dao=db.timetable()
                 assertEquals("Example module",dao.events().single().moduleName)
@@ -45,6 +45,7 @@ class FeedsCacheTest {
     private class Api : StudentApi {
         var code="example"
         var page=ParsedFeed(emptyList(),FeedMeta().apply { feed=3 })
+        override fun account(user: SignedInUser) = ""
         override fun user()=SignedInUser(code,"Example student","","")
         override fun timetable(user: SignedInUser)=emptyList<EventEntity>()
         override fun coursework(user: SignedInUser)=emptyList<CourseworkEntity>()

@@ -23,12 +23,17 @@ class SyncRetryTest {
                     FeedMeta().apply { hasMore = true }, SyncEntity().apply { syncedAt = 100 })))
         var timetableCalls = 0
         var courseworkCalls = 0
+        var accountCalls = 0
+        var accountFailure: Exception? = null
         var timetableFailure: (Int) -> Exception? = { null }
         var courseworkFailure: Exception? = null
         var timetableGate: CompletableDeferred<Unit>? = null
         var feedGate: CompletableDeferred<Unit>? = null
         var feedFailure: (FeedKind, String?) -> Exception? = { _, _ -> null }
         val feeds = mutableListOf<Pair<FeedKind, String?>>()
+        override suspend fun syncAccount(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): CachedTimetable {
+            accountCalls++; onAuthenticated(user, cache); accountFailure?.let { throw it }; return cache
+        }
         override suspend fun cached() = cache
         override suspend fun sync(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): CachedTimetable {
             timetableCalls++; onAuthenticated(user, cache)
@@ -57,6 +62,28 @@ class SyncRetryTest {
         advanceTimeBy(1); runCurrent(); assertEquals(3, store.timetableCalls)
         assertEquals(1, store.courseworkCalls); assertEquals(3, store.feeds.size)
         assertFalse(model.state.value.busy); assertNull(model.state.value.notice)
+    }
+    @Test fun accountFailureKeepsEmailAndTargetedRetryDoesNotRepeatOtherResources() = runTest(dispatcher) {
+        val store = Store().apply {
+            cache = cache.copy(accountSync = SyncEntity().apply {
+                id = 6; userCode = user.code; email = "student@example.invalid"; syncedAt = 150
+            })
+            accountFailure = IOException()
+        }
+        val model = TimetableViewModel(store, {}); advanceUntilIdle()
+        assertEquals(3, store.accountCalls)
+        assertEquals("student@example.invalid", model.state.value.email)
+        assertEquals(SyncResource.ACCOUNT, model.state.value.notice!!.resource)
+        assertEquals(6, model.state.value.syncProgress!!.completed)
+        val calls = Triple(store.timetableCalls, store.courseworkCalls, store.feeds.size)
+        store.accountFailure = null
+        model.refreshResource(SyncResource.ACCOUNT); advanceUntilIdle()
+        assertEquals(4, store.accountCalls)
+        assertEquals(calls, Triple(store.timetableCalls, store.courseworkCalls, store.feeds.size))
+        assertNull(model.state.value.account.message); assertNull(model.state.value.notice)
+        assertEquals(1, model.state.value.syncProgress!!.total)
+        model.signOut(); advanceUntilIdle()
+        assertEquals("", model.state.value.email)
     }
     @Test fun feedExhaustsOnlyItsOwnBudgetAndEmitsOneConsumableNotice() = runTest(dispatcher) {
         val store = Store().apply { feedFailure = { kind, _ -> if (kind == FeedKind.MESSAGES) ServiceException(503) else null } }
@@ -130,21 +157,21 @@ class SyncRetryTest {
             feedFailure = { kind, _ -> if (kind == FeedKind.MESSAGES) IOException() else null }
         }
         val model = TimetableViewModel(store, {}); runCurrent()
-        assertEquals(5, model.state.value.syncProgress!!.total)
-        assertEquals(.1f, model.state.value.syncProgress!!.fraction, .001f)
+        assertEquals(6, model.state.value.syncProgress!!.total)
+        assertEquals(.5f / 6, model.state.value.syncProgress!!.fraction, .001f)
         advanceTimeBy(10_000); runCurrent()
-        assertEquals(.1f, model.state.value.syncProgress!!.fraction, .001f)
+        assertEquals(.5f / 6, model.state.value.syncProgress!!.fraction, .001f)
         timetable.complete(Unit); runCurrent()
-        assertEquals(.5f, model.state.value.syncProgress!!.fraction, .001f)
+        assertEquals(2.5f / 6, model.state.value.syncProgress!!.fraction, .001f)
         feeds.complete(Unit); runCurrent()
         assertEquals(1, model.state.value.syncProgress!!.retry)
-        assertEquals(.5f, model.state.value.syncProgress!!.fraction, .001f)
+        assertEquals(2.5f / 6, model.state.value.syncProgress!!.fraction, .001f)
         advanceTimeBy(2_000); runCurrent()
         assertEquals(2, model.state.value.syncProgress!!.retry)
-        assertEquals(.5f, model.state.value.syncProgress!!.fraction, .001f)
+        assertEquals(2.5f / 6, model.state.value.syncProgress!!.fraction, .001f)
         advanceUntilIdle()
         val progress = model.state.value.syncProgress!!
-        assertEquals(5, progress.completed); assertEquals(1, progress.failures)
+        assertEquals(6, progress.completed); assertEquals(1, progress.failures)
         assertEquals(1f, progress.fraction, .001f); assertTrue(progress.finished)
         assertNotNull(model.state.value.notice); assertTrue(model.state.value.hasSavedData)
     }

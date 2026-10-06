@@ -7,12 +7,13 @@ import kotlinx.coroutines.sync.withLock
 
 data class CachedTimetable(val events: List<EventEntity>, val sync: SyncEntity?,
     val coursework: List<CourseworkEntity> = emptyList(), val courseworkSync: SyncEntity? = null,
-    val feeds: Map<FeedKind, CachedFeed> = emptyMap())
+    val feeds: Map<FeedKind, CachedFeed> = emptyMap(), val accountSync: SyncEntity? = null)
 
 interface TimetableStore {
     suspend fun cached(): CachedTimetable
     suspend fun sync(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): CachedTimetable
     suspend fun syncCoursework(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): CachedTimetable
+    suspend fun syncAccount(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): CachedTimetable
     suspend fun syncFeed(kind: FeedKind, before: String?, onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): CachedTimetable
     suspend fun signOut()
 }
@@ -21,6 +22,7 @@ interface StudentApi {
     fun user(): SignedInUser
     fun timetable(user: SignedInUser): List<EventEntity>
     fun coursework(user: SignedInUser): List<CourseworkEntity>
+    fun account(user: SignedInUser): String
     fun feed(kind: FeedKind, user: SignedInUser, before: String?): ParsedFeed
 }
 
@@ -28,7 +30,7 @@ class TimetableRepository(private val api: StudentApi, private val dao: Timetabl
     private val endSession: suspend () -> Unit = {}) : TimetableStore {
     private val mutex = Mutex()
     private fun snapshot() = CachedTimetable(dao.events(), dao.state(), dao.coursework(), dao.courseworkState(),
-        FeedKind.entries.associateWith { CachedFeed(dao.feedEntries(it.key), dao.feedMeta(it.key), dao.feedState(it.key)) })
+        FeedKind.entries.associateWith { CachedFeed(dao.feedEntries(it.key), dao.feedMeta(it.key), dao.feedState(it.key)) }, dao.feedState(6))
     private fun authenticate(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): SignedInUser {
         val user = api.user()
         if (dao.states().any { it.userCode != user.code }) dao.clear()
@@ -89,5 +91,16 @@ class TimetableRepository(private val api: StudentApi, private val dao: Timetabl
     }
     override suspend fun signOut() = withContext(Dispatchers.IO) {
         mutex.withLock { endSession(); dao.clear() }
+    }
+    override suspend fun syncAccount(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): CachedTimetable = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            val user = authenticate(onAuthenticated)
+            val email = api.account(user)
+            dao.replaceAccount(SyncEntity().apply {
+                id = 6; userCode = user.code; displayName = user.name; this.email = email; syncedAt = System.currentTimeMillis()
+            })
+            if (uk.ac.warwick.plus.BuildConfig.DEBUG) android.util.Log.i("MyWarwickPlus", "Native account sync succeeded; emailAvailable=${email.isNotBlank()}")
+            snapshot()
+        }
     }
 }

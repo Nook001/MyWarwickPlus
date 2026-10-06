@@ -6,9 +6,20 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.semantics
+import android.content.ClipData
+import android.content.ClipboardManager
+import kotlinx.coroutines.delay
 import uk.ac.warwick.plus.BuildConfig
 import uk.ac.warwick.plus.data.FeedKind
 
@@ -31,59 +42,128 @@ fun MoreContent(state: TimetableState, onLogin: () -> Unit, onSignOut: () -> Uni
     onResourceRefresh: ((SyncResource) -> Unit)? = null) {
     var confirmSignOut by remember { mutableStateOf(false) }
     var showDataStatus by remember { mutableStateOf(false) }
-    LazyColumn(Modifier.fillMaxSize().testTag("more-list"), contentPadding = PaddingValues(Spacing.page),
-        verticalArrangement = Arrangement.spacedBy(Spacing.section)) {
+    LazyColumn(Modifier.fillMaxSize().testTag("more-list"),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)) {
         item {
-            SectionLabel("ACCOUNT")
-            Spacer(Modifier.height(12.dp))
-            Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
-                Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(state.name.ifBlank { "Your Warwick account" }, style = MaterialTheme.typography.titleLarge)
-                    if (state.accountCode.isNotBlank()) Text(state.accountCode, style = MaterialTheme.typography.bodyMedium)
-                    Text(when {
-                        state.logoutFailed -> "Sign-out needs to be retried"
-                        state.needsLogin -> "Sign in to update saved data"
-                        state.signedIn -> "Signed in"
-                        state.hasSavedData -> "Saved account · session not yet verified"
-                        else -> "Not signed in"
-                    }, style = MaterialTheme.typography.bodySmall)
-                    if (!state.logoutFailed && (state.needsLogin || !state.signedIn)) Button(onClick = onLogin) { Text("Sign in with Warwick") }
-                    if (state.hasSavedData || state.signedIn || state.logoutFailed) OutlinedButton(onClick = { confirmSignOut = true }) {
-                        Text(if (state.logoutFailed) "Retry sign-out" else "Sign out of this app")
+            AccountCard(state, onLogin, { confirmSignOut = true }, onResourceRefresh)
+        }
+        item {
+            MeGrid("App", buildList {
+                add(MeAction("Settings", MeIcons.settings, onSettings, tag = "appearance-settings"))
+                add(MeAction("Data status", MeIcons.data, { showDataStatus = true }))
+                add(MeAction("Messages", MeIcons.messages, { onFeed(FeedKind.MESSAGES) }))
+                add(MeAction("Library", ServiceIcons.library, { onFeed(FeedKind.LIBRARY) }))
+                add(MeAction("Modules", ServiceIcons.moodle, { onFeed(FeedKind.MODULES) }))
+                if (onProbe != null) add(MeAction("Developer tools", MeIcons.developer, onProbe))
+            })
+        }
+        item {
+            MeGrid("Websites", Services.map { service ->
+                val label = when (service.label) {
+                    "Wellbeing and Student Support" -> "Wellbeing"
+                    "Safety and emergency support" -> "Safety"
+                    "MyWarwick help" -> "Help"
+                    else -> service.label
+                }
+                val icon = service.homeIcon ?: when (service.label) {
+                    "Academic support" -> ServiceIcons.moodle
+                    "Wellbeing and Student Support" -> MeIcons.wellbeing
+                    "Safety and emergency support" -> MeIcons.safety
+                    else -> MeIcons.help
+                }
+                MeAction(label, icon, { onOpen(service.url) }, external = true, actionLabel = "Open ${service.label} in browser")
+            })
+        }
+        item { Text("MyWarwick+ ${BuildConfig.VERSION_NAME} · Independent student app", style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant) }
+    }
+    if (showDataStatus) DataStatusSheet(state, onLogin, onResourceRefresh, { showDataStatus = false })
+    if (confirmSignOut) AlertDialog(onDismissRequest = { confirmSignOut = false },
+        title = { Text("Sign out?") },
+        text = { Text("This removes this app's sign-in session and saved data. Your system browser sessions are kept.") },
+        confirmButton = { TextButton(onClick = { confirmSignOut = false; onSignOut() }) { Text("Sign out") } },
+        dismissButton = { TextButton(onClick = { confirmSignOut = false }) { Text("Cancel") } })
+}
+
+@Composable
+private fun AccountCard(state: TimetableState, onLogin: () -> Unit, onSignOut: () -> Unit,
+    onResourceRefresh: ((SyncResource) -> Unit)?) {
+    val context = LocalContext.current
+    var copied by remember(state.email) { mutableStateOf(false) }
+    LaunchedEffect(copied) { if (copied) { delay(2_000); copied = false } }
+    Surface(Modifier.fillMaxWidth().testTag("me-account"), shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow) {
+        Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(state.name.ifBlank { "Your Warwick account" }, style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                if (state.accountCode.isNotBlank()) Text(state.accountCode, style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(state.email.ifBlank { if (state.updating(SyncResource.ACCOUNT)) "Loading email…" else "Email not available" },
+                    style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f).testTag("me-email"))
+                IconButton(onClick = {
+                    context.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("Warwick email", state.email))
+                    copied = true
+                }, enabled = state.email.isNotBlank(), modifier = Modifier.testTag("copy-email")) {
+                    Icon(if (copied) MeIcons.check else MeIcons.copy, contentDescription = if (copied) "Email copied" else "Copy email",
+                        modifier = Modifier.size(18.dp))
+                }
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                if (state.needsLogin && !state.logoutFailed) Text("Sign in to update", style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                if (!state.logoutFailed && (state.needsLogin || !state.signedIn && !state.hasSavedData && !state.busy))
+                    TextButton(onClick = onLogin, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)) { Text("Sign in") }
+                if (state.hasSavedData || state.signedIn || state.logoutFailed)
+                    TextButton(onClick = onSignOut, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)) {
+                        Text(if (state.logoutFailed) "Retry sign-out" else "Sign out", style = MaterialTheme.typography.bodySmall)
+                    }
+            }
+            if (!state.needsLogin && state.account.message != null && onResourceRefresh != null)
+                ResourceRecoveryRow(state, SyncResource.ACCOUNT, onLogin) { onResourceRefresh(SyncResource.ACCOUNT) }
+        }
+    }
+}
+
+private data class MeAction(val label: String, val icon: ImageVector, val onClick: () -> Unit,
+    val external: Boolean = false, val tag: String = "", val actionLabel: String = "Open $label")
+
+@Composable
+private fun MeGrid(title: String, actions: List<MeAction>) {
+    val fontScale = LocalDensity.current.fontScale
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val columns = if (fontScale > 1.3f || maxWidth < 280.dp) 2 else 3
+            val size = (maxWidth - 8.dp * (columns - 1)) / columns
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                actions.chunked(columns).forEach { row ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        row.forEach { action ->
+                            Surface(onClick = action.onClick, color = MaterialTheme.colorScheme.surfaceContainerLow,
+                                shape = RoundedCornerShape(16.dp), modifier = Modifier.weight(1f).testTag(action.tag)
+                                    .semantics { onClick(label = action.actionLabel, action = null) }) {
+                                Box(Modifier.heightIn(min = size)) {
+                                    Column(Modifier.align(Alignment.Center).padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Icon(action.icon, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.primary)
+                                        Text(action.label, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center,
+                                            maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                    }
+                                    Icon(if (action.external) MeIcons.external else DetailsChevron, contentDescription = null,
+                                        modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).size(12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                        repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
                     }
                 }
             }
         }
-        item {
-            TextButton(onClick = onSettings, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("appearance-settings")) {
-                Text("Settings", style = MaterialTheme.typography.titleMedium)
-            }
-            TextButton(onClick = { showDataStatus = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-                Text("Data status", style = MaterialTheme.typography.titleMedium)
-            }
-        }
-        item {
-            SectionLabel("YOUR SERVICES")
-            FeedKind.entries.forEach { kind ->
-                TextButton(onClick = { onFeed(kind) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-                    Text(kind.label, style = MaterialTheme.typography.titleMedium)
-                }
-            }
-        }
-        item {
-            SectionLabel("QUICK LINKS")
-            Text("These services open in your browser and may require a separate sign-in.", style = MaterialTheme.typography.bodySmall)
-            Services.forEach { service ->
-                TextButton(onClick = { onOpen(service.url) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(service.label) }
-            }
-        }
-        if (onProbe != null) item { TextButton(onClick = onProbe) { Text("Developer tools") } }
-        item { Text("MyWarwick+ ${BuildConfig.VERSION_NAME}\nAn independent student app", style = MaterialTheme.typography.bodySmall) }
     }
-    if (showDataStatus) DataStatusSheet(state, onLogin, onResourceRefresh, { showDataStatus = false })
-    if (confirmSignOut) AlertDialog(onDismissRequest = { confirmSignOut = false },
-        title = { Text("Sign out of this app?") },
-        text = { Text("This removes this app's sign-in session and saved data. Your system browser sessions are kept.") },
-        confirmButton = { TextButton(onClick = { confirmSignOut = false; onSignOut() }) { Text("Sign out") } },
-        dismissButton = { TextButton(onClick = { confirmSignOut = false }) { Text("Cancel") } })
 }

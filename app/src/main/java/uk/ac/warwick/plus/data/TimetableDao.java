@@ -67,4 +67,8 @@ public abstract class TimetableDao {
         deleteFeedMetas();
         deleteFeedStates();
     }
+    @Transaction public void replaceAccount(SyncEntity state) {
+        if (state.id != 6) throw new IllegalArgumentException("Account state does not match");
+        deleteFeedState(6); insertState(state);
+    }
 }

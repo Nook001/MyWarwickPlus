@@ -15,7 +15,7 @@ class PlusApplication : Application() {
         TimetableRepository(api,
             Room.databaseBuilder(this, TimetableDatabase::class.java, "timetable.db")
                 .addMigrations(TimetableDatabase.MIGRATION_1_2, TimetableDatabase.MIGRATION_2_3,
-                    TimetableDatabase.MIGRATION_3_4).build().timetable(), { api.cancelRequests(); session.clear(this) })
+                    TimetableDatabase.MIGRATION_3_4, TimetableDatabase.MIGRATION_4_5).build().timetable(), { api.cancelRequests(); session.clear(this) })
     }
     override fun onCreate() {
         super.onCreate()

@@ -60,6 +60,14 @@ class MyWarwickApi(session: AuthSession) : StudentApi {
     }
 
     override fun timetable(user: SignedInUser) = TimetableParser.parse(get("/api/tiles/content/timetable", user))
+    override fun account(user: SignedInUser): String {
+        val root = JSONObject(get("/api/tiles/content/account", user))
+        if (!root.optBoolean("success")) throw InvalidResponseException()
+        val content = root.getJSONObject("data").getJSONObject("account").getJSONObject("content")
+        val email = content.opt("email")
+        if (email != null && email != JSONObject.NULL && email !is String) throw InvalidResponseException()
+        return (email as? String)?.trim().orEmpty()
+    }
     override fun coursework(user: SignedInUser) = CourseworkParser.parse(get("/api/tiles/content/coursework", user))
     override fun feed(kind: FeedKind, user: SignedInUser, before: String?) = FeedParser.parse(kind, get(kind.path(before), user))
 }

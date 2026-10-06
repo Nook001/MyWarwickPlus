@@ -1,6 +1,6 @@
 # MyWarwick 协议边界
 
-最近补充验证：2026-10-04。
+最近补充验证：2026-10-06（公开前端账户摘要结构与手机原生邮箱缓存）。
 
 核对日期：2026-10-03。依据登录态浏览器 CDP 网络观察、部署前端资源，以及官方 Android 仓库 commit `cb105bf13a3eb579d268163ff54a8418e43b8767`。不保存原始 cookie/token/HAR。
 
@@ -32,6 +32,20 @@ links: { login, logout }
 课表 `title` 经常仅为课程条目代码；`parent.fullName` 提供可读模块名称（当前 143 条中 137 条具备）。应用分别保存原始 `title`、`parent.shortName` 和 `parent.fullName`，优先展示完整名称、同时保留条目代码；缺少完整名称时回退原始标题。
 
 真机已验证 WebView 登录后使用上述 cookie jar 进行原生请求，成功读取 143 条课表记录；不需要签发移动端专用 token 或申请新的 OAuth application。后续原生只读检查也成功读取 Coursework 和 Library。此结果仅覆盖当前账户、当前部署和这三个聚合读取接口，不代表后台长期会话或所有业务接口已验证。
+
+## 0.15.0：只读账户摘要
+
+`GET https://my.warwick.ac.uk/api/tiles/content/account`
+
+2026-10-06 读取公开部署的 vendor、main-import 前端资源。tile 注册键为 account，通用读取函数使用 `/api/tiles/content/{tile}`；账户组件以 content.email 展示邮箱，propTypes 同时声明 fullName / userId 等字段。这是前端协议证据，尚不等于本轮已观察到真实账户响应。
+
+```text
+{ success, data: { account: { content: { email, fullName, userId, ... } } } }
+```
+
+原生继续先用 /user/info 验证账户，再携带现有 cookie 与 Csrf-Token 读取 account。只缓存 email；姓名和 usercode 仍由 /user/info 决定身份。不解析或持久化其他个人字段，成功 envelope / account.content 不存在或邮箱为非字符串类型时保留旧缓存；缺失/null/空字符串表示邮箱不可用，不拼接替代地址。Room 4→5 在 sync_state 新增 email 字段，id=6 对应账户摘要；切换账户和本地退出时一并清除。日志只记录 emailAvailable 布尔值，不记录邮箱、姓名、CSRF 或原始响应。
+
+0.15.0 覆盖安装到物理手机后正常启动。通过手机应用自身的只读 SQLite 查询确认 schema=5、sync_state id=6 有 1 条状态且邮箱非空；旧版本没有该状态，证明本轮原生 account 读取/解析/缓存链路成功。只返回数量/非空标志，不取出或记录邮箱值；未检查复制结果、未提交表单或修改账户。
 
 ## 本轮验证：Coursework 与 Library
 

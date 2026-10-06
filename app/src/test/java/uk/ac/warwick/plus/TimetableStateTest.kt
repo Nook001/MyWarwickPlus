@@ -22,6 +22,7 @@ class TimetableStateTest {
     private class Store(var cache: CachedTimetable) : TimetableStore {
         var operation: suspend ((SignedInUser, CachedTimetable) -> Unit) -> CachedTimetable = { cache }
         var calls = 0
+        override suspend fun syncAccount(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit) = cache
         override suspend fun cached() = cache
         override suspend fun syncCoursework(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit) = cache
         override suspend fun syncFeed(kind: FeedKind, before: String?, onAuthenticated: (SignedInUser, CachedTimetable) -> Unit) = cache
@@ -95,7 +96,9 @@ class TimetableStateTest {
     }
 
     @Test fun accountChangeRemovesPreviousAccountBeforeNewDownloadCompletes() = runTest(dispatcher) {
-        val store = Store(snapshot())
+        val store = Store(snapshot().copy(accountSync = SyncEntity().apply {
+            id = 6; userCode = user.code; email = "old@example.invalid"; syncedAt = 150
+        }))
         val gate = CompletableDeferred<Unit>()
         store.operation = { callback ->
             store.cache = CachedTimetable(emptyList(), null)
@@ -107,6 +110,7 @@ class TimetableStateTest {
         assertEquals("Other student", model.state.value.name)
         assertTrue(model.state.value.events.isEmpty())
         assertNull(model.state.value.lastSynced)
+        assertEquals("", model.state.value.email)
         gate.complete(Unit); advanceUntilIdle()
         assertTrue(model.state.value.events.isEmpty())
     }

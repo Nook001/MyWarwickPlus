@@ -10,13 +10,14 @@ import uk.ac.warwick.plus.data.*
 import java.io.IOException
 
 data class CourseworkState(val entries: List<CourseworkEntity> = emptyList(), val lastSynced: Long? = null, val message: String? = null)
+data class AccountState(val email: String = "", val lastSynced: Long? = null, val message: String? = null)
 data class FeedState(val entries: List<FeedEntry> = emptyList(), val lastSynced: Long? = null,
     val message: String? = null, val loading: Boolean = false, val hasMore: Boolean = false,
     val description: String = "", val url: String = "", val webReadMillis: Long = 0, val olderPageFailed: Boolean = false)
 
 enum class SyncResource(val label: String, val feed: FeedKind? = null) {
     TIMETABLE("Timetable"), COURSEWORK("Coursework"), MESSAGES("Messages", FeedKind.MESSAGES),
-    LIBRARY("Library", FeedKind.LIBRARY), MODULES("Modules", FeedKind.MODULES);
+    LIBRARY("Library", FeedKind.LIBRARY), MODULES("Modules", FeedKind.MODULES), ACCOUNT("Account");
     companion object { fun forFeed(kind: FeedKind) = entries.first { it.feed == kind } }
 }
 data class SyncNotice(val id: Long, val message: String, val feed: FeedKind? = null, val olderMessages: Boolean = false,
@@ -36,18 +37,21 @@ data class TimetableState(
     val message: String? = null, val coursework: CourseworkState = CourseworkState(),
     val feeds: Map<FeedKind, FeedState> = emptyMap(), val accountCode: String = "",
     val sessionCheckedAt: Long? = null, val signingOut: Boolean = false, val logoutFailed: Boolean = false,
-    val notice: SyncNotice? = null, val syncProgress: SyncProgress? = null
+    val notice: SyncNotice? = null, val syncProgress: SyncProgress? = null, val account: AccountState = AccountState()
 ) {
     fun feed(kind: FeedKind) = feeds[kind] ?: FeedState()
-    val hasSavedData get() = lastSynced != null || coursework.lastSynced != null || feeds.values.any { it.lastSynced != null }
+    val email get() = account.email
+    val hasSavedData get() = lastSynced != null || coursework.lastSynced != null || account.lastSynced != null || feeds.values.any { it.lastSynced != null }
     fun syncedAt(resource: SyncResource): Long? = when (resource) {
         SyncResource.TIMETABLE -> lastSynced
         SyncResource.COURSEWORK -> coursework.lastSynced
+        SyncResource.ACCOUNT -> account.lastSynced
         else -> feed(resource.feed!!).lastSynced
     }
     fun issue(resource: SyncResource): String? = when (resource) {
         SyncResource.TIMETABLE -> message
         SyncResource.COURSEWORK -> coursework.message
+        SyncResource.ACCOUNT -> account.message
         else -> feed(resource.feed!!).message
     }
     fun updating(resource: SyncResource): Boolean = if (resource.feed != null) feed(resource.feed).loading
@@ -74,9 +78,10 @@ class TimetableViewModel(private val repository: TimetableStore,
         }
     }
     private fun applyCache(cache: CachedTimetable) {
-        val account = (listOfNotNull(cache.sync, cache.courseworkSync) + cache.feeds.values.mapNotNull { it.sync }).maxByOrNull { it.syncedAt }
+        val account = (listOfNotNull(cache.sync, cache.courseworkSync, cache.accountSync) + cache.feeds.values.mapNotNull { it.sync }).maxByOrNull { it.syncedAt }
         mutable.update { current -> current.copy(events = cache.events,
             name = account?.displayName ?: current.name, accountCode = account?.userCode ?: current.accountCode,
+            account = current.account.copy(email = cache.accountSync?.email.orEmpty(), lastSynced = cache.accountSync?.syncedAt),
             lastSynced = cache.sync?.syncedAt,
             coursework = current.coursework.copy(entries = cache.coursework, lastSynced = cache.courseworkSync?.syncedAt),
             feeds = FeedKind.entries.associateWith { kind ->
@@ -147,7 +152,7 @@ class TimetableViewModel(private val repository: TimetableStore,
         error("Unreachable retry state")
     }
     fun refresh() = startSync {
-        mutable.update { it.copy(message = null, coursework = it.coursework.copy(message = null),
+        mutable.update { it.copy(message = null, coursework = it.coursework.copy(message = null), account = it.account.copy(message = null),
             feeds = it.feeds.mapValues { (_, feed) -> feed.copy(message = null, olderPageFailed = false) }) }
         refreshTimetable()
         if (mutable.value.signedIn && !mutable.value.needsLogin) {
@@ -157,6 +162,7 @@ class TimetableViewModel(private val repository: TimetableStore,
                 if (mutable.value.needsLogin) break
                 syncFeed(kind)
             }
+            if (!mutable.value.needsLogin) refreshAccount()
         } else mutable.update { it.copy(coursework = it.coursework.copy(message =
             if (it.needsLogin) "Sign in to update coursework." else "Couldn't update coursework. Connect and refresh to try again.")) }
     }
@@ -210,6 +216,17 @@ class TimetableViewModel(private val repository: TimetableStore,
         }
     }
     fun refreshFeed(kind: FeedKind) = startSync(kind) { syncFeed(kind) }
+    private suspend fun refreshAccount() {
+        beginResource("Account")
+        try {
+            applyCache(withSyncRetry { repository.syncAccount(::authenticated) })
+            mutable.update { it.copy(account = it.account.copy(message = null)) }
+        } catch (error: Exception) {
+            if (error is CancellationException) throw error
+            reportFailure(error); restoreCache(); sessionFailure(error)
+            mutable.update { it.copy(account = it.account.copy(message = failureMessage("account", error))) }
+        } finally { finishResource(mutable.value.account.message != null) }
+    }
     fun refreshResource(resource: SyncResource) {
         when (resource) {
             SyncResource.TIMETABLE -> startSync(resource = resource) {
@@ -217,6 +234,9 @@ class TimetableViewModel(private val repository: TimetableStore,
             }
             SyncResource.COURSEWORK -> startSync(resource = resource) {
                 mutable.update { it.copy(coursework = it.coursework.copy(message = null)) }; refreshCoursework()
+            }
+            SyncResource.ACCOUNT -> startSync(resource = resource) {
+                mutable.update { it.copy(account = it.account.copy(message = null)) }; refreshAccount()
             }
             else -> refreshFeed(resource.feed!!)
         }

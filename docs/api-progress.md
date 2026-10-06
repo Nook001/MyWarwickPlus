@@ -1,10 +1,11 @@
 # API 接入进度
 
-更新：2026-10-06，版本 0.14.1。每次接入接口时同步更新此表；协议细节见 [protocol.md](protocol.md)。本轮修正 Next 的日期/箭头位置、收紧标题与内容间距、统一 Today 时间列对齐，不新增 API。
+更新：2026-10-06，版本 0.15.0。每次接入接口时同步更新此表；协议细节见 [protocol.md](protocol.md)。本轮将 Me 改为紧凑账户卡片与圆角网格，新增只读账户摘要以显示真实邮箱。
 
 | API / 方法 | 接入情况 | 如何使用与展示 | 验证 / 限制 |
 | --- | --- | --- | --- |
 | `GET /user/info` | 已接入 | 启动、刷新和登录回跳时检查账户、会话与 CSRF 信息；Me 展示账户和登录状态，0.6.1 移除检查时间 | 原生已验证；cookie/token 不写入日志或 Git |
+| `GET /api/tiles/content/account` | 已接入，物理手机取得非空邮箱 | Me 账户卡片读取 `data.account.content.email`，显示并显式点击复制；邮箱空值不猜测地址，复制按钮禁用。独立缓存/同步时间、单资源重试及 Data status；全量进度从五项变为六项 | 2026-10-06 前端 account 组件确认 email/fullName/userId 字段；原生同步后只读 SQLite 检查 id=6 有 1 条状态、邮箱非空，未输出地址。保留现有 cookie/CSRF；显示与复制待用户手动核对，姓名/账号仍用 /user/info |
 | `GET /api/tiles/content/timetable` | 已接入 | 首页 Now / Next 标签收进三行主卡片，Lake 使用淡蓝 primaryContainer / onPrimaryContainer，其他主题保留 primary / onPrimary，并保留整卡详情；Today 标题/课程数量、透明课程行及单行空状态共用一个普通背景，不嵌套卡片；Schedule 连续日期列表、日期跳转/返回今天、Now/Next、冲突、跨午夜提示、课程详情和地点链接；缓存与下拉刷新 | 此前真机 143 条；英国时区；Now / Next 仅选择有时间的课程，全日项在当天列表保留；失败保留整批旧缓存；大字体允许行高增加，完整标题在详情阅读；Schedule 位置在切页/刷新/状态恢复时保留 |
 | `GET /api/tiles/content/coursework` | 已接入 | 首页 Deadlines 标题、All 操作、最近 3 个未来截止日期、空状态及 Recently passed 共用单层背景；左列数字 / days，右列原始标题 / d MMM（6 Oct），下一年及以后显示年份；All 进入 Upcoming，Recently passed 进入 Past；独立页紧凑圆角搜索、Upcoming / Past、连续列表，左列数字 / days 或 Today / Passed，右列两行以内标题和准确截止时间，不同年显示年份；整行详情及原站入口；独立缓存 | 此前浏览器及真机 3 条；接口没有独立课程名字段，使用原始 title；天数按英国自然日计算，首页当天未过期仍为 0 days，独立页显示 Today；日期使用 Locale.UK 英文月份和 Warwick 时区。支持 `+01` 和 `Z`。近期聚合，不推断已提交状态；原站浏览器可能需独立登录 |
 | `GET /api/tiles/content/library` | 摘要页面已接入；非空结构待验证 | Me → Library；学校空列表说明、账户入口、独立缓存与重试；非空条目仅展示实际存在的 title/text/href 或通用原站提示 | 当前浏览器 200 / 0 条；此前原生 0 条。借阅、到期日、欠费等字段未确认，不推定业务含义 |
@@ -17,7 +18,11 @@
 | `GET /api/timetable` + `X-Timetable-Token` | 未采用 | 暂使用已跑通的 cookie 聚合接口 | 仅 cookie 请求 401；专用 token 生命周期未验证 |
 | `POST /api/timetable/register` | 未调用 | 暂无需要；已有登录可直接读取课表 | 前端/旧应用存在注册与 JS bridge 代码；未签发 token |
 
-认证统一使用官方 WebView 登录得到的 MyWarwick session cookie，原生请求严格限定 MyWarwick HTTPS origin。当前业务接口都是只读 GET。五类页面独立缓存与同步时间；切换账户清除全部缓存，单接口失败不覆盖另一份缓存。More 的本地退出取消/等待同步并清除应用 cookie、WebStorage、缓存与数据库，不调用学校账户写接口。
+认证统一使用官方 WebView 登录得到的 MyWarwick session cookie，原生请求严格限定 MyWarwick HTTPS origin。当前业务接口都是只读 GET。原有五类数据与新增账户摘要独立缓存、记录同步时间；切换账户清除全部缓存，单接口失败不覆盖另一份缓存。Me 的本地退出取消/等待同步并清除应用 cookie、WebStorage、缓存与数据库，不调用学校账户写接口。
+
+0.15.0 Me：姓名/账号同行，邮箱单独一行并有复制图标，复制后短暂变为勾选；仅用户点击才写入系统剪贴板，不读取剪贴板，不自动复制或把邮箱写入日志。移除正常 Signed in / 未检查会话提示；Sign out 简化并保留确认框和本地退出说明，失效登录/退出失败仍有恢复操作。App 的 Settings、Data status、Messages、Library、Modules、调试版 Developer tools 使用三列 16dp 圆角方格；Websites 的八个原有链接使用同样网格和外部跳转角标，缩短 Wellbeing / Safety / Help 文案；大字体或极窄空间改为两列，长标签最多两行并保留完整操作语义。没有账户阴影、嵌套卡片或常态外部登录说明。
+
+Room schema 5 在 sync_state 增加默认空字符串的 email 字段，并注册 4→5 迁移；账户摘要使用独立 id=6，五类旧数据不被重建或清除。成功替换邮箱，失败保留缓存；跨账户清空、退出取消和重试预算沿用现有规则。全量刷新六项，账户摘要最后处理，单独刷新 Account 为一项；邮箱不根据姓名/usercode 拼接。正常网格跳转和复制不触发网络读取。
 
 0.14.0 首页分区标题最小高度由 48dp 减至 32dp，移除 All 的 Material 按钮最小布局高度，保留 foundation clickable 的默认触摸范围扩展和操作语义；大字体允许自然增高。Lake 的 Now / Next 使用已有淡蓝 #D6E8F1 / 深色 #183743 配对，其他四个主题保持 0.13.0 配色；未增加边框或第二套明暗模式。
 

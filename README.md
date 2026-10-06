@@ -27,6 +27,7 @@
 - 0.13.0 首页分层：Now / Next 标签收进主卡片，使用现有主题强调色和对应前景色；Today 与 Deadlines 分别用一个 14dp 圆角背景容纳标题和透明内容行，空状态不再单独套卡片。区块间距为 24dp，列表分隔线内收 12dp；Deadlines 的 All 与 Recently passed 保留完整列表入口。常用服务快捷入口留待下一步。
 - 0.14.0 首页：Lake 的 Next 改用淡蓝底和深色文字；分区标题最小高度从 48dp 减至 32dp，All 改为紧凑入口，大字体自然增高。Next 下方 12dp 处增加 Moodle / Email / Tabula / Library 一行四个图标快捷入口，与 Me 共用链接配置及安全浏览器跳转；Today / Deadlines 等主要区块间距仍为 24dp。不新增学校接口或自动加载外部网站。
 - 0.14.1 对齐：Next 日期/时间右对齐，箭头放在地点行右侧；分区标题缩至最小 28dp，采用半粗字重和次要文字色，收紧首行/空状态顶部留白。Today 时间列和 Deadlines 剩余天数列统一宽度、居中方式与两行间距；Schedule 共用时间列同步居中，原课程详情、跨日和冲突提示保留。
+- 0.15.0 Me：紧凑姓名/账号与真实邮箱，显式复制按钮和短暂勾选反馈；移除常态 Signed in 提示，Sign out 简化并保留确认。设置、数据状态和原生服务改为三列圆角方格，外部服务另组网格并有跳转角标；大字体改两列。新增只读 account 聚合接口、独立邮箱缓存与恢复，完整同步变为六项；Room 4→5 增加邮箱字段并保留旧数据。
 - Messages：只读列表、搜索、完整详情、手动加载更早消息；HTML 转为纯文本，查看不标记网站已读。
 - Modules：模块名称、代码、学年、公告/评估数量与 Moodle 入口。Library：学校返回的账户摘要、空状态及账户入口；非空借阅结构仍待验证。
 - 首页、课表、Coursework 和 Me 的滚动页面支持下拉刷新；Coursework 支持紧凑圆角搜索与 Upcoming / Past 分类，共用背景连续列表展示剩余天数、标题和准确截止时间；重叠课程会提示冲突，详情保留长标题与大字体阅读。
@@ -89,7 +90,7 @@ app/src/main/java/uk/ac/warwick/plus/
 
 Room 声明使用 Java 注解处理，业务与 UI 使用 Kotlin；因此不需要额外 KSP 或 kapt 插件。当前仅有一个 app module，后续按照实际功能边界拆分。
 
-Room schema 2 新增 `moduleName`，schema 3 新增 Coursework，schema 4 新增 Messages / Modules / Library 缓存；通过显式 1→2→3→4 迁移保留旧课表与同步状态。五类数据各自原子替换、独立记录同步时间；单接口失败保留旧缓存，切换账户清除全部数据。
+Room schema 2 新增 `moduleName`，schema 3 新增 Coursework，schema 4 新增 Messages / Modules / Library 缓存，schema 5 新增账户邮箱；通过显式 1→2→3→4→5 迁移保留旧数据与同步状态。六类数据各自原子替换、独立记录同步时间；单接口失败保留旧缓存，切换账户清除全部数据。
 
 ## 认证与数据边界
 
@@ -98,9 +99,9 @@ Room schema 2 新增 `moduleName`，schema 3 新增 Coursework，schema 4 新增
 - GET 的 CSRF 信息来自 `/user/info`，仅接受预期的 `Csrf-Token` header 名。
 - 登录 WebView 无 JavaScript bridge，关闭文件访问、明文/混合内容，证书错误直接取消，不自动授予网页权限。
 - 外部地点链接通过 Custom Tabs 打开，不使用原生认证 cookie jar。
-- Room 只保存五类页面展示需要的字段和账户归属；不保存教师邮箱等额外字段。系统备份已关闭。
+- Room 只保存页面展示需要的字段、账户归属和本人邮箱；不保存教师邮箱等额外字段。系统备份已关闭。
 - 切换账户后先清除旧账户数据库，再读取新账户数据。
-- More 的退出仅清除本应用 WebView 的 cookie、WebStorage、缓存和五类 Room 数据；取消/等待现有同步，不调用学校退出或更改账户接口，系统浏览器会话保留。退出失败时要求重试后再登录。
+- Me 的退出仅清除本应用 WebView 的 cookie、WebStorage、缓存和六类 Room 数据；取消/等待现有同步，不调用学校退出或更改账户接口，系统浏览器会话保留。退出失败时要求重试后再登录。
 
 ## 当前限制
 
