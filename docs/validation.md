@@ -1,5 +1,11 @@
 # 原型验收
 
+## 0.12.3：短标签与直接选中底色
+
+2026-10-06。移除 Tab 背景 animateColorAsState，选中底色直接在透明/primaryContainer 间切换，不再插值经过灰暗中间色；selectable 的 indication=null 继续保留。底部标签改为 Home / Classes / Tasks / Me，文字统一 12sp、FontWeight.Normal，不因选中改变字宽；Classes / Tasks 页面标题仍为 Schedule / Coursework deadlines，路由与功能不变。Tab 外/内横向 padding 均从 4dp 减至 2dp，释放标签宽度，保留图标/文字共用 18dp 圆角高亮、轮廓/实心图标、完整点击区域、64dp 最小高度、底栏两侧 20dp 内收和一次安全区。
+
+assembleDebug 成功，git diff --check 通过。本轮简单 UI 调整没有新增测试、运行单元/UI 测试或启动模拟器；未运行 Lint、真实学校接口 smoke 或截图验收。首轮安装被拒绝，用户解锁后明确指定物理手机 10AG4S2KQJ0066R，adb install -r 成功；确认 versionCode 19 / versionName 0.12.3，MainActivity 冷启动 Status: ok（534ms），未卸载或清除数据。用户手动确认快速切换时不再先灰后亮、长按无遮罩、四个短标签可完整阅读及大字体表现。
+
 ## 0.12.2：Tab 整体高亮与无按压遮罩
 
 2026-10-06。仅在底部 Tab 的 selectable 移除 indication，保留 interactionSource、Role.Tab、选中语义和完整点击区域。按住不再绘制深色水波纹/遮罩，点击仍切换页面。选中底色改为图标与文字共用的 18dp 圆角容器，160ms 颜色过渡；图标仍为未选中轮廓/选中实心，选中图标和文字共用 onPrimaryContainer，未选中共用 onSurfaceVariant。每个 Tab 内侧各 4dp 留白，底栏普通字体下仍为最小 64dp，并保留原 20dp 两侧内收和一次系统安全区；大字体自然增高。

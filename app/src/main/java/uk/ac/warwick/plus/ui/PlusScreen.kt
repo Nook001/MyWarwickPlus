@@ -1,7 +1,6 @@
 package uk.ac.warwick.plus.ui
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.selection.selectable
@@ -47,18 +46,17 @@ import java.util.Locale
 private fun RowScope.CompactTab(label: String, selected: Boolean, onSelect: () -> Unit,
     tag: String = "tab-${label.lowercase()}", icon: @Composable () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
-    val highlight by animateColorAsState(if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
-        animationSpec = tween(160), label = "tab-highlight")
+    val highlight = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
     Box(Modifier.weight(1f).selectable(selected, interactionSource = interactionSource, indication = null,
         role = Role.Tab, onClick = onSelect).testTag(tag)
-        .heightIn(min = 64.dp).padding(horizontal = 4.dp, vertical = 4.dp), contentAlignment = Alignment.Center) {
+        .heightIn(min = 64.dp).padding(horizontal = 2.dp, vertical = 4.dp), contentAlignment = Alignment.Center) {
         Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), color = highlight,
             contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant) {
-            Column(Modifier.padding(horizontal = 4.dp, vertical = 6.dp), horizontalAlignment = Alignment.CenterHorizontally,
+            Column(Modifier.padding(horizontal = 2.dp, vertical = 6.dp), horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) { icon() }
                 Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium)
+                    fontSize = 12.sp, fontWeight = FontWeight.Normal)
             }
         }
     }
@@ -171,10 +169,10 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
                 CompactTab("Home", tab == 0, { tab = 0 }) {
                     Icon(if (tab == 0) NavigationIcons.homeFilled else NavigationIcons.homeOutline, null, Modifier.size(24.dp))
                 }
-                CompactTab("Schedule", tab == 1, { tab = 1 }, "schedule-tab") {
+                CompactTab("Classes", tab == 1, { tab = 1 }, "schedule-tab") {
                     Icon(if (tab == 1) NavigationIcons.scheduleFilled else NavigationIcons.scheduleOutline, null, Modifier.size(24.dp))
                 }
-                CompactTab("Coursework", tab == 2, { tab = 2 }) {
+                CompactTab("Tasks", tab == 2, { tab = 2 }, "tab-coursework") {
                     Icon(if (tab == 2) NavigationIcons.courseworkFilled else NavigationIcons.courseworkOutline, null, Modifier.size(24.dp))
                 }
                 CompactTab("Me", tab == 3, { tab = 3; feedRoute = null; feedEntryId = null; showAppearance = false }, "more-tab") {
