@@ -1,5 +1,15 @@
 # 原型验收
 
+## 0.13.0：首页单层分区与主次信息
+
+2026-10-06。落实已选的单层分区容器方案，本轮暂不加入常用服务快捷入口。Now / Next 标签收进三行主卡片，使用现有五个固定主题的 primary / onPrimary 强调组合；正在进行时不再重复 Happening now，时间、课程名/代码、地点及整卡详情入口保留。未加载或没有后续课程使用普通背景和简短文字，不将空状态做成主强调卡片。
+
+Today、Deadlines 的标题和内容分别共用一个 14dp 圆角背景。透明课程/截止日期行、单行空状态不再嵌套卡片；同组行间浅分隔线内收 12dp。区块间距 24dp，组内标题使用较轻的 labelMedium，标题区统一容纳数量/操作。Deadlines 的 All 与标题同行，仍进入 Coursework / Upcoming；Recently passed 收进同组，仍进入 Past。课表源恢复入口在主卡片附近，作业源恢复在 Deadlines 内，仅原有失败/登录状态出现；没有正常状态的额外错误卡片。
+
+assembleDebug、3 项既有 AppearancePaletteTest 检查通过，其中五个主题共 75 组关键前景/底色对比度不低于 4.5；git diff --check 通过。没有新增简单样式测试或编写/运行 UI Test，没有启动模拟器、运行 Lint、真实学校接口 smoke 或手机截图验收。数据排序/筛选、全部 Today 课程、最近 3 条未来截止日期、英国时区、详情与原站链接、恢复、认证及 Room schema 4 均不变。
+
+明确指定物理手机 10AG4S2KQJ0066R，adb install -r 覆盖安装成功，确认 versionCode 20 / versionName 0.13.0；MainActivity 冷启动 Status: ok（542ms）。未卸载或清除数据，保留登录和缓存。用户手动复核五个主题下主卡片权重、Today / Deadlines 标题归属、区块间距、课程/作业详情、All / Recently passed 跳转、无课/无截止日期状态以及大字体表现。
+
 ## 0.12.3：短标签与直接选中底色
 
 2026-10-06。移除 Tab 背景 animateColorAsState，选中底色直接在透明/primaryContainer 间切换，不再插值经过灰暗中间色；selectable 的 indication=null 继续保留。底部标签改为 Home / Classes / Tasks / Me，文字统一 12sp、FontWeight.Normal，不因选中改变字宽；Classes / Tasks 页面标题仍为 Schedule / Coursework deadlines，路由与功能不变。Tab 外/内横向 padding 均从 4dp 减至 2dp，释放标签宽度，保留图标/文字共用 18dp 圆角高亮、轮廓/实心图标、完整点击区域、64dp 最小高度、底栏两侧 20dp 内收和一次安全区。

@@ -304,81 +304,96 @@ private fun Home(state: TimetableState, today: LocalDate, now: Long, onSelect: (
     val nextId = nextTimedClass(state.events, now)?.id
     val todayEvents = eventsOnDate(state.events, today)
     val conflicts = remember(state.events) { conflictingEventIds(state.events) }
+    val upcoming = state.coursework.entries.filter { it.dueMillis >= now }.sortedBy { it.dueMillis }.take(3)
     LazyColumn(Modifier.fillMaxSize().testTag("home-list"),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        verticalArrangement = Arrangement.spacedBy(24.dp)) {
         item {
-            SectionLabel(if (next != null && next.startMillis <= now) "NOW" else "NEXT")
-            Spacer(Modifier.height(6.dp))
             when {
-                state.lastSynced == null -> HomeEmptyCard(if (state.busy) "Loading timetable…" else "Timetable hasn't loaded yet")
-                next == null -> HomeEmptyCard("No upcoming classes")
+                state.lastSynced == null -> HomeSection("Next") {
+                    HomeEmptyRow(if (state.busy) "Loading timetable…" else "Timetable hasn't loaded yet")
+                }
+                next == null -> HomeSection("Next") { HomeEmptyRow("No upcoming classes") }
                 else -> NextClassCard(next, now) { onSelect(next) }
             }
-            ResourceRecoveryRow(state, SyncResource.TIMETABLE, onLogin) { onRecover(SyncResource.TIMETABLE) }
+            Box(Modifier.padding(horizontal = 12.dp)) {
+                ResourceRecoveryRow(state, SyncResource.TIMETABLE, onLogin) { onRecover(SyncResource.TIMETABLE) }
+            }
         }
         if (state.lastSynced != null) item {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                SectionLabel("TODAY", classCountLabel(todayEvents.size))
-                if (todayEvents.isEmpty()) HomeEmptyCard("No classes today", Modifier.testTag("today-empty"))
-                else Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerLow) {
-                    Column {
-                        todayEvents.forEachIndexed { index, event ->
-                            if (index > 0) HomeRowDivider()
-                            val status = when {
-                                !event.allDay && event.startMillis <= now && event.endMillis > now -> "Now"
-                                event.id == nextId -> "Next"
-                                else -> null
-                            }
-                            ScheduleClassRow(event, today, status, event.id in conflicts) { onSelect(event) }
-                        }
+            HomeSection("Today", trailing = {
+                Text(classCountLabel(todayEvents.size), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }) {
+                if (todayEvents.isEmpty()) HomeEmptyRow("No classes today", Modifier.testTag("today-empty"))
+                else todayEvents.forEachIndexed { index, event ->
+                    if (index > 0) HomeRowDivider()
+                    val status = when {
+                        !event.allDay && event.startMillis <= now && event.endMillis > now -> "Now"
+                        event.id == nextId -> "Next"
+                        else -> null
                     }
+                    ScheduleClassRow(event, today, status, event.id in conflicts) { onSelect(event) }
                 }
             }
         }
         item {
-            Row(Modifier.fillMaxWidth().testTag("deadlines-header"), verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween) {
-                Box(Modifier.width(IntrinsicSize.Min).testTag("deadlines-heading")) { SectionLabel("DEADLINES") }
-                TextButton(onClick = onAllCoursework, modifier = Modifier.weight(1f, fill = false).padding(start = 8.dp).widthIn(max = 168.dp),
-                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)) {
-                    Text("View all coursework")
+            HomeSection("Deadlines", trailing = {
+                TextButton(onClick = onAllCoursework, contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
+                    modifier = Modifier.semantics { onClick(label = "View all coursework", action = null) }) {
+                    Text("All", style = MaterialTheme.typography.bodySmall)
+                    Icon(DetailsChevron, contentDescription = null, modifier = Modifier.size(14.dp))
                 }
-            }
-        }
-        val upcoming = state.coursework.entries.filter { it.dueMillis >= now }.sortedBy { it.dueMillis }.take(3)
-        item {
-            if (state.coursework.lastSynced == null) HomeEmptyCard(if (state.busy) "Loading coursework…" else "Coursework hasn't loaded yet")
-            else if (upcoming.isEmpty()) HomeEmptyCard("No upcoming deadlines in this feed")
-            else Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerLow) {
-                Column {
-                    upcoming.forEachIndexed { index, entry ->
+            }) {
+                when {
+                    state.coursework.lastSynced == null -> HomeEmptyRow(if (state.busy) "Loading coursework…" else "Coursework hasn't loaded yet")
+                    upcoming.isEmpty() -> HomeEmptyRow("No upcoming deadlines in this feed")
+                    else -> upcoming.forEachIndexed { index, entry ->
                         if (index > 0) HomeRowDivider()
                         HomeDeadlineRow(entry, now) { onCoursework(entry) }
                     }
                 }
-            }
-            ResourceRecoveryRow(state, SyncResource.COURSEWORK, onLogin) { onRecover(SyncResource.COURSEWORK) }
-            val recentStart = atWarwick(now).minusDays(7).toInstant().toEpochMilli()
-            val recentPast = state.coursework.entries.count { it.dueMillis in recentStart until now }
-            if (state.coursework.lastSynced != null && recentPast > 0) TextButton(onClick = onPastCoursework) {
-                Text("Recently passed · $recentPast")
+                Box(Modifier.padding(horizontal = 12.dp)) {
+                    ResourceRecoveryRow(state, SyncResource.COURSEWORK, onLogin) { onRecover(SyncResource.COURSEWORK) }
+                }
+                val recentStart = atWarwick(now).minusDays(7).toInstant().toEpochMilli()
+                val recentPast = state.coursework.entries.count { it.dueMillis in recentStart until now }
+                if (state.coursework.lastSynced != null && recentPast > 0) TextButton(onClick = onPastCoursework,
+                    modifier = Modifier.padding(horizontal = 8.dp)) {
+                    Text("Recently passed · $recentPast", style = MaterialTheme.typography.bodySmall)
+                }
             }
         }
     }
 }
 
 @Composable
-private fun HomeEmptyCard(text: String, modifier: Modifier = Modifier) {
-    Surface(modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
-        Text(text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp))
+private fun HomeSection(title: String, trailing: @Composable () -> Unit = {}, content: @Composable ColumnScope.() -> Unit) {
+    Surface(Modifier.fillMaxWidth().testTag("home-${title.lowercase()}-section"), shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow) {
+        Column {
+            Row(Modifier.fillMaxWidth().testTag("${title.lowercase()}-header").heightIn(min = 48.dp)
+                .padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f).testTag("${title.lowercase()}-heading"))
+                trailing()
+            }
+            content()
+        }
     }
 }
 
 @Composable
-private fun HomeRowDivider() = HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .4f))
+private fun HomeEmptyRow(text: String, modifier: Modifier = Modifier) {
+    Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp))
+}
+
+@Composable
+private fun HomeRowDivider() = HorizontalDivider(Modifier.padding(horizontal = 12.dp),
+    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .4f))
 
 @Composable
 private fun HomeDeadlineRow(entry: CourseworkEntity, now: Long, onSelect: () -> Unit) {
@@ -421,14 +436,20 @@ private fun NextClassCard(event: EventEntity, now: Long, onSelect: () -> Unit) {
         else timeLabel(event.endMillis)
     val time = if (event.allDay) "All day" else "${timeLabel(event.startMillis)} – $end"
     Card(onClick = onSelect,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary),
         shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth().testTag("next-class-card")
             .semantics { onClick(label = "View class details", action = null) }) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("${nextClassLabel(event, now)} · $time", style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Medium, modifier = Modifier.testTag("next-when"))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(if (event.startMillis <= now) "Now" else "Next", style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold, modifier = Modifier.alignByBaseline())
+                    Text(if (event.startMillis <= now) time else "${nextClassLabel(event, now)} · $time",
+                        style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium,
+                        modifier = Modifier.weight(1f).alignByBaseline().testTag("next-when"))
+                }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
                         maxLines = 2, overflow = TextOverflow.Ellipsis,
@@ -441,7 +462,7 @@ private fun NextClassCard(event: EventEntity, now: Long, onSelect: () -> Unit) {
                     maxLines = 1, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.fillMaxWidth().testTag("next-location"))
             }
-            Icon(DetailsChevron, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer,
+            Icon(DetailsChevron, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.size(20.dp).testTag("next-details-chevron"))
         }
     }
