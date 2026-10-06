@@ -41,47 +41,19 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.Locale
 
-private val HomeIcon = ImageVector.Builder("Home", 24.dp, 24.dp, 24f, 24f).apply {
-    path(fill = SolidColor(Color.Black)) {
-        moveTo(3f, 10f); lineTo(12f, 2f); lineTo(21f, 10f); lineTo(21f, 22f)
-        lineTo(14f, 22f); lineTo(14f, 15f); lineTo(10f, 15f); lineTo(10f, 22f); lineTo(3f, 22f); close()
-    }
-}.build()
-private val ScheduleIcon = ImageVector.Builder("Schedule", 24.dp, 24.dp, 24f, 24f).apply {
-    path(fill = SolidColor(Color.Black)) {
-        moveTo(4f, 3f); lineTo(20f, 3f); lineTo(20f, 21f); lineTo(4f, 21f); close()
-        moveTo(6f, 8f); lineTo(6f, 19f); lineTo(18f, 19f); lineTo(18f, 8f); close()
-    }
-}.build()
-
-private val CourseworkIcon = ImageVector.Builder("Coursework", 24.dp, 24.dp, 24f, 24f).apply {
-    path(fill = SolidColor(Color.Black)) {
-        moveTo(4f, 5f); lineTo(20f, 5f); lineTo(20f, 8f); lineTo(4f, 8f); close()
-        moveTo(4f, 11f); lineTo(20f, 11f); lineTo(20f, 14f); lineTo(4f, 14f); close()
-        moveTo(4f, 17f); lineTo(16f, 17f); lineTo(16f, 20f); lineTo(4f, 20f); close()
-    }
-}.build()
-
-private val MoreIcon = ImageVector.Builder("More", 24.dp, 24.dp, 24f, 24f).apply {
-    path(fill = SolidColor(Color.Black)) {
-        for (x in listOf(5f, 12f, 19f)) {
-            moveTo(x - 2f, 12f); curveTo(x - 2f, 9.3f, x + 2f, 9.3f, x + 2f, 12f)
-            curveTo(x + 2f, 14.7f, x - 2f, 14.7f, x - 2f, 12f); close()
-        }
-    }
-}.build()
-
 @Composable
 private fun RowScope.CompactTab(label: String, selected: Boolean, onSelect: () -> Unit,
     tag: String = "tab-${label.lowercase()}", icon: @Composable () -> Unit) {
     Column(Modifier.weight(1f).selectable(selected, role = Role.Tab, onClick = onSelect).testTag(tag)
         .heightIn(min = 64.dp).padding(vertical = 6.dp), horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically)) {
-        Surface(shape = RoundedCornerShape(50), color = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+        Surface(modifier = Modifier.size(width = 56.dp, height = 32.dp),
+            shape = RoundedCornerShape(50), color = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
             contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant) {
-            Box(Modifier.padding(horizontal = 12.dp, vertical = 3.dp), contentAlignment = Alignment.Center) { icon() }
+            Box(contentAlignment = Alignment.Center) { icon() }
         }
         Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
             color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
@@ -190,12 +162,18 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
         Surface(color = MaterialTheme.colorScheme.surface) {
             Row(Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal))
                 .padding(horizontal = 20.dp).selectableGroup().testTag("compact-tab-bar"), verticalAlignment = Alignment.CenterVertically) {
-                CompactTab("Home", tab == 0, { tab = 0 }) { Icon(HomeIcon, null, Modifier.size(22.dp)) }
-                CompactTab("Schedule", tab == 1, { tab = 1 }, "schedule-tab") { Icon(ScheduleIcon, null, Modifier.size(22.dp)) }
-                CompactTab("Coursework", tab == 2, { tab = 2 }) { Icon(CourseworkIcon, null, Modifier.size(22.dp)) }
-                CompactTab("More", tab == 3, { tab = 3; feedRoute = null; feedEntryId = null; showAppearance = false }, "more-tab") {
-                    Box(Modifier.size(22.dp)) {
-                        Icon(MoreIcon, null, Modifier.size(22.dp))
+                CompactTab("Home", tab == 0, { tab = 0 }) {
+                    Icon(if (tab == 0) NavigationIcons.homeFilled else NavigationIcons.homeOutline, null, Modifier.size(24.dp))
+                }
+                CompactTab("Schedule", tab == 1, { tab = 1 }, "schedule-tab") {
+                    Icon(if (tab == 1) NavigationIcons.scheduleFilled else NavigationIcons.scheduleOutline, null, Modifier.size(24.dp))
+                }
+                CompactTab("Coursework", tab == 2, { tab = 2 }) {
+                    Icon(if (tab == 2) NavigationIcons.courseworkFilled else NavigationIcons.courseworkOutline, null, Modifier.size(24.dp))
+                }
+                CompactTab("Me", tab == 3, { tab = 3; feedRoute = null; feedEntryId = null; showAppearance = false }, "more-tab") {
+                    Box(Modifier.size(24.dp)) {
+                        Icon(if (tab == 3) NavigationIcons.meFilled else NavigationIcons.meOutline, null, Modifier.size(24.dp))
                         if ((state.needsLogin && state.hasSavedData) || state.logoutFailed) Box(Modifier.align(Alignment.TopEnd)
                             .size(5.dp).background(MaterialTheme.colorScheme.error, CircleShape).semantics {
                                 contentDescription = if (state.logoutFailed) "Sign-out needs attention" else "Sign in required"
@@ -206,14 +184,14 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
         }
     }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            Row(Modifier.fillMaxWidth().testTag("page-header").padding(horizontal = 16.dp, vertical = 2.dp),
+            Row(Modifier.fillMaxWidth().testTag("page-header").padding(horizontal = 16.dp, vertical = 2.dp).heightIn(min = 48.dp),
                 verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(if (state.busy) state.syncProgress?.description ?: "MY WARWICK +" else "MY WARWICK +",
                         style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                    Text(if (tab == 3) (if (showAppearance) "Appearance" else route?.label ?: "More") else if (tab == 1) "Schedule" else if (tab == 2) "Coursework deadlines" else greeting,
-                        style = MaterialTheme.typography.titleMedium,
+                    Text(if (tab == 3) (if (showAppearance) "Appearance" else route?.label ?: "Me") else if (tab == 1) "Schedule" else if (tab == 2) "Coursework deadlines" else greeting,
+                        style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         fontWeight = FontWeight.SemiBold, modifier = if (tab == 0) Modifier.testTag("home-greeting") else Modifier)
                 }
                 if (tab == 1) {

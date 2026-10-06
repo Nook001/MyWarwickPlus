@@ -1,19 +1,19 @@
 # API 接入进度
 
-更新：2026-10-06，版本 0.12.0。每次接入接口时同步更新此表；协议细节见 [protocol.md](protocol.md)。本轮精简 Coursework 搜索、分类和连续列表，不新增 API。
+更新：2026-10-06，版本 0.12.1。每次接入接口时同步更新此表；协议细节见 [protocol.md](protocol.md)。本轮统一顶部对齐、调整导航图标并将 More 更名为 Me，不新增 API。
 
 | API / 方法 | 接入情况 | 如何使用与展示 | 验证 / 限制 |
 | --- | --- | --- | --- |
-| `GET /user/info` | 已接入 | 启动、刷新和登录回跳时检查账户、会话与 CSRF 信息；More 展示账户和登录状态，0.6.1 移除检查时间 | 原生已验证；cookie/token 不写入日志或 Git |
+| `GET /user/info` | 已接入 | 启动、刷新和登录回跳时检查账户、会话与 CSRF 信息；Me 展示账户和登录状态，0.6.1 移除检查时间 | 原生已验证；cookie/token 不写入日志或 Git |
 | `GET /api/tiles/content/timetable` | 已接入 | 首页 NOW / NEXT 三行与整卡详情，Today 复用 Schedule 课程行、同日共用容器；Schedule 从今天/选定日期开始连续分组，左侧时间、右侧课程/条目代码/地点，Now/Next、冲突、跨午夜提示；Today 无课小标题及单行说明；日期跳转/返回今天/历史查看，详情与地点链接；缓存与下拉刷新 | 此前真机 143 条；英国时区；NOW / NEXT 仅选择有时间的课程，全日项在当天列表保留；失败保留整批旧缓存；大字体允许行高增加，完整标题在详情阅读；列表位置在切页/刷新/状态恢复时保留 |
 | `GET /api/tiles/content/coursework` | 已接入 | 首页最近 3 个未来截止日期，共用紧凑列表：左列数字 / days 两行，右列原始标题 / d MMM（6 Oct），下一年及以后显示年份（6 Jan 2027）；Deadlines 与 View all coursework 同行；独立页紧凑圆角搜索、Upcoming / Past 二选一、共用背景连续列表，左列数字 / days 或 Today / Passed，右列两行以内原始标题和 d MMM · HH:mm，不同年显示年份；整行详情与原站入口；独立缓存 | 此前浏览器及真机 3 条；接口没有独立课程名字段，使用原始 title；天数按英国自然日计算，首页当天未过期仍为 0 days，独立页显示 Today；日期使用 Locale.UK 英文月份和 Warwick 时区。支持 `+01` 和 `Z`。近期聚合，不推断已提交状态；原站浏览器可能需独立登录 |
-| `GET /api/tiles/content/library` | 摘要页面已接入；非空结构待验证 | More → Library；学校空列表说明、账户入口、独立缓存与重试；非空条目仅展示实际存在的 title/text/href 或通用原站提示 | 当前浏览器 200 / 0 条；此前原生 0 条。借阅、到期日、欠费等字段未确认，不推定业务含义 |
+| `GET /api/tiles/content/library` | 摘要页面已接入；非空结构待验证 | Me → Library；学校空列表说明、账户入口、独立缓存与重试；非空条目仅展示实际存在的 title/text/href 或通用原站提示 | 当前浏览器 200 / 0 条；此前原生 0 条。借阅、到期日、欠费等字段未确认，不推定业务含义 |
 | `GET /api/tiles/content/eventsmerge` | 待验证 | 评估与课表合并事件，避免重复日程 | 前端候选；当前无业务展示 |
-| `GET /api/tiles/content/modules` | 已接入 | More → Modules；名称、代码、学年、搜索、详情、公告/评估条数及 Moodle 链接；独立缓存 | 0.4.0 浏览器 200 / 1 条；id 为数字，announcements/evaluations 当时为空。不等同完整选课清单；公告正文仍在原站查看 |
+| `GET /api/tiles/content/modules` | 已接入 | Me → Modules；名称、代码、学年、搜索、详情、公告/评估条数及 Moodle 链接；独立缓存 | 0.4.0 浏览器 200 / 1 条；id 为数字，announcements/evaluations 当时为空。不等同完整选课清单；公告正文仍在原站查看 |
 | `GET /api/tiles/content/calendar` | 待验证 | 评估个人日历与课表关系 | 前端候选；当前无业务展示 |
 | `GET /api/tiles/content/mail` | 待验证 | 评估邮件摘要与原站入口 | 前端候选；不能视为完整邮件 API |
 | `GET /api/tiles/content/todo` | 待验证 | 评估与 Coursework 的重叠及去重 | 前端候选；当前无业务展示 |
-| `GET /api/streams/notifications?limit=100[&before={id}]` | 已接入 | More → Messages 列表、搜索、详情、显式原站点击、手动更早分页；最近 100 条，每次刷新重置分页，最多缓存 500 条；0.5.0 移除首页消息按钮 | 0.4.0 浏览器 200 / 69 条；before 为更早记录游标，since 为更新记录游标。read 为网站已读时间；查看不写回已读，无可靠紧急等级；HTML 转纯文本 |
+| `GET /api/streams/notifications?limit=100[&before={id}]` | 已接入 | Me → Messages 列表、搜索、详情、显式原站点击、手动更早分页；最近 100 条，每次刷新重置分页，最多缓存 500 条；0.5.0 移除首页消息按钮 | 0.4.0 浏览器 200 / 69 条；before 为更早记录游标，since 为更新记录游标。read 为网站已读时间；查看不写回已读，无可靠紧急等级；HTML 转纯文本 |
 | `GET /api/timetable` + `X-Timetable-Token` | 未采用 | 暂使用已跑通的 cookie 聚合接口 | 仅 cookie 请求 401；专用 token 生命周期未验证 |
 | `POST /api/timetable/register` | 未调用 | 暂无需要；已有登录可直接读取课表 | 前端/旧应用存在注册与 JS bridge 代码；未签发 token |
 
@@ -40,3 +40,5 @@
 0.9.0 首页仅调整布局与现有数据的呈现。Today 和 Schedule 共用课程行与未来课程选择规则；NOW 优先展示正在进行的有时间课程，若同时多课按开始时间、id 稳定选择，Today 保留所有课程和冲突提示。首页 Deadlines 仍显示最多三个未过期条目；准确截止时间、完整标题和原站链接保留在详情，过去条目仍在 Coursework 的 Past 筛选查看。不改变认证、接口、缓存、重试或数据库。没有新增测试或运行 UI Test。
 
 0.12.0 Coursework 移除顶部两行说明、重复分类标题与独立大卡片；保留紧凑圆角搜索和 Upcoming / Past 二选一。连续列表左侧显示数字 / days、Today 或 Passed，右侧原始标题和英文月份的准确截止时间，不同年显示年份；每行点击详情，列表首尾圆角、中间轻分隔线。默认与首页 View all coursework 进入 Upcoming，Recently passed 进入 Past；旧 All / Next 7 days 保存状态按 Upcoming 显示。未加载、空分类及无搜索结果分别提示，Clear search 保持分类，不触发请求。完整说明放在详情；认证、接口、缓存、Room schema 4 和重试不变。
+
+0.12.1 统一顶部最小内容高度，修正日历/Today/Back 控件导致的品牌文字垂直位置差异；底部导航采用房屋、日历、作业清单、人物的轮廓/实心两种状态，选中保留紧凑圆角底色。原 More 更名为 Me（我的），账户、Settings、Data status、Messages、Modules、Library 与登录恢复标记仍在原路由。只调整展示，不新增依赖、API、网络请求、认证状态或数据库版本；表格入口名称已更新，历史版本记录保留当时名称。
