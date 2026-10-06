@@ -6,6 +6,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
@@ -234,7 +235,7 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
                 !state.hasSavedData && state.needsLogin -> Welcome(onLogin)
                 else -> {
                     if (tab == 0) Home(state, today, now, { selectedId = it.id }, { courseworkId = it.id },
-                        { courseworkFilter = "Upcoming"; tab = 2 }, { courseworkFilter = "Past"; tab = 2 }, onLogin, recoverResource)
+                        { courseworkFilter = "Upcoming"; tab = 2 }, { courseworkFilter = "Past"; tab = 2 }, onLogin, recoverResource, openLink)
                     else if (tab == 2) CourseworkContent(state.coursework, now, state.busy,
                         { refreshResource(SyncResource.COURSEWORK) },
                         feedback = { ResourceRecoveryRow(state, SyncResource.COURSEWORK, onLogin) { recoverResource(SyncResource.COURSEWORK) } },
@@ -299,7 +300,7 @@ private fun Welcome(onLogin: () -> Unit) {
 @Composable
 private fun Home(state: TimetableState, today: LocalDate, now: Long, onSelect: (EventEntity) -> Unit,
     onCoursework: (CourseworkEntity) -> Unit, onAllCoursework: () -> Unit, onPastCoursework: () -> Unit,
-    onLogin: () -> Unit, onRecover: (SyncResource) -> Unit) {
+    onLogin: () -> Unit, onRecover: (SyncResource) -> Unit, onOpen: (String) -> Unit) {
     val next = currentOrNextClass(state.events, now)
     val nextId = nextTimedClass(state.events, now)?.id
     val todayEvents = eventsOnDate(state.events, today)
@@ -319,6 +320,8 @@ private fun Home(state: TimetableState, today: LocalDate, now: Long, onSelect: (
             Box(Modifier.padding(horizontal = 12.dp)) {
                 ResourceRecoveryRow(state, SyncResource.TIMETABLE, onLogin) { onRecover(SyncResource.TIMETABLE) }
             }
+            Spacer(Modifier.height(12.dp))
+            HomeQuickLinks(onOpen)
         }
         if (state.lastSynced != null) item {
             HomeSection("Today", trailing = {
@@ -339,10 +342,13 @@ private fun Home(state: TimetableState, today: LocalDate, now: Long, onSelect: (
         }
         item {
             HomeSection("Deadlines", trailing = {
-                TextButton(onClick = onAllCoursework, contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
-                    modifier = Modifier.semantics { onClick(label = "View all coursework", action = null) }) {
-                    Text("All", style = MaterialTheme.typography.bodySmall)
-                    Icon(DetailsChevron, contentDescription = null, modifier = Modifier.size(14.dp))
+                Row(Modifier.widthIn(min = 48.dp).heightIn(min = 32.dp)
+                    .clickable(role = Role.Button, onClickLabel = "View all coursework", onClick = onAllCoursework)
+                    .padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.End) {
+                    Text("All", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                    Icon(DetailsChevron, contentDescription = null, modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.primary)
                 }
             }) {
                 when {
@@ -372,7 +378,7 @@ private fun HomeSection(title: String, trailing: @Composable () -> Unit = {}, co
     Surface(Modifier.fillMaxWidth().testTag("home-${title.lowercase()}-section"), shape = RoundedCornerShape(14.dp),
         color = MaterialTheme.colorScheme.surfaceContainerLow) {
         Column {
-            Row(Modifier.fillMaxWidth().testTag("${title.lowercase()}-header").heightIn(min = 48.dp)
+            Row(Modifier.fillMaxWidth().testTag("${title.lowercase()}-header").heightIn(min = 32.dp)
                 .padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium,
@@ -435,9 +441,12 @@ private fun NextClassCard(event: EventEntity, now: Long, onSelect: () -> Unit) {
         "${endDate.format(DateTimeFormatter.ofPattern("EEE d MMM", Locale.UK))} ${timeLabel(event.endMillis)}"
         else timeLabel(event.endMillis)
     val time = if (event.allDay) "All day" else "${timeLabel(event.startMillis)} – $end"
+    val scheme = MaterialTheme.colorScheme
+    val softNext = LocalAppearance.current.theme == ColourTheme.LAKE
+    val nextBackground = if (softNext) scheme.primaryContainer else scheme.primary
+    val nextForeground = if (softNext) scheme.onPrimaryContainer else scheme.onPrimary
     Card(onClick = onSelect,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary),
+        colors = CardDefaults.cardColors(containerColor = nextBackground, contentColor = nextForeground),
         shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth().testTag("next-class-card")
             .semantics { onClick(label = "View class details", action = null) }) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
@@ -462,7 +471,7 @@ private fun NextClassCard(event: EventEntity, now: Long, onSelect: () -> Unit) {
                     maxLines = 1, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.fillMaxWidth().testTag("next-location"))
             }
-            Icon(DetailsChevron, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary,
+            Icon(DetailsChevron, contentDescription = null, tint = nextForeground,
                 modifier = Modifier.size(20.dp).testTag("next-details-chevron"))
         }
     }

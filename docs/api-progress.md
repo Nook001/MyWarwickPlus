@@ -1,11 +1,11 @@
 # API 接入进度
 
-更新：2026-10-06，版本 0.13.0。每次接入接口时同步更新此表；协议细节见 [protocol.md](protocol.md)。本轮落实首页单层分区容器和主次分层，不新增 API。
+更新：2026-10-06，版本 0.14.0。每次接入接口时同步更新此表；协议细节见 [protocol.md](protocol.md)。本轮调浅 Lake 的 Next、压缩分区标题，并加入常用服务快捷入口，不新增 API。
 
 | API / 方法 | 接入情况 | 如何使用与展示 | 验证 / 限制 |
 | --- | --- | --- | --- |
 | `GET /user/info` | 已接入 | 启动、刷新和登录回跳时检查账户、会话与 CSRF 信息；Me 展示账户和登录状态，0.6.1 移除检查时间 | 原生已验证；cookie/token 不写入日志或 Git |
-| `GET /api/tiles/content/timetable` | 已接入 | 首页 Now / Next 标签收进三行主卡片，使用现有主题 primary / onPrimary 突出并保留整卡详情；Today 标题/课程数量、透明课程行及单行空状态共用一个普通背景，不嵌套卡片；Schedule 连续日期列表、日期跳转/返回今天、Now/Next、冲突、跨午夜提示、课程详情和地点链接；缓存与下拉刷新 | 此前真机 143 条；英国时区；Now / Next 仅选择有时间的课程，全日项在当天列表保留；失败保留整批旧缓存；大字体允许行高增加，完整标题在详情阅读；Schedule 位置在切页/刷新/状态恢复时保留 |
+| `GET /api/tiles/content/timetable` | 已接入 | 首页 Now / Next 标签收进三行主卡片，Lake 使用淡蓝 primaryContainer / onPrimaryContainer，其他主题保留 primary / onPrimary，并保留整卡详情；Today 标题/课程数量、透明课程行及单行空状态共用一个普通背景，不嵌套卡片；Schedule 连续日期列表、日期跳转/返回今天、Now/Next、冲突、跨午夜提示、课程详情和地点链接；缓存与下拉刷新 | 此前真机 143 条；英国时区；Now / Next 仅选择有时间的课程，全日项在当天列表保留；失败保留整批旧缓存；大字体允许行高增加，完整标题在详情阅读；Schedule 位置在切页/刷新/状态恢复时保留 |
 | `GET /api/tiles/content/coursework` | 已接入 | 首页 Deadlines 标题、All 操作、最近 3 个未来截止日期、空状态及 Recently passed 共用单层背景；左列数字 / days，右列原始标题 / d MMM（6 Oct），下一年及以后显示年份；All 进入 Upcoming，Recently passed 进入 Past；独立页紧凑圆角搜索、Upcoming / Past、连续列表，左列数字 / days 或 Today / Passed，右列两行以内标题和准确截止时间，不同年显示年份；整行详情及原站入口；独立缓存 | 此前浏览器及真机 3 条；接口没有独立课程名字段，使用原始 title；天数按英国自然日计算，首页当天未过期仍为 0 days，独立页显示 Today；日期使用 Locale.UK 英文月份和 Warwick 时区。支持 `+01` 和 `Z`。近期聚合，不推断已提交状态；原站浏览器可能需独立登录 |
 | `GET /api/tiles/content/library` | 摘要页面已接入；非空结构待验证 | Me → Library；学校空列表说明、账户入口、独立缓存与重试；非空条目仅展示实际存在的 title/text/href 或通用原站提示 | 当前浏览器 200 / 0 条；此前原生 0 条。借阅、到期日、欠费等字段未确认，不推定业务含义 |
 | `GET /api/tiles/content/eventsmerge` | 待验证 | 评估与课表合并事件，避免重复日程 | 前端候选；当前无业务展示 |
@@ -18,6 +18,17 @@
 | `POST /api/timetable/register` | 未调用 | 暂无需要；已有登录可直接读取课表 | 前端/旧应用存在注册与 JS bridge 代码；未签发 token |
 
 认证统一使用官方 WebView 登录得到的 MyWarwick session cookie，原生请求严格限定 MyWarwick HTTPS origin。当前业务接口都是只读 GET。五类页面独立缓存与同步时间；切换账户清除全部缓存，单接口失败不覆盖另一份缓存。More 的本地退出取消/等待同步并清除应用 cookie、WebStorage、缓存与数据库，不调用学校账户写接口。
+
+0.14.0 首页分区标题最小高度由 48dp 减至 32dp，移除 All 的 Material 按钮最小布局高度，保留 foundation clickable 的默认触摸范围扩展和操作语义；大字体允许自然增高。Lake 的 Now / Next 使用已有淡蓝 #D6E8F1 / 深色 #183743 配对，其他四个主题保持 0.13.0 配色；未增加边框或第二套明暗模式。
+
+常用服务入口是外部跳转，不表示接入该服务 API。四个入口与 Me 共用 ServiceLink 配置；Next 下方 12dp 处一行四项，单项最小 64dp 高度，图标和短标签共用点击区域；主要区块间距仍为 24dp。只在用户点击后通过原安全链接处理器打开 Custom Tab，不自动加载，不导出应用 cookie；浏览器可能需要独立登录。
+
+| 外部入口 | 地址 | 当前展示 / 验证 |
+| --- | --- | --- |
+| Moodle | `https://moodle.warwick.ac.uk/` | 首页学位帽图标 / Me；本轮 web 抓取工具报错，未验证实际登录页，保留既有地址 |
+| Email | `https://warwick.ac.uk/mymail` | 首页信封图标 / Me；本轮公开读取跳到 Outlook，手机登录和邮箱操作未验证 |
+| Tabula | `https://tabula.warwick.ac.uk/` | 首页记录图标 / Me；本轮公开页面显示未登录，不检查个人内容 |
+| Library | `https://warwick.ac.uk/services/library/account` | 首页书籍图标 / Me 的 Library account；本轮公开读取为账户跳转页面。Me → Library 原生摘要仍是独立入口，非空借阅结构未补充验证 |
 
 0.6.0 五类页面及详情共用所选固定 palette；More → Settings → Appearance 只保存主题 ID 和细纹理开关，不读取新的学校接口。背景按主题、纹理和尺寸档后台生成并有界缓存；切主题、设置页滑动不触发数据刷新。认证协议、业务缓存与 Room schema 4 不变。
 

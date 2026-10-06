@@ -1,5 +1,15 @@
 # 原型验收
 
+## 0.14.0：Lake 主卡片、紧凑标题与常用服务入口
+
+2026-10-06。先修正 Lake 的 Now / Next：使用已有 primaryContainer #D6E8F1 和 onPrimaryContainer #183743，不改其他主题或全局按钮颜色。各首页分区标题最小高度从 48dp 减至 32dp；Deadlines 的 All 改为紧凑可点击 Row，避免默认 Material 按钮撑高标题；foundation clickable 默认的最小触摸范围扩展与无障碍操作标签保留，大字体自然增高。标题、内容行仍共享单层背景，未加边框。
+
+两处修正完成后 assembleDebug 和 3 项既有 AppearancePaletteTest 通过（五个固定主题共 75 组配色对比不低于 4.5）。之后新增 Next 下方一行 Moodle / Email / Tabula / Library 快捷入口，四个 64dp 最小高度的图标/短标签项，与 Me 共用链接配置，沿用 safeExternalUrl / Custom Tabs 与失败 Snackbar，不增加 API 或自动网络读取。入口与 Next 间距 12dp，其余主要区块仍为 24dp。最终 assembleDebug 成功，git diff --check 通过；没有新增测试或运行 UI Test、模拟器、Lint、学校登录态 smoke 或手机截图。
+
+仅公开只读查看外部页面：Email 转 Outlook，Tabula 为未登录页面，Library 为账户跳转页；Moodle 的 web 抓取工具报错，手机浏览器可达性待手动确认。没有传递应用 cookie、提交表单、登录学校账户或操作邮箱/借阅。以上不等于四个服务登录流程已通过。
+
+明确指定物理手机 10AG4S2KQJ0066R，adb install -r 覆盖安装成功，确认 versionCode 21 / versionName 0.14.0；MainActivity 冷启动 Status: ok（542ms）。未卸载或清除数据，保留登录和缓存；没有在手机自动打开外部链接。请手动重点看 Lake 的主卡片是否柔和且仍可辨识、Today / Deadlines 标题是否紧凑；分别点击 All、课程和作业，确认原详情及列表路由正常；四个快捷入口的图标/标签、浏览器跳转、返回原页面和较大字体的表现。
+
 ## 0.13.0：首页单层分区与主次信息
 
 2026-10-06。落实已选的单层分区容器方案，本轮暂不加入常用服务快捷入口。Now / Next 标签收进三行主卡片，使用现有五个固定主题的 primary / onPrimary 强调组合；正在进行时不再重复 Happening now，时间、课程名/代码、地点及整卡详情入口保留。未加载或没有后续课程使用普通背景和简短文字，不将空状态做成主强调卡片。

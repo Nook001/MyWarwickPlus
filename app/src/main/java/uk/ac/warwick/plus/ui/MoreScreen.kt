@@ -6,22 +6,24 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import uk.ac.warwick.plus.BuildConfig
 import uk.ac.warwick.plus.data.FeedKind
 
-data class ServiceLink(val label: String, val url: String)
+data class ServiceLink(val label: String, val url: String, val homeIcon: ImageVector? = null, val homeLabel: String = label)
 val Services = listOf(
-    ServiceLink("Moodle", "https://moodle.warwick.ac.uk/"),
-    ServiceLink("Email", "https://warwick.ac.uk/mymail"),
-    ServiceLink("Tabula", "https://tabula.warwick.ac.uk/"),
-    ServiceLink("Library account", "https://warwick.ac.uk/services/library/account"),
+    ServiceLink("Moodle", "https://moodle.warwick.ac.uk/", ServiceIcons.moodle),
+    ServiceLink("Email", "https://warwick.ac.uk/mymail", ServiceIcons.email),
+    ServiceLink("Tabula", "https://tabula.warwick.ac.uk/", ServiceIcons.tabula),
+    ServiceLink("Library account", "https://warwick.ac.uk/services/library/account", ServiceIcons.library, "Library"),
     ServiceLink("Academic support", "https://warwick.ac.uk/academic-support/"),
     ServiceLink("Wellbeing and Student Support", "https://warwick.ac.uk/wellbeing/students/"),
     ServiceLink("Safety and emergency support", "https://warwick.ac.uk/students/safety-and-support/emergency-support/"),
     ServiceLink("MyWarwick help", "https://warwick.ac.uk/mw-support")
 )
+internal val HomeServices = Services.filter { it.homeIcon != null }
 
 @Composable
 fun MoreContent(state: TimetableState, onLogin: () -> Unit, onSignOut: () -> Unit,
