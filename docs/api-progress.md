@@ -1,6 +1,6 @@
 # API 接入进度
 
-更新：2026-10-06；代码版本 0.18.0。本次仅整理文档，未重新请求学校接口。下表数量是历史样本，不代表当前账户的实时数据。请求结构见 [protocol.md](protocol.md)，实现规则见 [architecture.md](architecture.md)，交付状态见 [validation.md](validation.md)。
+更新：2026-10-07；代码版本 0.18.0。本轮仅完成架构与 Kotlin 写法静态评估，待办见 [architecture.md](architecture.md) 末节；未实施优化、增加API或重新请求学校接口。下表数量是历史样本，不代表当前账户的实时数据。请求结构见 [protocol.md](protocol.md)，交付状态见 [validation.md](validation.md)。
 
 ## 已接入
 
