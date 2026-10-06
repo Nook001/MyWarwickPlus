@@ -10,7 +10,7 @@ import uk.ac.warwick.plus.data.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun EventDetails(event: EventEntity, conflict: Boolean, onDismiss: () -> Unit, onOpen: ((String) -> Unit)? = null) {
+internal fun EventDetails(event: EventContentItem, conflict: Boolean, onDismiss: () -> Unit, onOpen: ((String) -> Unit)? = null) {
     DetailsSheet(onDismiss, Modifier.testTag("class-details"),
         contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp)) {
         item {

@@ -5,12 +5,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import uk.ac.warwick.plus.data.CourseworkEntity
+import uk.ac.warwick.plus.data.CourseworkContentItem
 
 internal enum class DeadlinePresentation { Home, List }
 
 @Composable
-internal fun DeadlineRow(entry: CourseworkEntity, now: Long, presentation: DeadlinePresentation,
+internal fun DeadlineRow(entry: CourseworkContentItem, now: Long, presentation: DeadlinePresentation,
     compactTop: Boolean = false, modifier: Modifier = Modifier, onSelect: () -> Unit) {
     val timing = deadlineTiming(entry.dueMillis, now)
     val home = presentation == DeadlinePresentation.Home

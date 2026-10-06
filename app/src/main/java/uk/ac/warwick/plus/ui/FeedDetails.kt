@@ -8,7 +8,7 @@ import uk.ac.warwick.plus.data.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FeedDetails(kind: FeedKind, entry: FeedEntry, onOpen: ((String) -> Unit)?, onDismiss: () -> Unit) {
+fun FeedDetails(kind: FeedKind, entry: FeedContentItem, onOpen: ((String) -> Unit)?, onDismiss: () -> Unit) {
     DetailsSheet(onDismiss, Modifier.testTag("feed-details")) {
         item { DetailEyebrow(kind.label.uppercase()) }
         item { DetailTitle(entry.title) }

@@ -12,6 +12,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import uk.ac.warwick.plus.data.*
@@ -35,14 +38,19 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
     val route = FeedKind.entries.firstOrNull { it.key == feedRoute }
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
-    val refreshResource: (SyncResource) -> Unit = { resource ->
-        if (onResourceRefresh != null) onResourceRefresh(resource)
-        else resource.feed?.let { onFeedRefresh?.invoke(it) ?: onRefresh() } ?: onRefresh()
+    val currentState = rememberUpdatedState(state)
+    val refreshResource: (SyncResource) -> Unit = remember(onResourceRefresh, onFeedRefresh, onRefresh) {
+        { resource ->
+            if (onResourceRefresh != null) onResourceRefresh(resource)
+            else resource.feed?.let { onFeedRefresh?.invoke(it) ?: onRefresh() } ?: onRefresh()
+        }
     }
-    val recoverResource: (SyncResource) -> Unit = { resource ->
-        val messages = state.feed(FeedKind.MESSAGES)
-        if (resource == SyncResource.MESSAGES && messages.olderPageFailed && messages.hasMore && messages.entries.isNotEmpty()) onMoreMessages()
-        else refreshResource(resource)
+    val recoverResource: (SyncResource) -> Unit = remember(currentState, onMoreMessages, refreshResource) {
+        { resource ->
+            val messages = currentState.value.feed(FeedKind.MESSAGES)
+            if (resource == SyncResource.MESSAGES && messages.olderPageFailed && messages.hasMore && messages.entries.isNotEmpty()) onMoreMessages()
+            else refreshResource(resource)
+        }
     }
     LaunchedEffect(state.notice?.id) {
         state.notice?.let { notice ->
@@ -71,14 +79,32 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
         previousAccount = state.accountCode
     }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(Unit) { while (true) { now = System.currentTimeMillis(); delay(30_000) } }
-    val today = atWarwick(now).toLocalDate()
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(lifecycle) {
+        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (true) {
+                now = System.currentTimeMillis()
+                delay(30_000)
+            }
+        }
+    }
+    val conflicts = remember(state.events) { conflictingEventIds(state.events) }
+    val timetableRecovery = state.recovery(SyncResource.TIMETABLE)
+    val courseworkRecovery = state.recovery(SyncResource.COURSEWORK)
+    val home = remember(state.events, state.lastSynced, state.busy, state.coursework,
+        timetableRecovery, courseworkRecovery) { state.homePage() }
+    val schedule = remember(state.events, state.lastSynced, state.busy, state.needsLogin, state.message) {
+        state.schedulePage()
+    }
+    val today = remember(now) { atWarwick(now).toLocalDate() }
     val greeting = greeting(state.name, now)
     var selectedDay by rememberSaveable { mutableLongStateOf(today.toEpochDay()) }
     var followToday by rememberSaveable { mutableStateOf(true) }
     var showDatePicker by rememberSaveable { mutableStateOf(false) }
     val scheduleListState = rememberLazyListState()
-    val scheduleDate = if (followToday) today else LocalDate.ofEpochDay(selectedDay)
+    val scheduleDate = remember(followToday, today, selectedDay) {
+        if (followToday) today else LocalDate.ofEpochDay(selectedDay)
+    }
     val scheduleScrolled by remember { derivedStateOf { scheduleListState.firstVisibleItemIndex > 0 || scheduleListState.firstVisibleItemScrollOffset > 0 } }
     val chooseScheduleDate: (LocalDate) -> Unit = { date ->
         selectedDay = date.toEpochDay(); followToday = date == today
@@ -151,14 +177,14 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
                             }
                             !state.hasSavedData && state.needsLogin -> Welcome(onLogin)
                             else -> {
-                                if (tab == 0) HomeContent(state, today, now, { selectedId = it.id }, { courseworkId = it.id },
+                                if (tab == 0) HomeContent(home, today, now, { selectedId = it.id }, { courseworkId = it.id },
                                     { courseworkFilter = "Upcoming"; tab = 2 }, { courseworkFilter = "Past"; tab = 2 }, onLogin, recoverResource, openLink)
                                 else if (tab == 2) CourseworkContent(state.coursework, now, state.busy,
-                                    feedback = { ResourceRecoveryRow(state, SyncResource.COURSEWORK, onLogin) { recoverResource(SyncResource.COURSEWORK) } },
+                                    feedback = { ResourceRecoveryRow(courseworkRecovery, onLogin) { recoverResource(SyncResource.COURSEWORK) } },
                                     showFeedback = state.needsLogin || state.coursework.message != null,
                                     filterOverride = courseworkFilter, onFilterChanged = { courseworkFilter = it }) { courseworkId = it.id }
-                                else ScheduleContent(state, today, now, scheduleDate, scheduleListState,
-                                    feedback = { ResourceRecoveryRow(state, SyncResource.TIMETABLE, onLogin) { recoverResource(SyncResource.TIMETABLE) } }) { selectedId = it.id }
+                                else ScheduleContent(schedule, today, now, scheduleDate, scheduleListState,
+                                    feedback = { ResourceRecoveryRow(timetableRecovery, onLogin) { recoverResource(SyncResource.TIMETABLE) } }) { selectedId = it.id }
                             }
                         }
                     }
@@ -169,7 +195,7 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
     if (tab == 1 && showDatePicker && !state.signingOut) ScheduleDateDialog(scheduleDate,
         onDismiss = { showDatePicker = false }, onDate = { chooseScheduleDate(it); showDatePicker = false })
     if (!state.signingOut) state.events.firstOrNull { it.id == selectedId }?.let { event ->
-        EventDetails(event, event.id in conflictingEventIds(state.events), onDismiss = { selectedId = null }, onOpen = onExternalLink)
+        EventDetails(event, event.id in conflicts, onDismiss = { selectedId = null }, onOpen = onExternalLink)
     }
     if (!state.signingOut) state.coursework.entries.firstOrNull { it.id == courseworkId }?.let { entry ->
         CourseworkDetails(entry, { courseworkId = null }, onCourseworkLink ?: onExternalLink)

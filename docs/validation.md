@@ -4,11 +4,30 @@
 
 ## 2026-10-07：架构与 Kotlin 写法评估（第一批）
 
-以0.18.0代码静态核对同步/退出、缓存快照、页面状态/导航、展示计算、实体可变性与既有检查，评估及优先级收录到 [architecture.md](architecture.md) 末节。发现退出等待早于HTTP取消的路径；明确区分代码事实、潜在维护风险与未测量性能影响。评分不作为生产安全/性能认证，待办均未实施。
+以0.18.0代码静态核对同步/退出、缓存快照、页面状态/导航、展示计算、实体可变性与既有检查，评估及优先级收录到 [architecture.md](architecture.md) 末节。发现退出等待早于HTTP取消的路径；明确区分代码事实、潜在维护风险与未测量性能影响。评分不作为生产安全/性能认证，该评估提交仅记录待办；后续0.19.0进度见最新代码节。
 
 仅更新三个现有文档，不改源码/测试/依赖/schema/版本；不构建、不运行JVM/UI/设备测试、不部署或请求学校接口。核对本地引用、表格/代码块结构、评估中的源码符号及git diff --check；查阅Compose/Kotlin官方技术说明，不访问用户会话。之前0.18.0手机安装被拒和待验收状态保留。
 
-## 最新代码：0.18.0 / versionCode 26
+## 最新代码：0.19.0 / versionCode 27
+
+2026-10-07：A1/A2/A3实施，随同前台时钟和少量语法清理；页面布局、依赖、API/认证协议与schema5保持不变。
+
+| 检查 | 本次结果 / 边界 |
+| --- | --- |
+| Debug 构建 | assembleDebug 成功 |
+| JVM | 全部64项通过：原有61项 + 3项取消/快照边界检查；本地HTTP阻塞读取消、注册前取消及后续请求隔离、快照不受原对象修改影响且相同内容复用 |
+| Lint | 0 errors / 17 warnings；完整报告位于app/build/reports/lint-results-debug.html |
+| Room | 导出schema5无差异；生成identity hash仍为a201057e1b8a41788b3c7026be00cfee；未改变列/迁移，未新增真实SQLite验证 |
+| 兼容入口 | 既有AndroidTest源码只编译核对，未改写/扩展/执行；未运行instrumentation |
+| 编译器报告 | 最终源码全量编译核对：HomeContent、ScheduleContent、CourseworkContent 均 restartable / skippable；不作为帧率或实际重组计数 |
+| 物理部署 | 两次指定10AG4S2KQJ0066R执行install -r，均返回INSTALL_FAILED_ABORTED / User rejected permissions；第二次经用户授权“重试”。**0.19.0尚未装上**，未卸载/清除登录缓存，待用户允许安装 |
+| 未执行 | UI Test、模拟器、自动点击/截图、自动退出或清真实cookie、登录态浏览器API抓取、真机帧时间基线 |
+
+命令：`./gradlew.bat :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:compileDebugAndroidTestKotlin -PcomposeReports=true`；完整Compose报告另用 `:app:compileDebugKotlin -PcomposeReports=true --rerun-tasks`，避免增量报告只涵盖改动文件。JDK21沿用下面配置。
+
+手动重点：刷新时内容/详情正常，Tasks搜索和分类、Classes位置保持；后台返回立即校准日期/Now/Next；断网后缓存仍可读。退出取消只有用户愿意重新登录时再测。
+
+## 上一版：0.18.0 / versionCode 26
 
 代码提交 c8a2724，第四批同步/缓存整理完成。执行命令：
 

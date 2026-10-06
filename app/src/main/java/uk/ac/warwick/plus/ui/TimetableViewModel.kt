@@ -40,23 +40,23 @@ class TimetableViewModel(private val repository: TimetableStore,
     private fun startSync(resource: SyncResource? = null, olderMessages: Boolean = false,
         operation: suspend () -> Unit) {
         if (mutable.value.busy || mutable.value.signingOut || mutable.value.logoutFailed) return
-        val target = resource
-        val progress = SyncProgress(++syncId, if (target == null) SyncResource.entries.size else 1,
-            resource = if (olderMessages) "Older messages" else target?.label ?: "Timetable")
+        val progress = SyncProgress(++syncId, if (resource == null) SyncResource.entries.size else 1,
+            resource = if (olderMessages) "Older messages" else resource?.label ?: "Timetable")
         mutable.update { it.copy(busy = true, notice = null,
             syncProgress = progress) }
         syncJob = viewModelScope.launch {
             try { operation() } finally {
                 if (!mutable.value.signingOut) {
                     val current = mutable.value
-                    val failures = (target?.let(::listOf) ?: SyncResource.entries).mapNotNull { kind ->
+                    val failures = (resource?.let(::listOf) ?: SyncResource.entries).mapNotNull { kind ->
                         current.issue(kind)?.let { kind to it }
                     }
+                    val singleFailure = failures.singleOrNull()
                     val notice = if (failures.isEmpty()) null else SyncNotice(++noticeId,
                         if (current.needsLogin) "Sign in to update your information."
                         else if (failures.size > 1) "Couldn't update some information. Your saved data has been kept."
                         else failures.single().second,
-                        failures.singleOrNull()?.first?.feed, olderMessages, target ?: failures.singleOrNull()?.first)
+                        singleFailure?.first?.feed, olderMessages, resource ?: singleFailure?.first)
                     mutable.update { it.copy(busy = false, notice = notice,
                         syncProgress = it.syncProgress?.copy(finished = true)) }
                 }

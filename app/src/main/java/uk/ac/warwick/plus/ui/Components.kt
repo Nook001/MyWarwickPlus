@@ -58,3 +58,9 @@ fun ResourceRecoveryRow(state: TimetableState, resource: SyncResource, onLogin: 
         !state.busy && !state.signingOut && !state.logoutFailed, onLogin, onRefresh,
         resource.feed?.let { state.feed(it).olderPageFailed } == true)
 }
+
+@Composable
+internal fun ResourceRecoveryRow(state: RecoveryState, onLogin: () -> Unit, onRefresh: () -> Unit) {
+    DataRecoveryRow(state.lastSynced, state.issue, state.updating, state.needsLogin, state.enabled,
+        onLogin, onRefresh)
+}

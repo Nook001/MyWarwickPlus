@@ -15,7 +15,7 @@ import uk.ac.warwick.plus.data.*
 
 @Composable
 fun FeedContent(kind: FeedKind, state: FeedState, busy: Boolean, needsLogin: Boolean,
-    onRefresh: () -> Unit, onMore: () -> Unit, onSelect: (FeedEntry) -> Unit, onOpen: (String) -> Unit,
+    onRefresh: () -> Unit, onMore: () -> Unit, onSelect: (FeedContentItem) -> Unit, onOpen: (String) -> Unit,
     onLogin: () -> Unit = {}) {
     var query by rememberSaveable(kind) { mutableStateOf("") }
     val focus = androidx.compose.ui.platform.LocalFocusManager.current

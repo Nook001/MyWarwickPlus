@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import uk.ac.warwick.plus.data.EventContentItem
 import uk.ac.warwick.plus.data.EventEntity
 import java.time.LocalDate
 import java.util.Locale
@@ -34,6 +35,20 @@ internal val CalendarPickerIcon = ImageVector.Builder("ChooseDate", 24.dp, 24.dp
 @Composable
 fun ScheduleContent(state: TimetableState, today: LocalDate, now: Long, from: LocalDate,
     listState: LazyListState, feedback: @Composable () -> Unit = {}, onSelect: (EventEntity) -> Unit) {
+    // Preserve the existing entity-based entry point; the app uses the value-only overload below.
+    ScheduleContent(state.schedulePage(), today, now, from, listState, feedback) { item ->
+        onSelect(item as? EventEntity ?: EventEntity().apply {
+            id = item.id; title = item.title; module = item.module; moduleName = item.moduleName
+            location = item.location; locationUrl = item.locationUrl
+            startMillis = item.startMillis; endMillis = item.endMillis
+            allDay = item.allDay; academicWeek = item.academicWeek
+        })
+    }
+}
+
+@Composable
+internal fun ScheduleContent(state: SchedulePageState, today: LocalDate, now: Long, from: LocalDate,
+    listState: LazyListState, feedback: @Composable () -> Unit = {}, onSelect: (EventContentItem) -> Unit) {
     val days = remember(state.events, from) { scheduleDays(state.events, from) }
     val conflicts = remember(state.events) { conflictingEventIds(state.events) }
     val nextId = remember(state.events, now) {
@@ -42,7 +57,7 @@ fun ScheduleContent(state: TimetableState, today: LocalDate, now: Long, from: Lo
     LazyColumn(Modifier.fillMaxSize().testTag("schedule-list"), state = listState,
         contentPadding = Spacing.compactPage,
         verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        if (state.needsLogin || state.message != null) item { feedback() }
+        if (state.showFeedback) item { feedback() }
         if (state.lastSynced == null) item {
             DataEmptyState(if (state.busy) "Loading timetable…" else "Timetable hasn't loaded yet")
         } else items(days, key = { it.date.toEpochDay() }) { day ->
@@ -69,7 +84,7 @@ fun ScheduleContent(state: TimetableState, today: LocalDate, now: Long, from: Lo
 }
 
 @Composable
-internal fun ScheduleClassRow(event: EventEntity, date: LocalDate, status: String?, conflict: Boolean,
+internal fun ScheduleClassRow(event: EventContentItem, date: LocalDate, status: String?, conflict: Boolean,
     compactTop: Boolean = false, onSelect: () -> Unit) {
     val identity = classIdentity(event)
     val time = scheduleTime(event, date)

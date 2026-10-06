@@ -4,12 +4,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import uk.ac.warwick.plus.data.CourseworkEntity
+import uk.ac.warwick.plus.data.CourseworkContentItem
 import uk.ac.warwick.plus.data.safeCourseworkUrl
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CourseworkDetails(entry: CourseworkEntity, onDismiss: () -> Unit, onOpen: ((String) -> Unit)? = null) {
+fun CourseworkDetails(entry: CourseworkContentItem, onDismiss: () -> Unit, onOpen: ((String) -> Unit)? = null) {
     DetailsSheet(onDismiss, Modifier.testTag("coursework-details")) {
         item {
             DetailHeader("COURSEWORK DETAILS", entry.title)

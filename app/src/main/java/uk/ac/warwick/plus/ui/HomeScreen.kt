@@ -17,14 +17,20 @@ import uk.ac.warwick.plus.data.*
 import java.time.LocalDate
 
 @Composable
-internal fun HomeContent(state: TimetableState, today: LocalDate, now: Long, onSelect: (EventEntity) -> Unit,
-    onCoursework: (CourseworkEntity) -> Unit, onAllCoursework: () -> Unit, onPastCoursework: () -> Unit,
+internal fun HomeContent(state: HomePageState, today: LocalDate, now: Long, onSelect: (EventContentItem) -> Unit,
+    onCoursework: (CourseworkContentItem) -> Unit, onAllCoursework: () -> Unit, onPastCoursework: () -> Unit,
     onLogin: () -> Unit, onRecover: (SyncResource) -> Unit, onOpen: (String) -> Unit) {
-    val next = currentOrNextClass(state.events, now)
-    val nextId = nextTimedClass(state.events, now)?.id
-    val todayEvents = eventsOnDate(state.events, today)
+    val next = remember(state.events, now) { currentOrNextClass(state.events, now) }
+    val nextId = remember(state.events, now) { nextTimedClass(state.events, now)?.id }
+    val todayEvents = remember(state.events, today) { eventsOnDate(state.events, today) }
     val conflicts = remember(state.events) { conflictingEventIds(state.events) }
-    val upcoming = state.coursework.entries.filter { it.dueMillis >= now }.sortedBy { it.dueMillis }.take(3)
+    val upcoming = remember(state.coursework.entries, now) {
+        state.coursework.entries.filter { it.dueMillis >= now }.sortedBy { it.dueMillis }.take(3)
+    }
+    val recentPast = remember(state.coursework.entries, now) {
+        val recentStart = atWarwick(now).minusDays(7).toInstant().toEpochMilli()
+        state.coursework.entries.count { it.dueMillis in recentStart until now }
+    }
     LazyColumn(Modifier.fillMaxSize().testTag("home-list"),
         contentPadding = Spacing.compactPage,
         verticalArrangement = Arrangement.spacedBy(Spacing.homeSection)) {
@@ -37,7 +43,7 @@ internal fun HomeContent(state: TimetableState, today: LocalDate, now: Long, onS
                 else -> NextClassCard(next, now) { onSelect(next) }
             }
             Box(Modifier.padding(horizontal = 12.dp)) {
-                ResourceRecoveryRow(state, SyncResource.TIMETABLE, onLogin) { onRecover(SyncResource.TIMETABLE) }
+                ResourceRecoveryRow(state.timetableRecovery, onLogin) { onRecover(SyncResource.TIMETABLE) }
             }
             Spacer(Modifier.height(12.dp))
             HomeQuickLinks(onOpen)
@@ -79,10 +85,8 @@ internal fun HomeContent(state: TimetableState, today: LocalDate, now: Long, onS
                     }
                 }
                 Box(Modifier.padding(horizontal = 12.dp)) {
-                    ResourceRecoveryRow(state, SyncResource.COURSEWORK, onLogin) { onRecover(SyncResource.COURSEWORK) }
+                    ResourceRecoveryRow(state.courseworkRecovery, onLogin) { onRecover(SyncResource.COURSEWORK) }
                 }
-                val recentStart = atWarwick(now).minusDays(7).toInstant().toEpochMilli()
-                val recentPast = state.coursework.entries.count { it.dueMillis in recentStart until now }
                 if (state.coursework.lastSynced != null && recentPast > 0) TextButton(onClick = onPastCoursework,
                     modifier = Modifier.padding(horizontal = 8.dp)) {
                     Text("Recently passed · $recentPast", style = MaterialTheme.typography.bodySmall)
@@ -93,7 +97,7 @@ internal fun HomeContent(state: TimetableState, today: LocalDate, now: Long, onS
 }
 
 @Composable
-private fun NextClassCard(event: EventEntity, now: Long, onSelect: () -> Unit) {
+private fun NextClassCard(event: EventContentItem, now: Long, onSelect: () -> Unit) {
     val identity = classIdentity(event)
     val time = classTimeRange(event, includeWeekday = true)
     val colours = appCardColours(CardTone.Featured)

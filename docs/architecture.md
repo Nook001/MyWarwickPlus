@@ -1,6 +1,6 @@
 # 架构与组件规范
 
-更新：2026-10-07，适用代码 0.18.0。前文记录已落地的组件、共享函数、同步、数据反馈、课表和主题标准；末节单列架构评估与未实施待办。接口证据见 [protocol.md](protocol.md)，覆盖表见 [api-progress.md](api-progress.md)，验证状态见 [validation.md](validation.md)。
+更新：2026-10-07，适用代码 0.19.0。前文记录已落地的组件、共享函数、同步、数据反馈、课表和主题标准；末节保留评估基线并标注实施进度。接口证据见 [protocol.md](protocol.md)，覆盖表见 [api-progress.md](api-progress.md)，验证状态见 [validation.md](validation.md)。
 
 ## 代码职责
 
@@ -34,7 +34,15 @@
 - 同步中重复刷新受 busy guard 限制。单项刷新只处理自己的问题和进度，成功不重报另一资源的旧失败；失败恢复已保存快照，不以坏响应覆盖缓存。
 - IOException、HTTP 408 / 5xx 最多额外重试两次，延迟 2 秒、5 秒；认证、解析异常及其他 HTTP 错误（含 429）不自动重试。CancellationException 继续传播。
 - Messages 最新页 limit=100；只有用户要求才用缓存最旧 id 作 before 游标。先验证/清理账户，再检查游标。分页合并按日期倒序/id 排序、去重、最多 500 条；非空且无新增 ID 的页拒绝。最新页刷新重置旧分页，失败重试保留原游标。
-- 验证后与写入前检查取消状态；阻塞下载返回时已取消则不写入。HTTP 阻塞不会因协程取消立即停止。Sign out 先 cancelAndJoin，再经 Repository 清理应用会话/数据库；失败阻止重新刷新并要求恢复。认证边界见协议文档。
+- 同步调用通过 StudentApi.request → CancellableRequests 绑定协程取消与当前 OkHttp Call.cancel；注册前即建立线程安全取消作用域，取消不能漏掉随后注册的请求。网络读取/解析在 IO 线程执行，响应由 use 关闭，取消后的结果不交回持久化流程；退出前以 NonCancellable 等待该 IO 工作完成，避免迟到 CookieJar 回调恢复旧会话。Sign out 的 cancelAndJoin 会立即取消同步请求，再经 Repository 清理会话/数据库；验证后及写前 ensureActive、Mutex、失败恢复均保留。登录/Developer probe 的同步入口保持原行为；不在等待前清 cookie。
+
+## 展示快照与计算边界
+
+- withCache 将 Room Entity 转为私有 Kotlin 值快照（所有字段 val）；页面消费 EventContentItem / CourseworkContentItem / FeedContentItem 只读契约，保留 ID、完整详情、链接与排序信息。Java Entity 仅增加兼容 getter，不改列或 schema；旧 ScheduleContent 入口保留适配，应用走页面值状态入口。
+- 新列表按字段值相等复用原列表，否则包装为不可修改列表；进度 copy 不重新投影数据。每次真实缓存投影仍读取全资源，并逐资源比对，不把同步时间当内容相等的依据。不向 Entity / 任意 List 添加 @Immutable。
+- Home / Classes 使用只包含本页数据及恢复状态的投影，进度由顶部读取；恢复回调保持引用并在点击时取最新状态。首页 next/today/deadlines、Tasks 搜索分类/排序、详情冲突集合按各自数据/时间依赖 remember；查询仍留页面本地。
+- 时钟在 Lifecycle.STARTED 期间每30秒更新，回前台立即校准，继续按 Europe/London 计算午夜与 DST；不截断原始 deadline 时间。冲突匹配仍为 O(n²)，内层索引循环避免反复 drop 临时列表。
+- 可用 `:app:compileDebugKotlin -PcomposeReports=true --rerun-tasks` 输出完整编译器报告到 app/build/reports/compose；普通构建不开启报告。报告表示可跳过性/稳定性，不是实际重组次数或帧率；本批不新增性能插件或 UI Test。[编译器 DSL](https://kotlinlang.org/docs/compose-compiler-options.html)、[取消语义](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/suspend-cancellable-coroutine.html)。
 
 ## 数据反馈
 
@@ -126,9 +134,17 @@ Me → Settings → Appearance 选择 Forest（默认）、Lake、Heather、Sand
 
 当前标准只在此文档维护；API 状态、协议证据和验证结果分别更新各自文档。已完成阶段计划不再另存，细节/备选设计从 Git 历史查阅。构建缓存、工作日志/截图不当作当前标准；work/ 的一次性重构脚本可在落地后移除。测试与物理部署按 [AGENTS.md](../AGENTS.md) 执行。
 
-## 架构评估与待办（第一批，仅评估）
+## 架构评估基线与实施进度
 
-2026-10-07 静态评估基线：应用代码提交 c8a2724 / 0.18.0。审阅同步/状态/DAO、网络与登录、页面路由/展示计算、基础组件/主题缓存和相关既有检查；未运行编译器重组报告、手机测量或新学校请求。P1 表示下一轮优先处理，P2 表示随后改善；不是宣称已发生崩溃或数据泄漏。以下全部**未实施**，不改变上文现行行为。
+2026-10-07 静态评估基线：应用代码提交 c8a2724 / 0.18.0。审阅同步/状态/DAO、网络与登录、页面路由/展示计算、基础组件/主题缓存和相关既有检查；未运行编译器重组报告、手机测量或新学校请求。P1 表示下一轮优先处理，P2 表示随后改善；不是宣称已发生崩溃或数据泄漏。下方问题表描述0.18.0评估时的事实，不代表0.19.0仍有同样实现；现行行为以上文标准和下表状态为准。
+
+| 范围 | 0.19.0 进度 |
+| --- | --- |
+| A1 | 已实现每次同步请求取消连接；真实本地阻塞响应与注册竞态检查通过，退出手动体验待验收 |
+| A2 | 已建立生产展示值快照、不可修改列表和内容相等复用；schema 5 不变，快照隔离检查通过 |
+| A3 | 已缓存 Home / Tasks 计算、缩小 Home / Classes 输入并隔离进度；完整编译器报告核对，真机性能未测 |
+| A5 | 前台生命周期时钟已实施；进一步按页面需求暂停及耗电测量未做 |
+| A4 / A6 / A7 | 类型化导航/操作身份、完整 notice 回调整理与真机性能/SQLite基线待做；恢复回调当前状态读取已随 A3 收敛 |
 
 ### 评分与已有优势
 
@@ -157,7 +173,7 @@ Me → Settings → Appearance 选择 Forest（默认）、Lake、Heather、Sand
 | A6 / P2：操作身份与提示文案混合 | TimetableState.updating 对非 Feed 比较 SyncProgress.resource 与 label；SyncNotice 同时有 feed/resource/olderMessages；PlusScreen 在 notice.id Effect 内捕获 state 与动作。**演进风险**，未复现错误恢复 | 为进度保存资源/操作身份，文字仅生成描述；恢复动作明确为整轮/单资源/更早页/登录，并在点击时采用当前状态或更新后的回调，保留旧游标与 notice 消费 ID。不把普通状态布尔值全部一次改成复杂状态机 |
 | A7 / P2：性能基线与数据库真机缺口 | [validation.md](validation.md) 记录0.18.0尚未安装；现有 Repository fixture 替代不了真实Room。release有R8，但当前无重组报告、滚动帧数据或可测发布配置 | 先完成已有 APK 的用户手机验收；随后用一致数据/设备/构建记录启动、Classes/Tasks/Messages滚动、刷新中重组和主题切换内存。记录前后差值；不拿单次 am start 时间当稳定基准，不未经要求新增 UI Test 或自动退出 |
 
-冲突检查是 O(n²)，且每轮内层 drop 会产生临时列表；首页/课表已按 events 缓存，普通规模未证明是瓶颈。下一轮可复用冲突结果、详情也按 events 缓存；暂不引入更复杂的区间树。Feed搜索每条创建短 listOf 后 any 可改直接 OR，属于低风险少量分配优化，不承诺可感知提速。
+0.18.0冲突检查的内层 drop 和详情重复计算已在0.19.0改为索引循环/remember；仍为 O(n²)，普通规模未证明是瓶颈，暂不引入区间树。Feed搜索每条创建短 listOf 后 any 可改直接 OR，属于低风险少量分配优化，不承诺可感知提速。
 
 ### Kotlin 写法与语法糖评估
 
@@ -177,8 +193,8 @@ Me → Settings → Appearance 选择 Forest（默认）、Lake、Heather、Sand
 
 ### 后续实施边界
 
-1. 小补丁优先解决 A1 的退出响应；验证不晚写/不混账户，依旧不自动清真实登录。下一批随后处理 A2/A3，先不可变展示快照与数据复用，再缓存首页/Tasks计算和隔离进度读取；不改视觉、协议、schema、重试预算或串行顺序。
-2. A4/A6 与有触及范围的语法整理再做一小批，保留 rememberSaveable/Saver、返回与账户切换语义；A5配合时钟/重组边界处理。不要同一提交升级工具链、重写网络、重排导航和全部Entity。
-3. A7 用物理手机建立同构建/数据的前后记录。先做编译器报告和手动/跟踪测量；Baseline Profile、自动化benchmark、额外插件留到测量确有需要的专项，不默认扩展本批范围。当前无已证实性能提升。
+1. A1/A2/A3代码与必要检查已完成；优先手动验收刷新、搜索、后台返回及缓存恢复，不自动退出真实账号。视觉、协议、schema、重试预算及串行顺序保持原约定。
+2. A4/A6 与有触及范围的语法整理再做一小批，保留 rememberSaveable/Saver、返回与账户切换语义；A5的前台时钟已落地，剩余按页调度只在有收益时再做。不要同一提交升级工具链、重写网络、重排导航和全部Entity。
+3. A7 用物理手机建立同构建/数据的前后记录。编译器报告入口已建立，接着做手动/跟踪测量；Baseline Profile、自动化benchmark、额外插件留到测量确有需要的专项，不默认扩展本批范围。当前无已证实性能提升。
 
 依据：[Compose计算与状态读取](https://developer.android.com/develop/ui/compose/performance/bestpractices)、[Compose稳定性契约](https://developer.android.com/develop/ui/compose/performance/stability/fix)、[Kotlin作用域函数](https://kotlinlang.org/docs/scope-functions.html)、[runCatching捕获范围](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/run-catching.html)。它们用于判断优化方法；具体待办来自本地源码，不代表官方对本项目的评分。

@@ -13,6 +13,8 @@ class ServiceException(val status: Int) : Exception()
 data class SignedInUser(val code: String, val name: String, val csrfHeader: String, val csrfToken: String)
 
 class MyWarwickApi(session: AuthSession) : StudentApi {
+    private val requests = CancellableRequests()
+    override suspend fun <T> request(operation: () -> T): T = requests.run(operation)
     private val client = OkHttpClient.Builder().cookieJar(session)
         .followRedirects(false).followSslRedirects(false)
         .connectTimeout(15, TimeUnit.SECONDS).readTimeout(25, TimeUnit.SECONDS)
@@ -29,7 +31,9 @@ class MyWarwickApi(session: AuthSession) : StudentApi {
                     header("Csrf-Token", user.csrfToken)
                 }
             }.build()
-        client.newCall(request).execute().use { response ->
+        val call = client.newCall(request)
+        requests.attach(call)
+        call.execute().use { response ->
             if (response.code in 300..399 || response.code == 401 || response.code == 403) throw SignInRequiredException()
             if (!response.isSuccessful) throw ServiceException(response.code)
             if (!response.header("Content-Type").orEmpty().contains("application/json")) throw SignInRequiredException()

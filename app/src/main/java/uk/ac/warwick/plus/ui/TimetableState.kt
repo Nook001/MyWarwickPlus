@@ -3,9 +3,9 @@ package uk.ac.warwick.plus.ui
 import uk.ac.warwick.plus.data.*
 import java.io.IOException
 
-data class CourseworkState(val entries: List<CourseworkEntity> = emptyList(), val lastSynced: Long? = null, val message: String? = null)
+data class CourseworkState(val entries: List<CourseworkContentItem> = emptyList(), val lastSynced: Long? = null, val message: String? = null)
 data class AccountState(val email: String = "", val lastSynced: Long? = null, val message: String? = null)
-data class FeedState(val entries: List<FeedEntry> = emptyList(), val lastSynced: Long? = null,
+data class FeedState(val entries: List<FeedContentItem> = emptyList(), val lastSynced: Long? = null,
     val message: String? = null, val loading: Boolean = false, val hasMore: Boolean = false,
     val description: String = "", val url: String = "", val webReadMillis: Long = 0, val olderPageFailed: Boolean = false)
 
@@ -26,7 +26,7 @@ data class SyncProgress(val id: Long, val total: Int, val completed: Int = 0, va
         else "Updating $resource · ${completed + 1}/$total"
 }
 data class TimetableState(
-    val events: List<EventEntity> = emptyList(), val name: String = "", val lastSynced: Long? = null,
+    val events: List<EventContentItem> = emptyList(), val name: String = "", val lastSynced: Long? = null,
     val busy: Boolean = false, val signedIn: Boolean = false, val needsLogin: Boolean = false,
     val message: String? = null, val coursework: CourseworkState = CourseworkState(),
     val feeds: Map<FeedKind, FeedState> = emptyMap(), val accountCode: String = "",
@@ -56,15 +56,20 @@ data class TimetableState(
 internal fun TimetableState.withCache(cache: CachedTimetable): TimetableState {
     val owner = (listOfNotNull(cache.sync, cache.courseworkSync, cache.accountSync) +
         cache.feeds.values.mapNotNull { it.sync }).maxByOrNull { it.syncedAt }
-    return copy(events = cache.events, lastSynced = cache.sync?.syncedAt,
+    val projectedCoursework = coursework.copy(
+        entries = cache.coursework.map { it.snapshot() }.reuseIfEqual(coursework.entries),
+        lastSynced = cache.courseworkSync?.syncedAt)
+    return copy(events = cache.events.map { it.snapshot() }.reuseIfEqual(events), lastSynced = cache.sync?.syncedAt,
         name = owner?.displayName ?: name, accountCode = owner?.userCode ?: accountCode,
         account = account.copy(email = cache.accountSync?.email.orEmpty(), lastSynced = cache.accountSync?.syncedAt),
-        coursework = coursework.copy(entries = cache.coursework, lastSynced = cache.courseworkSync?.syncedAt),
+        coursework = if (projectedCoursework == coursework) coursework else projectedCoursework,
         feeds = FeedKind.entries.associateWith { kind ->
             val saved = cache.feeds[kind]
-            feed(kind).copy(entries = saved?.entries.orEmpty(), lastSynced = saved?.sync?.syncedAt,
+            val previous = feed(kind)
+            val projected = previous.copy(entries = saved?.entries.orEmpty().map { it.snapshot() }.reuseIfEqual(previous.entries), lastSynced = saved?.sync?.syncedAt,
                 description = saved?.meta?.description.orEmpty(), url = saved?.meta?.url.orEmpty(),
                 hasMore = saved?.meta?.hasMore ?: false, webReadMillis = saved?.meta?.webReadMillis ?: 0)
+            if (projected == previous) previous else projected
         })
 }
 

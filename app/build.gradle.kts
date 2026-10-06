@@ -10,8 +10,8 @@ android {
         applicationId = "uk.ac.warwick.plus"
         minSdk = 28
         targetSdk = 36
-        versionCode = 26
-        versionName = "0.18.0"
+        versionCode = 27
+        versionName = "0.19.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         javaCompileOptions.annotationProcessorOptions.arguments["room.schemaLocation"] = "$projectDir/schemas"
     }
@@ -28,6 +28,13 @@ android {
     }
 }
 kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }
+
+composeCompiler {
+    if (providers.gradleProperty("composeReports").orNull == "true") {
+        reportsDestination.set(layout.buildDirectory.dir("reports/compose"))
+        metricsDestination.set(layout.buildDirectory.dir("reports/compose"))
+    }
+}
 
 dependencies {
     implementation(platform("androidx.compose:compose-bom:2026.09.00"))

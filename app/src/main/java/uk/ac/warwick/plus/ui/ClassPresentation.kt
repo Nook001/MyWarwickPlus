@@ -1,17 +1,17 @@
 package uk.ac.warwick.plus.ui
 
-import uk.ac.warwick.plus.data.EventEntity
+import uk.ac.warwick.plus.data.EventContentItem
 
 internal data class ClassIdentity(val name: String, val code: String)
 
-internal fun classIdentity(event: EventEntity): ClassIdentity {
+internal fun classIdentity(event: EventContentItem): ClassIdentity {
     val name = event.moduleName.ifBlank { event.title.ifBlank { "Class" } }
     val code = if (event.moduleName.isNotBlank() && event.title != name) event.title
         else event.module.takeUnless { it == name }.orEmpty()
     return ClassIdentity(name, code)
 }
 
-internal fun classTimeRange(event: EventEntity, includeWeekday: Boolean): String {
+internal fun classTimeRange(event: EventContentItem, includeWeekday: Boolean): String {
     if (event.allDay) return "All day"
     val start = atWarwick(event.startMillis).toLocalDate()
     val end = atWarwick(event.endMillis).toLocalDate()
@@ -19,7 +19,7 @@ internal fun classTimeRange(event: EventEntity, includeWeekday: Boolean): String
     return "${timeLabel(event.startMillis)} – $endDay${timeLabel(event.endMillis)}"
 }
 
-internal fun classDetailTime(event: EventEntity): String =
+internal fun classDetailTime(event: EventContentItem): String =
     "${dateLabel(atWarwick(event.startMillis).toLocalDate())}\n${classTimeRange(event, includeWeekday = false)} · Warwick time"
 
 private val firstNameBoundary = Regex("\\s+")

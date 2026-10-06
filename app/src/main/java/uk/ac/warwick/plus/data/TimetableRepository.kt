@@ -20,6 +20,8 @@ interface TimetableStore {
 }
 
 interface StudentApi {
+    // Synchronous test/probe clients remain compatible; production binds HTTP to cancellation.
+    suspend fun <T> request(operation: () -> T): T = operation()
     fun user(): SignedInUser
     fun timetable(user: SignedInUser): List<EventEntity>
     fun coursework(user: SignedInUser): List<CourseworkEntity>
@@ -40,7 +42,7 @@ class TimetableRepository(private val api: StudentApi, private val dao: Timetabl
     }
 
     private suspend fun authenticate(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): SignedInUser {
-        val user = api.user()
+        val user = api.request { api.user() }
         kotlinx.coroutines.currentCoroutineContext().ensureActive()
         if (dao.states().any { it.userCode != user.code }) dao.clear()
         onAuthenticated(user, dao.snapshot())
@@ -48,7 +50,7 @@ class TimetableRepository(private val api: StudentApi, private val dao: Timetabl
     }
 
     private suspend fun <T> authenticatedSync(id: Int, onAuthenticated: (SignedInUser, CachedTimetable) -> Unit,
-        read: (SignedInUser) -> T, save: (T, SyncEntity) -> Unit): CachedTimetable = inStore {
+        read: suspend (SignedInUser) -> T, save: (T, SyncEntity) -> Unit): CachedTimetable = inStore {
         val user = authenticate(onAuthenticated)
         val result = read(user)
         // A blocking HTTP read can finish after cancellation; never persist that result.
@@ -63,21 +65,21 @@ class TimetableRepository(private val api: StudentApi, private val dao: Timetabl
     override suspend fun cached(): CachedTimetable = inStore { dao.snapshot() }
 
     override suspend fun sync(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit) =
-        authenticatedSync(1, onAuthenticated, api::timetable) { events, state ->
+        authenticatedSync(1, onAuthenticated, { user -> api.request { api.timetable(user) } }) { events, state ->
             dao.replace(events, state)
             if (uk.ac.warwick.plus.BuildConfig.DEBUG)
                 android.util.Log.i("MyWarwickPlus", "Native timetable sync succeeded; events=${events.size}")
         }
 
     override suspend fun syncCoursework(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit) =
-        authenticatedSync(2, onAuthenticated, api::coursework) { entries, state ->
+        authenticatedSync(2, onAuthenticated, { user -> api.request { api.coursework(user) } }) { entries, state ->
             dao.replaceCoursework(entries, state)
             if (uk.ac.warwick.plus.BuildConfig.DEBUG)
                 android.util.Log.i("MyWarwickPlus", "Native coursework sync succeeded; items=${entries.size}")
         }
 
     override suspend fun syncAccount(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit) =
-        authenticatedSync(6, onAuthenticated, api::account) { email, state ->
+        authenticatedSync(6, onAuthenticated, { user -> api.request { api.account(user) } }) { email, state ->
             state.email = email
             dao.replaceAccount(state)
             if (uk.ac.warwick.plus.BuildConfig.DEBUG)
@@ -91,7 +93,7 @@ class TimetableRepository(private val api: StudentApi, private val dao: Timetabl
                 // Authenticate/clear first: a previous account's cursor must never reach the API.
                 require(kind == FeedKind.MESSAGES && existing.lastOrNull()?.id == before)
             }
-            val parsed = api.feed(kind, user, before)
+            val parsed = api.request { api.feed(kind, user, before) }
             val entries = if (before == null) parsed.entries else {
                 val ids = existing.mapTo(HashSet()) { it.id }
                 val additions = parsed.entries.filter { it.id !in ids }
