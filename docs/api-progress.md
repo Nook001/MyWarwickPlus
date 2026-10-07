@@ -1,6 +1,6 @@
 # API 接入进度
 
-更新：2026-10-07；代码版本 0.18.0。本轮仅完成架构与 Kotlin 写法静态评估，待办见 [architecture.md](architecture.md) 末节；未实施优化、增加API或重新请求学校接口。下表数量是历史样本，不代表当前账户的实时数据。请求结构见 [protocol.md](protocol.md)，交付状态见 [validation.md](validation.md)。
+更新：2026-10-07；当前交付版本 0.21.0，19–21 改造进行中。已升级 Browser 1.10.0、协程运行/测试 1.11.0、JVM JSON 20260814，并启用 Gradle configuration cache；Debug/JVM 检查通过，第二次相同构建确认复用配置缓存。接口和展示范围未扩大，未重新请求学校接口。下表数量是历史样本，不代表当前账户的实时数据。请求结构见 [protocol.md](protocol.md)，交付状态见 [validation.md](validation.md)。
 
 ## 已接入
 
