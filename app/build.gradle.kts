@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -13,7 +14,6 @@ android {
         versionCode = 29
         versionName = "0.21.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        javaCompileOptions.annotationProcessorOptions.arguments["room.schemaLocation"] = "$projectDir/schemas"
     }
     buildFeatures { compose = true; buildConfig = true }
     compileOptions {
@@ -47,7 +47,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("androidx.room:room-runtime:2.8.5")
-    annotationProcessor("androidx.room:room-compiler:2.8.5")
+    ksp("androidx.room:room-compiler:2.8.5")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20260814")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
@@ -60,3 +60,5 @@ dependencies {
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
+
+ksp { arg("room.schemaLocation", "$projectDir/schemas") }
