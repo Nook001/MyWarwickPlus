@@ -41,6 +41,9 @@ class LoginActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // MyWarwick's Workbox worker precaches ~9 MB (stored twice with the HTTP cache) in the
+        // background after sign-in. Failing its install leaves the page a plain website.
+        ServiceWorkerController.getInstance().serviceWorkerWebSettings.blockNetworkLoads = true
         setContent {
             val appearance by (application as PlusApplication).appearance.state.collectAsStateWithLifecycle()
             PlusTheme(appearance) {
@@ -105,6 +108,9 @@ class LoginActivity : ComponentActivity() {
                                                     false
                                                 }
                                                 if (signedIn) {
+                                                    // Cookies are separate; SSO "remember me" survives this cleanup.
+                                                    view.clearCache(true)
+                                                    WebStorage.getInstance().deleteOrigin(MY_WARWICK)
                                                     setResult(Activity.RESULT_OK)
                                                     finish()
                                                 }
