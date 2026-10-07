@@ -8,7 +8,23 @@
 
 仅更新三个现有文档，不改源码/测试/依赖/schema/版本；不构建、不运行JVM/UI/设备测试、不部署或请求学校接口。核对本地引用、表格/代码块结构、评估中的源码符号及git diff --check；查阅Compose/Kotlin官方技术说明，不访问用户会话。之前0.18.0手机安装被拒和待验收状态保留。
 
-## 最新代码：0.23.0 / versionCode 32
+## 最新代码：0.24.0 / versionCode 33
+
+2026-10-07：首页课程分区改为Today剩余课程/Tomorrow预览与周末祝语；分区标题增加统一图标，Home/Classes/课程详情共用地点图标；Deadlines下新增最近两条Messages摘要，点开详情/关闭保留Home，All进入完整Messages。使用已有缓存与只读协议，无新增API、权限、依赖或schema改动。
+
+| 检查 | 本次结果 / 边界 |
+| --- | --- |
+| 构建 | assembleDebug / assembleRelease成功；Release R8/资源收缩通过 |
+| JVM | 76项全部通过；仅新增2项日程时间逻辑检查，覆盖精确结束边界、空今日与完成今日共用Tomorrow、跨日/英国夏令时、周末及零时长全日项。既有导航检查只适配新增当前Tab参数 |
+| Lint / 静态 | lintDebug无问题，schema5无diff；稳定分区key、消息只转换两条可见HTML、账户隔离文本缓存与详情ID校验保留 |
+| 物理部署 | 指定10AG4S2KQJ0066R执行install -r被手机拒绝（User rejected permissions）；0.24.0尚未安装，手机仍为上一版0.23.0 Debug。等待解锁/手机端允许后重试，未卸载/清数据 |
+| 未执行 | 未新增/执行UI Test；新布局、大字体/五主题视觉、消息详情返回、真实日程切换待手机手动验收；未改手机时间或自动操作账户 |
+
+命令：`:app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:assembleRelease`，JDK21；日志在不跟踪的work/024-build.log。无数据的Tomorrow/消息摘要不显示空卡片；Library/公交数据发现仍待后续，未虚构摘要。
+
+手动重点：标题图标和地点图标未撑高标题/挤压代码；Today只剩进行中/未来课、最后一节结束后可见Tomorrow（无记录时省略）；周末无剩余课祝语、Next仍保留下一次课；Messages最多两条、详情关闭仍在Home、All到完整列表；下拉刷新和原有登录缓存正常。当前时间无法触发的切换由聚焦JVM覆盖，不改系统时钟验证。
+
+## 上一版：0.23.0 / versionCode 32
 
 2026-10-07：继续17–18/A7，加入非debuggable、R8/资源收缩的profile变体与固定耗时标记、本地Perfetto采集/分析脚本。基于实际追踪将CookieManager从Application主线程初始化改为AuthSession首次需要时在IO初始化；学校只读协议、Cookie来源与schema5不变。
 

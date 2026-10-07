@@ -91,8 +91,10 @@ internal fun PlusScreen(state: TimetableState, actions: PlusActions) {
     val conflicts = remember(state.events) { conflictingEventIds(state.events) }
     val timetableRecovery = state.recovery(SyncResource.TIMETABLE)
     val courseworkRecovery = state.recovery(SyncResource.COURSEWORK)
+    val messages = state.feed(FeedKind.MESSAGES)
+    val messagesRecovery = state.recovery(SyncResource.MESSAGES)
     val home = remember(state.events, state.lastSynced, state.busy, state.coursework,
-        timetableRecovery, courseworkRecovery) { state.homePage(conflicts) }
+        timetableRecovery, courseworkRecovery, messages, messagesRecovery) { state.homePage(conflicts) }
     val schedule = remember(state.events, state.lastSynced, state.busy, state.needsLogin, state.message) {
         state.schedulePage(conflicts)
     }
@@ -107,8 +109,8 @@ internal fun PlusScreen(state: TimetableState, actions: PlusActions) {
         navigator.chooseDate(date, today)
         scheduleListState.requestScrollToItem(0)
     }
-    LaunchedEffect(state.events, state.coursework, state.feeds, state.busy, navigator.detail, navigator.meRoute) {
-        navigator.detail = navigator.detail.validated(state, navigator.meRoute)
+    LaunchedEffect(state.events, state.coursework, state.feeds, state.busy, navigator.detail, navigator.meRoute, navigator.tab) {
+        navigator.detail = navigator.detail.validated(state, navigator.meRoute, navigator.tab)
     }
     LaunchedEffect(actions.probe, navigator.meRoute) {
         if (actions.probe == null && navigator.meRoute == MeRoute.DeveloperTools) navigator.meRoute = MeRoute.Overview
@@ -172,7 +174,9 @@ internal fun PlusScreen(state: TimetableState, actions: PlusActions) {
                                     AppTab.HOME -> HomeContent(home, today, now,
                                         { navigator.detail = DetailSelection.Class(it.id) }, { navigator.detail = DetailSelection.Task(it.id) },
                                         { navigator.openTasks(CourseworkFilter.UPCOMING) },
-                                        { navigator.openTasks(CourseworkFilter.PAST) }, actions.signIn, recoverResource, openLink)
+                                        { navigator.openTasks(CourseworkFilter.PAST) }, actions.signIn, recoverResource, openLink,
+                                        { navigator.detail = DetailSelection.Feed(FeedKind.MESSAGES, it.id) },
+                                        { navigator.select(AppTab.ME); navigator.meRoute = MeRoute.Feed(FeedKind.MESSAGES) })
                                     AppTab.TASKS -> CourseworkContent(state.coursework, now, state.busy,
                                         feedback = { ResourceRecoveryRow(courseworkRecovery, actions.signIn) { recoverResource(SyncResource.COURSEWORK) } },
                                         showFeedback = state.needsLogin || state.coursework.message != null,
@@ -197,8 +201,8 @@ internal fun PlusScreen(state: TimetableState, actions: PlusActions) {
             is DetailSelection.Task -> state.coursework.entries.firstOrNull { it.id == selection.id }?.let {
                 CourseworkDetails(it, { navigator.detail = DetailSelection.None }, actions.openExternal)
             }
-            is DetailSelection.Feed -> if (route == selection.kind) state.feed(route).entries.firstOrNull { it.id == selection.id }?.let {
-                FeedDetails(route, it, actions.openExternal, { navigator.detail = DetailSelection.None })
+            is DetailSelection.Feed -> if (selection.visibleOn(navigator.tab, navigator.meRoute)) state.feed(selection.kind).entries.firstOrNull { it.id == selection.id }?.let {
+                FeedDetails(selection.kind, it, actions.openExternal, { navigator.detail = DetailSelection.None })
             }
             DetailSelection.None -> Unit
         }

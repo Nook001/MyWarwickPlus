@@ -37,6 +37,25 @@ fun eventsOnDate(events: List<EventContentItem>, date: LocalDate): List<EventCon
 
 data class ScheduleDay(val date: LocalDate, val events: List<EventContentItem>)
 
+internal data class HomeAgenda(val day: ScheduleDay, val weekendMessage: Int? = null)
+
+/** Today and a finished day have the same transition; no separate empty-tomorrow state. */
+internal fun homeAgenda(events: List<EventContentItem>, now: Long): HomeAgenda {
+    val today = atWarwick(now).toLocalDate()
+    val todayEvents = eventsOnDate(events, today)
+    val remaining = todayEvents.filter {
+        if (it.endMillis > it.startMillis) it.endMillis > now
+        else it.allDay || it.startMillis >= now
+    }
+    if (remaining.isNotEmpty()) return HomeAgenda(ScheduleDay(today, remaining))
+    if (today.dayOfWeek == DayOfWeek.SATURDAY || today.dayOfWeek == DayOfWeek.SUNDAY) {
+        return HomeAgenda(ScheduleDay(today, emptyList()),
+            if (todayEvents.isEmpty()) R.string.enjoy_weekend else R.string.well_done_weekend)
+    }
+    val tomorrow = today.plusDays(1)
+    return HomeAgenda(ScheduleDay(tomorrow, eventsOnDate(events, tomorrow)))
+}
+
 /** Include the chosen date even when empty; other empty dates do not occupy the agenda. */
 fun scheduleDays(events: List<EventContentItem>, from: LocalDate): List<ScheduleDay> {
     val grouped = sortedMapOf<LocalDate, MutableList<EventContentItem>>(from to mutableListOf())

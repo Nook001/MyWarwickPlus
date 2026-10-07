@@ -2,13 +2,13 @@
 
 独立的 Android 学生客户端原型，Kotlin + Jetpack Compose。通过官方 WebView SSO 登录，复用 MyWarwick session 与只读聚合接口，不申请新的 OAuth application；不是 Warwick 官方应用。
 
-当前代码：**0.23.0 / versionCode 32**。构建、物理安装和手动验收是不同状态，交付情况见 [验收记录](docs/validation.md)。
+当前代码：**0.24.0 / versionCode 33**。构建、物理安装和手动验收是不同状态，交付情况见 [验收记录](docs/validation.md)。
 
 ## 当前功能
 
 | 页面 | 内容 |
 | --- | --- |
-| Home | 带短名字的招呼语、Now / Next、四个常用网站入口、Today、最近三个未来截止日期 |
+| Home | 招呼语、Now / Next、四个网站入口、Today剩余课程/提前预览Tomorrow、周末祝语、最近三个未来截止日期、最近两条Messages摘要 |
 | Classes | Schedule 连续日期列表、日期跳转、冲突/跨日提示、课程详情与地点链接 |
 | Tasks | Coursework 搜索、Upcoming / Past、准确截止时间、详情与原站链接 |
 | Me | 账户邮箱与显式复制、设置、按需数据状态、Messages / Modules / Library、八个网站入口、本地 Sign out |

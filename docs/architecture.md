@@ -1,6 +1,6 @@
 # 架构与组件规范
 
-更新：2026-10-07，适用代码 0.23.0。前文记录已落地的组件、共享函数、同步、数据反馈、课表和主题标准；末节保留评估基线并标注实施进度。接口证据见 [protocol.md](protocol.md)，覆盖表见 [api-progress.md](api-progress.md)，验证状态见 [validation.md](validation.md)。
+更新：2026-10-07，适用代码 0.24.0。前文记录已落地的组件、共享函数、同步、数据反馈、课表和主题标准；末节保留评估基线并标注实施进度。接口证据见 [protocol.md](protocol.md)，覆盖表见 [api-progress.md](api-progress.md)，验证状态见 [validation.md](validation.md)。
 
 ## 代码职责
 
@@ -108,8 +108,10 @@
 
 | 页面 | 当前布局与行为 |
 | --- | --- |
-| Home | 16sp 短招呼语带名字；不重复显示当前日期、Refresh 或 View messages。Now / Next 为唯一强调卡：标签/右对齐日期时间、名称/原代码、地点/右下箭头三行，整卡详情；全日项仅进 Today。四个常用网站在 Next 下 12dp；Today、Deadlines 各自单层背景容纳标题和透明内容行，区块间 24dp |
-| Today / Deadlines | 已加载且今天无课只显示 No classes today。Deadlines 最多三条未来记录，左列数字/days，右列原始标题及 d MMM，下一年才加年份；当天未过期为 0 days。All 进 Upcoming，Recently passed 统计近七天缓存内过去条目并进 Past，不推断是否提交 |
+| Home | 16sp短招呼语；Now / Next唯一强调卡，时钟/标签/右对齐日期时间、名称/原代码、地点/右下箭头三行，整卡详情。四个网站在Next下12dp；课程与Deadlines普通单层分区，Messages使用Quiet底色；18dp标题图标不增加28dp标题行高，区块间24dp |
+| Today / Tomorrow / 周末 | homeAgenda按Europe/London日期与结束时间保留正在进行/未来课程，无剩余课程与今天本来无课共用Tomorrow切换。周末无剩余课程显示Enjoy your weekend；当天有已结束课程时加Well done，Next仍可展示未来课。Tomorrow没有记录时不显示空分区，不新增“明天没课”提示；未加载不判断无课。全日/跨日课程仍保留正确日界，稳定Lazy key避免后续分区错位 |
+| Deadlines | 最多三条未来记录，左列数字/days，右列原始标题及d MMM，下一年才加年份；当天未过期为0 days。All进Upcoming，Recently passed统计近七天缓存内过去条目并进Past，不推断是否提交 |
+| Home Messages | 最近两条按日期降序、position/id稳定排序；标题最多两行、摘要一行、来源/简短日期。仅转换两条HTML，共用按账户隔离的FeedTextCache；无记录时省略分区，不把未加载当成无消息。点击复用详情，关闭保留Home；All进入Me→Messages。只读，不改变网站已读/新增角标或后台请求 |
 | Classes / Schedule | 从今天开始的连续日期分组；日期只在小标题出现，未来空日跳过，起点空日保留标题/一行说明。同日共用底色与浅分隔线，左侧起止时间、右侧名称及代码/地点、整行详情；保留 Now/Next、冲突、全日和跨日提示 |
 | 日期选择与跨日 | 日期按钮默认 dd/MM/yyyy 输入，可切日历；只筛缓存，离开今天显示 Today。选择日与滚动位置在切页/刷新/Activity 保存状态恢复时保留，正常冷启动回今天。UTC 日期组件值先转日历日期；跨日条目按每日范围裁为 00:00–24:00，午夜结束不插空日，详情保留完整范围 |
 | Tasks / Coursework | 紧凑搜索 + Upcoming / Past；未来升序、过去降序。连续列表左列数字/days、Today 或 Passed；标题最多两行，d MMM · HH:mm，不同年加年份。无匹配可清搜索，完整信息/来源说明留详情 |
@@ -121,9 +123,10 @@
 | 组件 | 责任 / 约束 |
 | --- | --- |
 | AppCard | Normal / Quiet / Featured / Selected 四种颜色角色、形状与整卡点击；不隐式加内外边距、边框或阴影。非点击分区无按钮语义；点击重载要求 actionLabel，单动作只有一个处理器 |
-| SectionCard / GroupedListItem / ListDivider | 单层分区标题/内容、连续列表首尾圆角和分隔线；不为标题再套一层卡片。LazyColumn 的稳定 key 和列表状态属于页面 |
+| SectionCard / SectionAllAction / GroupedListItem / ListDivider | 单层分区标题/可选18dp图标与颜色角色、共享All点击语义、连续列表首尾圆角和分隔线；不为标题再套卡片。LazyColumn稳定key和列表状态属于页面 |
 | MetricListRow | 左信息列、居中、行高/留白与箭头；不接受领域 Entity，业务含义留在插槽 |
 | ScheduleClassRow / DeadlineRow | 全日/跨日/冲突/Now-Next；deadline 的 Home/List 两个明确变体，保留日期与标题差异 |
+| ContentIcons / LocationLabel | 统一线条风格；课程地点用14dp定位针+文字，Home/Classes/详情共用。缺少地点时仅显示文案；图标不请求GPS、不创建独立导航，已知地点链接仍由详情打开 |
 | ActionTile | Compact 首页 / Grid Me、图标/标签、内外目的地角标与完整点击区 |
 | SearchField | 图标、单行输入、清除与键盘 Search；筛选/query 归页面 |
 | DetailsSheet / DetailHeader / DetailField / DetailClose | 面板、滚动、标题/字段/关闭骨架；业务使用 LazyListScope 组合字段，类详情保留 24/16dp，其余 24dp 留白 |

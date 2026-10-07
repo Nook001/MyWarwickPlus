@@ -88,7 +88,7 @@ internal fun ScheduleClassRow(event: EventContentItem, date: LocalDate, status: 
             if (status != null) Text(status, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary)
             if (identity.code.isNotBlank()) Text(identity.code, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-            if (event.location.isNotBlank()) Text(event.location, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (event.location.isNotBlank()) LocationLabel(event.location)
         }
         if (!event.allDay && (time.continuesBefore || time.continuesAfter)) Text(
             listOfNotNull(if (time.continuesBefore) "Continues from previous day" else null,

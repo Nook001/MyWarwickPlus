@@ -88,10 +88,13 @@ sealed interface DetailSelection {
 private fun savedFeed(key: String?): FeedKind? = FeedKind.entries.firstOrNull { it.key.toString() == key }
 
 // A process restart can briefly expose an empty, still-loading cache. Validate after it is known.
-internal fun DetailSelection.validated(state: TimetableState, route: MeRoute): DetailSelection = when (this) {
+internal fun DetailSelection.Feed.visibleOn(tab: AppTab, route: MeRoute): Boolean =
+    (tab == AppTab.HOME && kind == FeedKind.MESSAGES) || (tab == AppTab.ME && route == MeRoute.Feed(kind))
+
+internal fun DetailSelection.validated(state: TimetableState, route: MeRoute, tab: AppTab): DetailSelection = when (this) {
     DetailSelection.None -> this
     is DetailSelection.Class -> if ((state.lastSynced != null || !state.busy) && state.events.none { it.id == id }) DetailSelection.None else this
     is DetailSelection.Task -> if ((state.coursework.lastSynced != null || !state.busy) && state.coursework.entries.none { it.id == id }) DetailSelection.None else this
-    is DetailSelection.Feed -> if (route != MeRoute.Feed(kind) ||
+    is DetailSelection.Feed -> if (!visibleOn(tab, route) ||
         (state.feed(kind).lastSynced != null || !state.busy) && state.feed(kind).entries.none { it.id == id }) DetailSelection.None else this
 }

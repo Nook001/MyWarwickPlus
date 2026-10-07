@@ -1,6 +1,7 @@
 package uk.ac.warwick.plus.ui.components
 
 import uk.ac.warwick.plus.ui.DetailsChevron
+import uk.ac.warwick.plus.R
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -10,8 +11,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -19,12 +23,15 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 internal fun SectionCard(title: String, modifier: Modifier = Modifier,
-    headingTag: String? = null, trailing: @Composable () -> Unit = {}, content: @Composable ColumnScope.() -> Unit) {
-    AppCard(modifier.fillMaxWidth()) {
+    headingTag: String? = null, icon: ImageVector? = null, tone: CardTone = CardTone.Normal,
+    trailing: @Composable () -> Unit = {}, content: @Composable ColumnScope.() -> Unit) {
+    AppCard(modifier.fillMaxWidth(), tone = tone) {
         Column {
             Row(Modifier.fillMaxWidth().then(if (headingTag == null) Modifier else Modifier.testTag("$headingTag-header"))
                 .heightIn(min = 28.dp).padding(horizontal = Spacing.contentInset),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (icon != null) Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f).then(if (headingTag == null) Modifier else Modifier.testTag("$headingTag-heading")))
@@ -32,6 +39,19 @@ internal fun SectionCard(title: String, modifier: Modifier = Modifier,
             }
             content()
         }
+    }
+}
+
+@Composable
+internal fun SectionAllAction(actionLabel: String, onClick: () -> Unit) {
+    Row(Modifier.widthIn(min = 48.dp).heightIn(min = 28.dp)
+        .clickable(onClickLabel = actionLabel, role = Role.Button, onClick = onClick)
+        .padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.End) {
+        Text(stringResource(R.string.action_all),
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+        Icon(DetailsChevron, contentDescription = null, modifier = Modifier.size(14.dp),
+            tint = MaterialTheme.colorScheme.primary)
     }
 }
 

@@ -1,15 +1,15 @@
 # API 接入进度
 
-更新：2026-10-07；代码 0.23.0 / versionCode32。CookieManager改为首次请求需要时在IO惰性初始化，已有缓存可独立打开；Cookie来源/域白名单、接口路径、只读边界及schema5不变。Perfetto采集包含应用正常前台刷新，未新增endpoint抓取或响应结构证据。下表为历史证据，不代表当前账户实时数量。协议见 [protocol.md](protocol.md)，架构见 [architecture.md](architecture.md)，交付状态见 [validation.md](validation.md)。
+更新：2026-10-07；代码 0.24.0 / versionCode33。首页按英国时间展示Today剩余课程或Tomorrow预览，周末无剩余课程显示祝语；新增最近两条Messages摘要。仅复用已有缓存/详情与前台刷新，接口、认证、只读边界及schema5不变；公交与非空Library结构仍未验证。下表为历史证据，不代表当前账户实时数量。协议见 [protocol.md](protocol.md)，架构见 [architecture.md](architecture.md)，交付状态见 [validation.md](validation.md)。
 
 ## 已接入
 
 | API / 方法 | 接入情况 | 使用与展示 | 验证 / 限制 |
 | --- | --- | --- | --- |
 | `GET /user/info` | 原生已验证 | 每资源更新前验证账户并取得 CSRF；Me 使用姓名、usercode | WebView session；不保存或输出认证字段 |
-| `GET /api/tiles/content/timetable` | 原生已验证 | Home Now / Next 与 Today；Classes 日期分组、冲突/跨日提示、详情与地点入口 | 早期原生样本 143 条；0.15.0 本地缓存 186 条。英国时区；全日项不参加 Now / Next |
+| `GET /api/tiles/content/timetable` | 原生已验证 | Home Now / Next、Today剩余课程/Tomorrow预览、周末无剩余课程祝语；Classes日期分组、冲突/跨日、共享地点图标与详情入口 | 早期原生样本143条；0.15.0本地缓存186条。英国时区；全日项不参加Now / Next，保留在日程列表 |
 | `GET /api/tiles/content/coursework` | 浏览器、原生已验证 | Home 最近 3 个未来 deadline / Recently passed；Tasks 搜索、Upcoming / Past、详情与原站链接 | 历史样本 3 条；使用原始 title，无独立课程名字段。近期聚合，不代表完整历史或提交状态 |
-| `GET /api/streams/notifications?limit=100[&before={id}]` | 已接入；浏览器协议验证、手机整体反馈正常 | Me → Messages：搜索、纯文本详情、原站入口、显式更早分页；刷新重置历史页，最多缓存 500 条 | 0.4.0 浏览器 69 条；未单独记录原生实时数量。read 为网站已读时间；不写回已读，不推断紧急等级 |
+| `GET /api/streams/notifications?limit=100[&before={id}]` | 已接入；浏览器协议验证、手机整体反馈正常 | Home最近两条摘要，点击详情后留在Home，All进入完整列表；Me → Messages搜索/原站入口/显式更早分页。刷新重置历史页，最多缓存500条 | 0.4.0浏览器69条；未单独记录原生实时数量。摘要仅对两条可见消息在后台转纯文本；不写回网站已读、不新增未读计数或推断紧急等级 |
 | `GET /api/tiles/content/modules` | 已接入；浏览器协议验证、手机整体反馈正常 | Me → Modules：名称、代码、学年、搜索、公告/评估数量和 Moodle 入口 | 0.4.0 浏览器 1 条；公告/评估当时为空，正文与完整选课覆盖未验证 |
 | `GET /api/tiles/content/library` | 摘要页已接入；浏览器、原生空列表已验证 | Me → Library：学校说明、账户入口；非空时只展示已知 title/text/href 或通用原站提示 | 历史样本 0 条；非空借阅、到期日与欠费结构待验证 |
 | `GET /api/tiles/content/account` | 原生解析与缓存已验证 | Me 邮箱/显式复制；独立 Account 状态与刷新。姓名/账号仍来自 user/info | 2026-10-06 前端结构证据 + 手机 schema 5、id=6、邮箱非空检查；未输出邮箱。空值不猜测地址，复制操作待手动核对 |

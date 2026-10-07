@@ -12,6 +12,36 @@ class SchedulePresentationTest {
         this.id = id; startMillis = ZonedDateTime.parse(start).toInstant().toEpochMilli()
         endMillis = ZonedDateTime.parse(end).toInstant().toEpochMilli()
     }
+    @Test fun homeAgendaUsesRemainingCoursesAndRollsAtTheExactFinish() {
+        val morning = event("morning", "2026-10-07T09:00:00+01:00", "2026-10-07T10:00:00+01:00")
+        val afternoon = event("afternoon", "2026-10-07T13:00:00+01:00", "2026-10-07T14:00:00+01:00")
+        val tomorrow = event("tomorrow", "2026-10-08T10:00:00+01:00", "2026-10-08T11:00:00+01:00")
+        val entries = listOf(morning, afternoon, tomorrow)
+        assertEquals(listOf("morning", "afternoon"), homeAgenda(entries, morning.startMillis + 1).day.events.map { it.id })
+        assertEquals(listOf("afternoon"), homeAgenda(entries, morning.endMillis).day.events.map { it.id })
+        val rolled = homeAgenda(entries, afternoon.endMillis)
+        assertEquals(LocalDate.of(2026, 10, 8), rolled.day.date)
+        assertEquals(listOf("tomorrow"), rolled.day.events.map { it.id })
+        assertEquals(rolled, homeAgenda(listOf(tomorrow), afternoon.endMillis))
+        val empty = homeAgenda(emptyList(), afternoon.endMillis)
+        assertTrue(empty.day.events.isEmpty())
+        assertNull(empty.weekendMessage)
+    }
+    @Test fun homeAgendaKeepsCrossDayAndAllDayItemsBeforeWeekendGreeting() {
+        val previous = TimeZone.getDefault()
+        try {
+            TimeZone.setDefault(TimeZone.getTimeZone("Asia/Shanghai"))
+            val overnight = event("overnight", "2026-10-24T23:30:00+01:00", "2026-10-25T02:30:00Z")
+            val during = homeAgenda(listOf(overnight), Instant.parse("2026-10-25T01:30:00Z").toEpochMilli())
+            assertEquals(LocalDate.of(2026, 10, 25), during.day.date)
+            assertEquals(listOf("overnight"), during.day.events.map { it.id })
+            assertNull(during.weekendMessage)
+            assertEquals(R.string.well_done_weekend, homeAgenda(listOf(overnight), overnight.endMillis).weekendMessage)
+            assertEquals(R.string.enjoy_weekend, homeAgenda(emptyList(), overnight.endMillis).weekendMessage)
+            val allDay = event("all-day", "2026-10-25T00:00:00+01:00", "2026-10-25T00:00:00+01:00").apply { this.allDay = true }
+            assertEquals(listOf("all-day"), homeAgenda(listOf(allDay), overnight.endMillis).day.events.map { it.id })
+        } finally { TimeZone.setDefault(previous) }
+    }
     @Test fun agendaKeepsEmptyAnchorSkipsGapsAndSortsCoursesAndDates() {
         val from = LocalDate.of(2026,10,4)
         val events = listOf(event("late", "2026-10-05T13:00:00+01:00", "2026-10-05T14:00:00+01:00"),

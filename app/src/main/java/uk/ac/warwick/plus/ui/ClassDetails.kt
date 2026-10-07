@@ -24,7 +24,14 @@ internal fun EventDetails(event: EventContentItem, conflict: Boolean, onDismiss:
         item {
             DetailField(stringResource(R.string.when_label), classDetailTime(event))
         }
-        item { DetailField(stringResource(R.string.location), event.location.ifBlank { stringResource(R.string.location_not_provided) }) }
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(stringResource(R.string.location), style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                LocationLabel(event.location, style = MaterialTheme.typography.bodyLarge,
+                    colour = MaterialTheme.colorScheme.onSurface, maxLines = Int.MAX_VALUE)
+            }
+        }
         if (conflict) item { Text(stringResource(R.string.class_overlap_detail), color = MaterialTheme.colorScheme.error) }
         if (event.academicWeek > 0) item { DetailField(stringResource(R.string.academic_week), event.academicWeek.toString()) }
         safeExternalUrl(event.locationUrl)?.let { url -> item { ExternalLinkButton(url, stringResource(R.string.open_location), onOpen) } }

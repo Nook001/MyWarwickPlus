@@ -38,12 +38,12 @@ class NavigationStateTest {
         val restoredDetail = DetailSelection.restore(detail.savedValues())
         assertEquals(route, restoredRoute)
         assertEquals(detail, restoredDetail)
-        assertEquals(detail, restoredDetail.validated(TimetableState(busy = true), restoredRoute))
+        assertEquals(detail, restoredDetail.validated(TimetableState(busy = true), restoredRoute, AppTab.ME))
         val loaded = TimetableState(feeds = mapOf(FeedKind.MESSAGES to FeedState(
             entries = listOf(FeedEntry().apply { this.id = id }), lastSynced = 1)))
-        assertEquals(detail, restoredDetail.validated(loaded, restoredRoute))
-        assertEquals(DetailSelection.None, restoredDetail.validated(loaded, MeRoute.Feed(FeedKind.MODULES)))
-        assertEquals(DetailSelection.None, restoredDetail.validated(loaded.copy(feeds = emptyMap()), restoredRoute))
+        assertEquals(detail, restoredDetail.validated(loaded, restoredRoute, AppTab.ME))
+        assertEquals(DetailSelection.None, restoredDetail.validated(loaded, MeRoute.Feed(FeedKind.MODULES), AppTab.ME))
+        assertEquals(DetailSelection.None, restoredDetail.validated(loaded.copy(feeds = emptyMap()), restoredRoute, AppTab.ME))
     }
 
     @Test fun currentSavedKeysRestoreAndUnsupportedValuesUseSafeDefaults() {

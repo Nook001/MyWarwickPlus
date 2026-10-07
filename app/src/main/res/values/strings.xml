@@ -17,6 +17,10 @@
     <string name="label_now">Now</string>
     <string name="label_next">Next</string>
     <string name="label_today">Today</string>
+    <string name="enjoy_weekend">Enjoy your weekend.</string>
+    <string name="well_done_weekend">Well done. Enjoy your weekend.</string>
+    <string name="view_all_messages">View all messages</string>
+    <string name="view_all_tasks">View all tasks</string>
     <string name="label_deadlines">Deadlines</string>
     <string name="label_brand">MY WARWICK +</string>
     <string name="action_sign_in">Sign in</string>
