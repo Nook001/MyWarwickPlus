@@ -27,6 +27,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 import java.util.Random
+import uk.ac.warwick.plus.traceWork
 
 data class BackgroundKey(val theme: ColourTheme, val texture: Boolean, val width: Int, val height: Int)
 
@@ -48,7 +49,9 @@ class ThemeBackgroundCache {
         }, 128, 128, Bitmap.Config.ARGB_8888)
     }
     suspend fun get(key: BackgroundKey): Bitmap = mutex.withLock {
-        cache[key] ?: withContext(Dispatchers.Default) { render(key) }.also { cache.put(key, it) }
+        cache[key] ?: withContext(Dispatchers.Default) {
+            traceWork("MWP.Background.render") { render(key) }
+        }.also { cache.put(key, it) }
     }
     private fun render(key: BackgroundKey): Bitmap {
         val bitmap = createBitmap(key.width, key.height)

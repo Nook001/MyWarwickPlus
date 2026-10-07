@@ -12,6 +12,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import uk.ac.warwick.plus.data.FeedContentItem
+import uk.ac.warwick.plus.traceWork
 
 fun feedText(entry: FeedContentItem): String = if (entry.html) Html.fromHtml(entry.text, Html.FROM_HTML_MODE_LEGACY).toString().replace("\uFFFC", "").trim() else entry.text
 
@@ -21,7 +22,7 @@ internal class FeedTextCache {
     }
     fun plain(entry: FeedContentItem): String {
         if (!entry.html) return entry.text
-        return text[entry.text] ?: feedText(entry).also { text.put(entry.text, it) }
+        return text[entry.text] ?: traceWork("MWP.Feed.html") { feedText(entry) }.also { text.put(entry.text, it) }
     }
 }
 

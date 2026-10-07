@@ -1,6 +1,6 @@
 # 架构与组件规范
 
-更新：2026-10-07，适用代码 0.22.1。前文记录已落地的组件、共享函数、同步、数据反馈、课表和主题标准；末节保留评估基线并标注实施进度。接口证据见 [protocol.md](protocol.md)，覆盖表见 [api-progress.md](api-progress.md)，验证状态见 [validation.md](validation.md)。
+更新：2026-10-07，适用代码 0.23.0。前文记录已落地的组件、共享函数、同步、数据反馈、课表和主题标准；末节保留评估基线并标注实施进度。接口证据见 [protocol.md](protocol.md)，覆盖表见 [api-progress.md](api-progress.md)，验证状态见 [validation.md](validation.md)。
 
 ## 代码职责
 
@@ -43,6 +43,17 @@
 - Android 17 行为按官方文档审阅；使用 Network Security Config 禁止明文，不绕过 TLS/CT。没有 LAN/OTP/后台音频/RemoteViews 功能，不增加无关权限。现有手机 API36，API37 系统运行验证仍待对应设备；构建通过不能替代运行验证。
 
 依据：[AGP 9.4](https://developer.android.com/build/releases/agp-9-4-0-release-notes)、[内置 Kotlin](https://developer.android.com/build/migrate-to-built-in-kotlin)、[Gradle 9.8](https://docs.gradle.org/9.8.0/release-notes.html)、[Android 17 目标行为](https://developer.android.com/about/versions/17/behavior-changes-17)。检查与交付见 [validation.md](validation.md)。工具链尚有 Configuration.setVisible 的 Gradle 11 弃用提示，不宣称兼容未来 Gradle。
+
+## 0.23.0：性能采集与启动初始化
+
+- `profile`变体继承Release的R8/资源收缩，非debuggable，以本地debug签名保留同包名数据；仅此变体启用`profileable android:shell=true`及`PERFORMANCE_TRACING`。Debug/Release的固定标记通过常量关闭，不引入自动UI测试/benchmark模块或新依赖。
+- `traceWork`仅包同步区域，用try/finally在同一线程配对；标记固定为MWP.CookieManager.init、Session/Api/Repository.create、Appearance.load、Cache.snapshot、Background.render、Feed.html，不含姓名、响应或认证值。挂起/网络等待不使用同步trace跨线程配对。
+- CookieManager从Application主线程提前初始化改为AuthSession线程安全lazy；原生CookieJar首次访问发生在请求IO线程。缓存离线阅读无需加载WebView provider；显式Sign out仍在Main清会话，LoginActivity仍设置SSO第三方Cookie策略。Cookie默认接受，无需重复setAcceptCookie(true)，未改变Cookie来源、host白名单、flush与取消规则。
+- [capture.py](../tools/performance/capture.py)明确要求物理序列号，拒绝模拟器和debuggable测量；配置从stdin传入，避免OEM对配置目录的SELinux限制。冷启动模式只force-stop/start本应用；manual模式只录制，由用户操作手机。64MiB缓冲、固定有界时长，记录安装APK/hash、设备/版本、原始trace及am辅助值；不修改编译模式/电源/网络/登录，不收集logcat、截图或网络内容，不上传。
+- [analyze.py](../tools/performance/analyze.py)按Perfetto启动/帧数据与固定应用标记统计多样本。拒绝缺失冷启动/关键标记或本次buffer丢包/解析错误；服务跨会话累计丢弃计数单独记录。OEM有时把新进程标成pre-initialized，此时由固定MWP标记定位upid，再按首个Choreographer/DrawFrame终点计算TTID，并明确标记来源。首帧可见不等于缓存、网络或背景全部就绪；启动帧计数不作为滚动基准。
+- 原始trace只保留在不跟踪的work/performance，汇总与局限写入[validation.md](validation.md)。Baseline Profile和Classes/Messages手动滚动、主题切换内存仍需独立证据，不能从启动样本推出收益。
+
+工具依据：[profileable](https://developer.android.com/guide/topics/manifest/profileable-element)、[Perfetto采集](https://perfetto.dev/docs/getting-started/system-tracing)、[Trace Processor](https://perfetto.dev/docs/reference/trace-processor-cli)、[官方工具下载脚本](https://raw.githubusercontent.com/google/perfetto/main/tools/trace_processor)、[CookieManager默认行为](https://developer.android.com/reference/android/webkit/CookieManager#setAcceptCookie(boolean))。本机使用官方Windows Trace Processor v58.2并核对其发布脚本内SHA-256；启动采集包含既有联网刷新和正常系统调度，不宣称实验室级稳定基准。
 
 ## 同步、缓存与恢复
 
@@ -230,6 +241,6 @@ Me → Settings → Appearance 选择 Forest（默认）、Lake、Heather、Sand
 
 1. A1/A2/A3代码与必要检查已完成；优先手动验收刷新、搜索、后台返回及缓存恢复，不自动退出真实账号。视觉、协议、schema、重试预算及串行顺序保持原约定。
 2. A4/A6代码已在0.20.0完成，保留返回/选日和账户隔离语义；先手动验收，再转回功能开发。A5剩余按页调度只在有收益时再做；工具链/依赖升级另外分批。
-3. A7 用物理手机建立同构建/数据的前后记录。编译器报告入口已建立，接着做手动/跟踪测量；Baseline Profile、自动化benchmark、额外插件留到测量确有需要的专项，不默认扩展本批范围。当前无已证实性能提升。
+3. A7 的测量入口已在0.23.0建立，完成同设备/同profile配置5+5次启动及一次用户手动Classes录制。CookieManager已确认移出主线程，首帧小样本变化见validation；尚无所有设备的收益结论。Messages/主题切换内存和可重复滚动对比继续补证据；Baseline Profile与自动化benchmark留到测量确有需要的专项，不默认加入UI测试。
 
 依据：[Compose计算与状态读取](https://developer.android.com/develop/ui/compose/performance/bestpractices)、[Compose稳定性契约](https://developer.android.com/develop/ui/compose/performance/stability/fix)、[Kotlin作用域函数](https://kotlinlang.org/docs/scope-functions.html)、[runCatching捕获范围](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/run-catching.html)。它们用于判断优化方法；具体待办来自本地源码，不代表官方对本项目的评分。

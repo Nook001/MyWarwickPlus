@@ -11,8 +11,9 @@ android {
         applicationId = "uk.ac.warwick.plus"
         minSdk = 28
         targetSdk = 37
-        versionCode = 31
-        versionName = "0.22.1"
+        versionCode = 32
+        versionName = "0.23.0"
+        buildConfigField("boolean", "PERFORMANCE_TRACING", "false")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { compose = true; buildConfig = true }
@@ -25,6 +26,13 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+        create("profile") {
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            isDebuggable = false
+            matchingFallbacks += "release"
+            buildConfigField("boolean", "PERFORMANCE_TRACING", "true")
         }
     }
 }

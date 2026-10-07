@@ -4,6 +4,7 @@
 **/build/
 local.properties
 work/
+**/__pycache__/
 *.iml
 *.jks
 *.keystore

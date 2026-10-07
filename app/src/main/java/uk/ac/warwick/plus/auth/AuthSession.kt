@@ -18,11 +18,18 @@ import android.webkit.CookieManager
 import okhttp3.Cookie
 import okhttp3.CookieJar
 import okhttp3.HttpUrl
+import uk.ac.warwick.plus.traceWork
 
 const val MY_WARWICK = "https://my.warwick.ac.uk"
 
 /** WebView is the cookie authority. Never copy a Warwick-wide cookie to another host. */
-class AuthSession(private val manager: CookieManager = CookieManager.getInstance()) : CookieJar {
+class AuthSession(providedManager: CookieManager? = null) : CookieJar {
+    // Do not load the WebView provider while constructing the UI's repository.
+    // Native requests first access this on IO; explicit sign-out still runs on Main.
+    // Cookie acceptance defaults to true; LoginActivity configures third-party SSO cookies.
+    private val manager by lazy {
+        traceWork("MWP.CookieManager.init") { providedManager ?: CookieManager.getInstance() }
+    }
     suspend fun clear(context: Context) = withContext(Dispatchers.Main) {
         suspendCancellableCoroutine<Unit> { continuation ->
             manager.removeAllCookies { if (continuation.isActive) continuation.resumeWith(Result.success(Unit)) }

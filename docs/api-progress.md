@@ -1,6 +1,6 @@
 # API 接入进度
 
-更新：2026-10-07；代码 0.22.1 / versionCode31。19–21 已落地 Kotlin DAO/实体 + KSP + 事务缓存 Flow、文案资源、依赖/构建链和 targetSdk37；本次移除旧数据库迁移与导航键适配。认证/接口路径/只读边界及当前 schema5 不变，未重新抓取学校接口；学校实际响应的日期格式处理保留。下表为历史证据，不代表当前账户实时数量。协议见 [protocol.md](protocol.md)，架构见 [architecture.md](architecture.md)，交付状态见 [validation.md](validation.md)。
+更新：2026-10-07；代码 0.23.0 / versionCode32。CookieManager改为首次请求需要时在IO惰性初始化，已有缓存可独立打开；Cookie来源/域白名单、接口路径、只读边界及schema5不变。Perfetto采集包含应用正常前台刷新，未新增endpoint抓取或响应结构证据。下表为历史证据，不代表当前账户实时数量。协议见 [protocol.md](protocol.md)，架构见 [architecture.md](architecture.md)，交付状态见 [validation.md](validation.md)。
 
 ## 已接入
 

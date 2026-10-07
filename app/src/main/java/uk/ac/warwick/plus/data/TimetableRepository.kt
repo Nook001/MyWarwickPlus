@@ -1,6 +1,7 @@
 package uk.ac.warwick.plus.data
 
 import uk.ac.warwick.plus.debugLog
+import uk.ac.warwick.plus.traceWork
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
@@ -42,7 +43,7 @@ class TimetableRepository(private val api: StudentApi, private val dao: StudentC
     private val mutex = Mutex()
     // Accessed only under mutex; this ordering also protects against late Flow reads.
     private var revision = 0L
-    private fun readCache() = dao.snapshot().copy(revision = revision)
+    private fun readCache() = traceWork("MWP.Cache.snapshot") { dao.snapshot().copy(revision = revision) }
 
     override fun observeCache(): Flow<CachedTimetable> = dao.changes()
         .map { inStore { readCache() } }.distinctUntilChanged()

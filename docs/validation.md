@@ -8,7 +8,36 @@
 
 仅更新三个现有文档，不改源码/测试/依赖/schema/版本；不构建、不运行JVM/UI/设备测试、不部署或请求学校接口。核对本地引用、表格/代码块结构、评估中的源码符号及git diff --check；查阅Compose/Kotlin官方技术说明，不访问用户会话。之前0.18.0手机安装被拒和待验收状态保留。
 
-## 最新代码：0.22.1 / versionCode 31
+## 最新代码：0.23.0 / versionCode 32
+
+2026-10-07：继续17–18/A7，加入非debuggable、R8/资源收缩的profile变体与固定耗时标记、本地Perfetto采集/分析脚本。基于实际追踪将CookieManager从Application主线程初始化改为AuthSession首次需要时在IO初始化；学校只读协议、Cookie来源与schema5不变。
+
+| 检查 | 本次结果 / 边界 |
+| --- | --- |
+| 构建 / JVM | 最终assembleProfile / assembleDebug / assembleRelease成功；profile与Release R8/资源收缩通过，既有74项JVM全部通过；未新增测试 |
+| Lint / schema | lintDebug 0 errors / 0 warnings；schema5无diff，identity hash不变；Debug/Release PERFORMANCE_TRACING=false，profile=true且非debuggable/profileable |
+| 采集入口 | 两个Python脚本仅标准库，语法核对并实际采集/分析；明确物理序列号，拒绝模拟器/debuggable，记录配置/版本/APK SHA-256与trace。官方Windows Trace Processor v58.2，SHA-256 adfa6bad3d72be3ba9b83fa2b17b69fa13b3ab1cad0f42e52b86188bd5f0f997 |
+| 有效启动追踪 | vivo V2502A / API36；同profile类型、64MiB/8秒配置、各5次进程冷启动；未更改ART编译模式/网络/屏幕设置或清登录缓存。本次buffer丢包/解析错误均为0，服务跨会话累计计数单独保留 |
+| 手动Classes | 用户明确“准备好了”，随后提示开Classes/来回滚动并录制12秒；非自动UI操作。1140个应用帧，App Deadline Missed 1、Buffer Stuffing 3、Dropped Frame 1、Prediction Error 298、None 837；平均frame slice时长3.703ms，不作为显示帧间隔或FPS |
+| 物理部署 | 基线与候选profile均指定10AG4S2KQJ0066R执行install -r成功。恢复日常Debug的两次安装均被手机拒绝（User rejected permissions），当前仍为0.23.0 profile；已再次核对versionCode32与非debuggable状态，等待手机端允许后重试，未卸载/清数据 |
+| 未执行 | UI Test、自动点击/滑动/截图/退出、API37运行验证、Messages滚动、主题切换内存、Baseline Profile生成或Macrobenchmark |
+
+启动结果来自Perfetto的首帧TTID（ms）；am值只作采集辅助，不混作发布基准：
+
+| 5次有效样本 | 提前初始化基线 | IO惰性初始化候选 |
+| --- | --- | --- |
+| TTID中位数 / 范围 | 192.210 / 174.474–229.781 | 174.983 / 150.963–185.851 |
+| CookieManager首次初始化中位数 / 主线程样本 | 19.850 / 5 | 34.978 / 0 |
+| 首次事务缓存快照中位数 / 主线程样本 | 8.307 / 0 | 7.719 / 0 |
+| 首次背景生成中位数 / 主线程样本 | 25.663 / 0 | 19.567 / 0 |
+
+初始化工作没有消失；可靠结论是CookieManager离开启动主线程。TTID观测差约17ms，小样本并未控制联网刷新、系统负载、页缓存与ART编译状态，不外推全部设备或所有场景。启动帧的Prediction Error标记在候选较多，手动滚动亦存在；与App Deadline Missed分列，不把所有标记合并解释为应用CPU卡顿，也不据此宣称滚动改善。每组各一条trace的进程名仍为pre-initialized，分析以固定MWP标记定位upid、按相同首帧终点算法补TTID，JSON标记了来源。
+
+有效产物位于不跟踪的work/performance/：eager-baseline64-20261007T173819Z-c53b82b1、lazy-candidate-20261007T174357Z-c8601f18、classes-scroll-20261007T174908Z-72107c50。最初32MiB试采出现buffer丢弃，未用于结果；扩大缓冲后重采。原始trace只在本机保存，不上传或提交。
+
+验证命令：`:app:assembleProfile :app:assembleDebug :app:testDebugUnitTest :app:lintDebug`，再单独`:app:assembleRelease`，JDK21。采集/分析用法见[README](../README.md)，手动复核：已有登录与缓存、联网下拉更新、重新进入Classes/Tasks；重新登录仅在用户愿意时测试。
+
+## 上一版：0.22.1 / versionCode 31
 
 2026-10-07：用户授权覆盖安装后清理旧版本兼容代码。删除数据库1→5迁移链/注册与schema1–4导出文件，导航仅接受当前Tab/Filter存储键；保留当前schema5、正常状态校验和学校API实际日期格式处理。Feed圆角token从legacyContent更名为feedContent，数值/布局不变。未增加破坏性数据库重建、卸载或清数据流程。
 
