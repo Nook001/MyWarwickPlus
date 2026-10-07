@@ -10,6 +10,8 @@
 
 21：页面/Tab/筛选名称、动作、主题和服务名称、空态、主要无障碍提示、错误及进度文案集中为 strings.xml 资源；数量使用 plurals，格式化文案使用位置参数。AppLabels/AppActions 与页面定义只保留资源 ID，UiText 延迟到 UI 解析，不向 ViewModel 注入 Context。删除未发布旧 UI 调用适配；JVM 既有检查改用类型化筛选/恢复动作/消息描述。Debug、74 项 JVM 与 Lint 通过；英文内容、英国日期格式仍保留，未新增翻译。开发者诊断和少量时间组合文本后续按需要迁移。
 
+20 HTTP 阶段：OkHttp 5.5.0 已通过 Debug/JVM 检查，包括真实阻塞响应体取消与调用注册前取消的既有检查。仍使用有边界的同步 body 读取与响应关闭；不改为只等待响应头的异步包装。学校路径、CookieJar、Csrf-Token、大小限制与退出等待保持。
+
 | API / 方法 | 接入情况 | 使用与展示 | 验证 / 限制 |
 | --- | --- | --- | --- |
 | `GET /user/info` | 原生已验证 | 每资源更新前验证账户并取得 CSRF；Me 使用姓名、usercode | WebView session；不保存或输出认证字段 |
