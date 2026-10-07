@@ -1,6 +1,7 @@
 package uk.ac.warwick.plus
 
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.*
 import org.junit.After
 import org.junit.Assert.*
@@ -19,7 +20,12 @@ class TimetableStateTest {
     private fun snapshot(events: List<EventEntity> = listOf(EventEntity().apply { id = "sample"; title = "Example class" })) =
         CachedTimetable(events, SyncEntity().apply { userCode = user.code; displayName = user.name; syncedAt = 100L })
 
-    private class Store(var cache: CachedTimetable) : TimetableStore {
+    private class Store(initial: CachedTimetable) : TimetableStore {
+        private val snapshots = MutableStateFlow(initial)
+        var cache: CachedTimetable
+            get() = snapshots.value
+            set(value) { snapshots.value = value }
+        override fun observeCache() = snapshots
         var operation: suspend ((SignedInUser, CachedTimetable) -> Unit) -> CachedTimetable = { cache }
         var calls = 0
         override suspend fun syncAccount(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit) = cache
@@ -44,6 +50,25 @@ class TimetableStateTest {
         assertEquals(1, store.calls)
         gate.complete(Unit); advanceUntilIdle()
         assertFalse(model.state.value.busy)
+    }
+
+    @Test fun cacheFlowChangesContentWithoutErasingRecoveryAndOldAccountReadsAreIgnored() = runTest(dispatcher) {
+        val store = Store(snapshot().copy(revision = 1))
+        store.operation = { throw IOException() }
+        val model = TimetableViewModel(store, {})
+        advanceUntilIdle()
+        val failure = model.state.value.message
+        store.cache = snapshot(listOf(EventEntity(id = "changed", title = "Changed class"))).copy(revision = 2)
+        runCurrent()
+        assertEquals("Changed class", model.state.value.events.single().title)
+        assertEquals(failure, model.state.value.message)
+        store.cache = snapshot(listOf(EventEntity(id = "stale"))).copy(revision = 1)
+        runCurrent()
+        assertEquals("changed", model.state.value.events.single().id)
+        model.signOut()
+        advanceUntilIdle()
+        assertTrue(model.state.value.events.isEmpty())
+        assertTrue(model.state.value.needsLogin)
     }
 
     @Test fun offlineRefreshPreservesSavedTimetableAndRecovers() = runTest(dispatcher) {

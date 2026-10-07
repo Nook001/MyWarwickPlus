@@ -1,6 +1,7 @@
 package uk.ac.warwick.plus
 
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.*
 import org.junit.After
 import org.junit.Assert.*
@@ -17,10 +18,14 @@ class SyncRetryTest {
     @After fun reset() { Dispatchers.resetMain() }
     private class Store : TimetableStore {
         val user = SignedInUser("example", "Example student", "", "")
-        var cache = CachedTimetable(listOf(EventEntity().apply { id = "saved"; title = "Saved class" }),
+        private val snapshots = MutableStateFlow(CachedTimetable(listOf(EventEntity().apply { id = "saved"; title = "Saved class" }),
             SyncEntity().apply { userCode = user.code; syncedAt = 100 }, feeds = mapOf(FeedKind.MESSAGES to
                 CachedFeed(listOf(FeedEntry().apply { id = "cursor"; feed = FeedKind.MESSAGES.key }),
-                    FeedMeta().apply { hasMore = true }, SyncEntity().apply { syncedAt = 100 })))
+                    FeedMeta().apply { hasMore = true }, SyncEntity().apply { syncedAt = 100 }))))
+        var cache: CachedTimetable
+            get() = snapshots.value
+            set(value) { snapshots.value = value }
+        override fun observeCache() = snapshots
         var timetableCalls = 0
         var courseworkCalls = 0
         var accountCalls = 0

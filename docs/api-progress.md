@@ -6,6 +6,8 @@
 
 19 第一阶段：TimetableDao 已迁为 Kotlin，Room 2.8.5 改用 KSP 2.3.12；AGP 内置 Kotlin 保留。Debug 与 73 项 JVM 检查通过，导出 schema5 无变化。DAO 明确可空的查询结果；旧设备测试的非空假设不再符合该类型边界，本轮未修改或执行 UI Test，不为旧测试添加运行时代码适配。
 
+19 第二阶段：全部缓存表的 Room invalidation Flow 驱动事务快照，按值去重；实体迁为 Kotlin data class。ViewModel 不再在每次同步成功/失败后手动重读缓存；保留首次启动读取、账户验证时清空旧账户、退出取消观察和 HTTP 等待边界。内存 revision 防止晚到的旧读取覆盖换账户后的状态，错误/重试/进度不写入缓存。API 与 schema5 无变化。
+
 | API / 方法 | 接入情况 | 使用与展示 | 验证 / 限制 |
 | --- | --- | --- | --- |
 | `GET /user/info` | 原生已验证 | 每资源更新前验证账户并取得 CSRF；Me 使用姓名、usercode | WebView session；不保存或输出认证字段 |

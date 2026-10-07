@@ -1,8 +1,11 @@
 package uk.ac.warwick.plus.data
 
+import kotlinx.coroutines.flow.Flow
+
 /** Atomic cache operations exposed to the repository; SQL mutation primitives stay in the DAO. */
 @JvmSuppressWildcards
 interface StudentCache {
+    fun changes(): Flow<Unit>
     fun snapshot(): CachedTimetable
     fun states(): List<SyncEntity>
     fun feedEntries(feed: Int): List<FeedEntry>

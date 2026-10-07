@@ -1,6 +1,7 @@
 package uk.ac.warwick.plus
 
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.*
 import org.junit.Test
 import uk.ac.warwick.plus.data.*
@@ -13,6 +14,7 @@ class RepositorySyncTest {
         var cache = CachedTimetable(emptyList(), null)
         var writes = 0
         var reads = 0
+        override fun changes() = flowOf(Unit)
         override fun snapshot() = cache.also { reads++ }
         override fun states() = listOfNotNull(cache.sync, cache.courseworkSync, cache.accountSync) + cache.feeds.values.mapNotNull { it.sync }
         override fun feedEntries(feed: Int) = cache.feeds[FeedKind.entries.first { it.key == feed }]?.entries.orEmpty()

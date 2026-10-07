@@ -22,6 +22,7 @@ class TimetableViewModel(private val repository: TimetableStore,
     private val mutable = MutableStateFlow(TimetableState(busy = true))
     val state = mutable.asStateFlow()
     private var syncJob: Job? = null
+    private var cacheJob: Job? = null
     private var noticeId = 0L
     private var syncId = 0L
     private var refreshAfterCurrent = false
@@ -32,11 +33,23 @@ class TimetableViewModel(private val repository: TimetableStore,
                 if (error is CancellationException) throw error
                 mutable.update { it.copy(globalMessage = "Couldn't open your saved data. Try refreshing.") }
             } finally { mutable.update { it.copy(busy = false) } }
+            observeCache()
             refreshAfterCurrent = false
             refresh()
         }
     }
     private fun applyCache(cache: CachedTimetable) = mutable.update { it.withCache(cache) }
+    private fun observeCache() {
+        cacheJob = viewModelScope.launch {
+            try { repository.observeCache().collect { cache ->
+                if (!mutable.value.signingOut && !mutable.value.logoutFailed) applyCache(cache)
+            } } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                reportFailure(error)
+                mutable.update { it.copy(globalMessage = "Couldn't open your saved data. Try refreshing.") }
+            }
+        }
+    }
     private fun authenticated(user: SignedInUser, cache: CachedTimetable) {
         mutable.update { state ->
             val cacheCleared = cache.sync == null && cache.courseworkSync == null &&
@@ -48,13 +61,10 @@ class TimetableViewModel(private val repository: TimetableStore,
                 syncProgress = state.syncProgress?.copy(accountChecked = true))
         }
     }
-    private suspend fun restoreCache() {
-        try { applyCache(repository.cached()) }
-        catch (error: Exception) { if (error is CancellationException) throw error }
-    }
     private fun startSync(resource: SyncResource? = null, olderMessages: Boolean = false,
         operation: suspend () -> Unit) {
         if (mutable.value.busy || mutable.value.signingOut || mutable.value.logoutFailed) return
+        if (cacheJob?.isActive != true) observeCache()
         val progress = SyncProgress(++syncId, if (resource == null) SyncResource.entries.size else 1,
             operation = if (olderMessages) SyncOperation.OlderMessages
                 else SyncOperation.Refresh(resource ?: SyncResource.TIMETABLE))
@@ -118,7 +128,7 @@ class TimetableViewModel(private val repository: TimetableStore,
         }
         try {
             if (!hasNetwork()) throw IOException("No active network")
-            applyCache(withSyncRetry(onRetry = { attempt ->
+            withSyncRetry(onRetry = { attempt ->
                 mutable.update { it.copy(syncProgress = it.syncProgress?.copy(retry = attempt)) }
             }) {
                 when (resource) {
@@ -127,7 +137,7 @@ class TimetableViewModel(private val repository: TimetableStore,
                     SyncResource.ACCOUNT -> repository.syncAccount(::authenticated)
                     else -> repository.syncFeed(requireNotNull(resource.feed), before, ::authenticated)
                 }
-            })
+            }
             mutable.update { state ->
                 val cleared = state.withIssue(resource, null)
                 if (resource == SyncResource.TIMETABLE) cleared.copy(needsLogin = false, signedIn = true) else cleared
@@ -135,7 +145,7 @@ class TimetableViewModel(private val repository: TimetableStore,
             return ResourceOutcome.Updated
         } catch (error: Exception) {
             if (error is CancellationException) throw error
-            reportFailure(error); restoreCache()
+            reportFailure(error)
             mutable.update { it.resourceFailed(resource, error, before != null) }
             return if (error is IOException) ResourceOutcome.TransportFailed else ResourceOutcome.Failed
         } finally {
@@ -158,10 +168,12 @@ class TimetableViewModel(private val repository: TimetableStore,
         mutable.update { it.copy(signingOut = true, busy = true, syncProgress = null) }
         syncJob = viewModelScope.launch {
             previous?.cancelAndJoin()
+            cacheJob?.cancelAndJoin()
             mutable.value = TimetableState(busy = true, signingOut = true)
             try {
                 repository.signOut()
                 mutable.value = TimetableState(needsLogin = true)
+                observeCache()
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
                 reportFailure(error)

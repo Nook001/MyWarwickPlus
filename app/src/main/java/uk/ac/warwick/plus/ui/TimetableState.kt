@@ -38,7 +38,8 @@ data class TimetableState(
     val feeds: Map<FeedKind, FeedState> = emptyMap(), val accountCode: String = "",
     val sessionCheckedAt: Long? = null, val signingOut: Boolean = false, val logoutFailed: Boolean = false,
     val notice: SyncNotice? = null, val syncProgress: SyncProgress? = null, val account: AccountState = AccountState(),
-    val globalMessage: String? = null
+    val globalMessage: String? = null,
+    internal val cacheRevision: Long = -1
 ) {
     fun feed(kind: FeedKind) = feeds[kind] ?: FeedState()
     val email get() = account.email
@@ -61,12 +62,14 @@ data class TimetableState(
 
 // Cache projection only replaces persisted fields; transient operation state stays with the UI.
 internal fun TimetableState.withCache(cache: CachedTimetable): TimetableState {
+    // A Flow read may arrive after authentication already cleared another account.
+    if (cache.revision < cacheRevision) return this
     val owner = (listOfNotNull(cache.sync, cache.courseworkSync, cache.accountSync) +
         cache.feeds.values.mapNotNull { it.sync }).maxByOrNull { it.syncedAt }
     val projectedCoursework = coursework.copy(
         entries = cache.coursework.map { it.snapshot() }.reuseIfEqual(coursework.entries),
         lastSynced = cache.courseworkSync?.syncedAt)
-    return copy(events = cache.events.map { it.snapshot() }.reuseIfEqual(events), lastSynced = cache.sync?.syncedAt,
+    return copy(cacheRevision = cache.revision, events = cache.events.map { it.snapshot() }.reuseIfEqual(events), lastSynced = cache.sync?.syncedAt,
         name = owner?.displayName ?: name, accountCode = owner?.userCode ?: accountCode,
         account = account.copy(email = cache.accountSync?.email.orEmpty(), lastSynced = cache.accountSync?.syncedAt),
         coursework = if (projectedCoursework == coursework) coursework else projectedCoursework,

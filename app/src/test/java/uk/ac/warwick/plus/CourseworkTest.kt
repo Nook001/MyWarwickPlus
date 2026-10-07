@@ -1,6 +1,7 @@
 package uk.ac.warwick.plus
 
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.*
 import org.junit.After
 import org.junit.Assert.*
@@ -56,7 +57,12 @@ class CourseworkTest {
         SyncEntity().apply { userCode = user.code; syncedAt = 100 },
         listOf(CourseworkEntity().apply { id = "assignment"; title = "Saved deadline" }),
         SyncEntity().apply { id = 2; userCode = user.code; syncedAt = 200 })
-    private inner class Store(var data: CachedTimetable = cache()) : TimetableStore {
+    private inner class Store(initial: CachedTimetable = cache()) : TimetableStore {
+        private val snapshots = MutableStateFlow(initial)
+        var data: CachedTimetable
+            get() = snapshots.value
+            set(value) { snapshots.value = value }
+        override fun observeCache() = snapshots
         var timetableError: Exception? = null
         var courseworkError: Exception? = null
         var courseworkGate: CompletableDeferred<Unit>? = null

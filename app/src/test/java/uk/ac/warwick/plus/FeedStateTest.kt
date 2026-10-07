@@ -1,6 +1,7 @@
 package uk.ac.warwick.plus
 
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.*
 import org.junit.After
 import org.junit.Assert.*
@@ -17,9 +18,13 @@ class FeedStateTest {
     @After fun reset() { Dispatchers.resetMain() }
     private val user = SignedInUser("example", "Example student", "", "")
     private inner class Store : TimetableStore {
-        var cache = CachedTimetable(emptyList(), SyncEntity().apply { userCode = user.code; displayName = user.name; syncedAt = 100 },
+        private val snapshots = MutableStateFlow(CachedTimetable(emptyList(), SyncEntity().apply { userCode = user.code; displayName = user.name; syncedAt = 100 },
             feeds = FeedKind.entries.associateWith { kind -> CachedFeed(listOf(FeedEntry().apply { feed = kind.key; id = "saved"; title = "Saved ${kind.label}" }),
-                FeedMeta().apply { feed = kind.key; hasMore = kind == FeedKind.MESSAGES }, SyncEntity().apply { id = kind.key; userCode = user.code; syncedAt = 200 }) })
+                FeedMeta().apply { feed = kind.key; hasMore = kind == FeedKind.MESSAGES }, SyncEntity().apply { id = kind.key; userCode = user.code; syncedAt = 200 }) }))
+        var cache: CachedTimetable
+            get() = snapshots.value
+            set(value) { snapshots.value = value }
+        override fun observeCache() = snapshots
         var errors = mutableMapOf<FeedKind, Exception>()
         var gate: CompletableDeferred<Unit>? = null
         var logoutError = false

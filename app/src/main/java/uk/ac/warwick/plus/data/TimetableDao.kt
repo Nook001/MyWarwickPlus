@@ -4,9 +4,21 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
+import androidx.room.RawQuery
+import androidx.sqlite.db.SimpleSQLiteQuery
+import androidx.sqlite.db.SupportSQLiteQuery
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 @Dao
 abstract class TimetableDao : StudentCache {
+    // Observe all five tables, then re-read them in snapshot()'s single transaction.
+    // A constant result is intentional: the query signals invalidation, not content.
+    @RawQuery(observedEntities = [EventEntity::class, CourseworkEntity::class,
+        SyncEntity::class, FeedEntry::class, FeedMeta::class])
+    protected abstract fun invalidations(query: SupportSQLiteQuery): Flow<Int>
+    override fun changes(): Flow<Unit> = invalidations(SimpleSQLiteQuery("SELECT 1")).map { Unit }
+
     // Contents and metadata are always read from the same database transaction.
     @Transaction
     override fun snapshot(): CachedTimetable = CachedTimetable(

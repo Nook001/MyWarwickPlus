@@ -7,12 +7,17 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 
 data class CachedTimetable(val events: List<EventEntity>, val sync: SyncEntity?,
     val coursework: List<CourseworkEntity> = emptyList(), val courseworkSync: SyncEntity? = null,
-    val feeds: Map<FeedKind, CachedFeed> = emptyMap(), val accountSync: SyncEntity? = null)
+    val feeds: Map<FeedKind, CachedFeed> = emptyMap(), val accountSync: SyncEntity? = null,
+    val revision: Long = 0)
 
 interface TimetableStore {
+    fun observeCache(): Flow<CachedTimetable>
     suspend fun cached(): CachedTimetable
     suspend fun sync(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): CachedTimetable
     suspend fun syncCoursework(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): CachedTimetable
@@ -37,7 +42,11 @@ class TimetableRepository(private val api: StudentApi, private val dao: StudentC
     private val mutex = Mutex()
     // Accessed only under mutex. The repository owns all production cache writes.
     private var currentCache: CachedTimetable? = null
-    private fun readCache() = dao.snapshot().also { currentCache = it }
+    private var revision = 0L
+    private fun readCache() = dao.snapshot().copy(revision = revision).also { currentCache = it }
+
+    override fun observeCache(): Flow<CachedTimetable> = dao.changes()
+        .map { inStore { readCache() } }.distinctUntilChanged()
 
     // Keep network work outside Room transactions, but serialize it with cache reads and sign-out.
     private suspend fun <T> inStore(operation: suspend () -> T): T = withContext(Dispatchers.IO) {
@@ -53,6 +62,7 @@ class TimetableRepository(private val api: StudentApi, private val dao: StudentC
         val changedAccount = dao.states().any { it.userCode != user.code }
         if (changedAccount) {
             dao.clear()
+            revision++
             currentCache = null
         }
         onAuthenticated(user, currentCache ?: readCache())
@@ -72,6 +82,7 @@ class TimetableRepository(private val api: StudentApi, private val dao: StudentC
             syncedAt = System.currentTimeMillis()
         }
         save(result, state)
+        revision++
         logSync { "Native resource sync succeeded; slot=$id ${describe(result)}" }
         readCache()
     }
@@ -118,6 +129,7 @@ class TimetableRepository(private val api: StudentApi, private val dao: StudentC
     override suspend fun signOut() = inStore {
         endSession()
         dao.clear()
+        revision++
         currentCache = null
     }
 }
