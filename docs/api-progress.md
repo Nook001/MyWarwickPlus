@@ -1,6 +1,6 @@
 # API 接入进度
 
-更新：2026-10-07；代码 0.24.0 / versionCode33。首页按英国时间展示Today剩余课程或Tomorrow预览，周末无剩余课程显示祝语；新增最近两条Messages摘要。仅复用已有缓存/详情与前台刷新，接口、认证、只读边界及schema5不变；公交与非空Library结构仍未验证。下表为历史证据，不代表当前账户实时数量。协议见 [protocol.md](protocol.md)，架构见 [architecture.md](architecture.md)，交付状态见 [validation.md](validation.md)。
+更新：2026-10-07；代码 0.24.1 / versionCode34。本次统一首页分区标题留白并收紧首行；Today/Tomorrow、周末祝语和两条Messages摘要逻辑不变。仅复用已有缓存/详情与前台刷新，接口、认证、只读边界及schema5不变；公交与非空Library结构仍未验证。下表为历史证据，不代表当前账户实时数量。协议见 [protocol.md](protocol.md)，架构见 [architecture.md](architecture.md)，交付状态见 [validation.md](validation.md)。
 
 ## 已接入
 

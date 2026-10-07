@@ -20,6 +20,9 @@ object Spacing {
     val homeSection = 24.dp
     val grid = 8.dp
     val contentInset = 12.dp
+    val sectionHeader = PaddingValues(start = contentInset, end = contentInset, top = 8.dp, bottom = 2.dp)
+    val sectionHeadingHeight = 20.dp
+    val sectionFirstRowHeight = 48.dp
     val compactPage = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp)
     val detailPage = PaddingValues(24.dp)
 }

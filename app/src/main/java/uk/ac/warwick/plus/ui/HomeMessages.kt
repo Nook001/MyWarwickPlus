@@ -36,8 +36,8 @@ internal fun HomeMessages(state: FeedState, recovery: RecoveryState, today: Loca
             Row(Modifier.fillMaxWidth().testTag("home-message-${entry.id}")
                 .clickable(role = Role.Button, onClickLabel = stringResource(R.string.view_resource_details,
                     stringResource(AppLabels.MESSAGES)), onClick = { onSelect(entry) })
-                .heightIn(min = 56.dp)
-                .padding(start = 12.dp, end = 12.dp, top = if (index == 0) 2.dp else 8.dp, bottom = 10.dp),
+                .heightIn(min = if (index == 0) Spacing.sectionFirstRowHeight else 56.dp)
+                .padding(start = 12.dp, end = 12.dp, top = if (index == 0) 0.dp else 8.dp, bottom = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text(entry.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,

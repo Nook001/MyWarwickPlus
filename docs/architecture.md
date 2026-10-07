@@ -1,6 +1,6 @@
 # 架构与组件规范
 
-更新：2026-10-07，适用代码 0.24.0。前文记录已落地的组件、共享函数、同步、数据反馈、课表和主题标准；末节保留评估基线并标注实施进度。接口证据见 [protocol.md](protocol.md)，覆盖表见 [api-progress.md](api-progress.md)，验证状态见 [validation.md](validation.md)。
+更新：2026-10-07，适用代码 0.24.1。前文记录已落地的组件、共享函数、同步、数据反馈、课表和主题标准；末节保留评估基线并标注实施进度。接口证据见 [protocol.md](protocol.md)，覆盖表见 [api-progress.md](api-progress.md)，验证状态见 [validation.md](validation.md)。
 
 ## 代码职责
 
@@ -108,7 +108,7 @@
 
 | 页面 | 当前布局与行为 |
 | --- | --- |
-| Home | 16sp短招呼语；Now / Next唯一强调卡，时钟/标签/右对齐日期时间、名称/原代码、地点/右下箭头三行，整卡详情。四个网站在Next下12dp；课程与Deadlines普通单层分区，Messages使用Quiet底色；18dp标题图标不增加28dp标题行高，区块间24dp |
+| Home | 16sp短招呼语；Now / Next唯一强调卡，时钟/标签/右对齐日期时间、名称/原代码、地点/右下箭头三行，整卡详情。四个网站在Next下12dp；课程与Deadlines普通单层分区，Messages使用Quiet底色；18dp标题图标共用紧凑标题留白，区块间24dp |
 | Today / Tomorrow / 周末 | homeAgenda按Europe/London日期与结束时间保留正在进行/未来课程，无剩余课程与今天本来无课共用Tomorrow切换。周末无剩余课程显示Enjoy your weekend；当天有已结束课程时加Well done，Next仍可展示未来课。Tomorrow没有记录时不显示空分区，不新增“明天没课”提示；未加载不判断无课。全日/跨日课程仍保留正确日界，稳定Lazy key避免后续分区错位 |
 | Deadlines | 最多三条未来记录，左列数字/days，右列原始标题及d MMM，下一年才加年份；当天未过期为0 days。All进Upcoming，Recently passed统计近七天缓存内过去条目并进Past，不推断是否提交 |
 | Home Messages | 最近两条按日期降序、position/id稳定排序；标题最多两行、摘要一行、来源/简短日期。仅转换两条HTML，共用按账户隔离的FeedTextCache；无记录时省略分区，不把未加载当成无消息。点击复用详情，关闭保留Home；All进入Me→Messages。只读，不改变网站已读/新增角标或后台请求 |
@@ -137,8 +137,8 @@
 | 颜色角色 | Normal=surfaceContainerLow/onSurface；Quiet=surfaceContainer/onSurface；Selected=primaryContainer/onPrimaryContainer；Featured=emphasisColours，由主题决定，页面不判断主题名 |
 | 圆角 AppShapes | 分区/列表/紧凑入口 14dp；账户/网格 16dp；强调/设置/Tab 18dp；Feed 内容 20dp；搜索 24dp |
 | Spacing | Home/Classes/Me 左右16、顶部4、底部16dp；Tasks/Feed/Appearance 保留20dp。首页区块24、Me区块16、列表12、网格8dp；父组件拥有间距 |
-| 标题 / 页眉 | 分区最小28dp，labelMedium/SemiBold/onSurfaceVariant；日期小标题 labelLarge。AppPageHeader 最小48dp、上下2dp，动作不改变品牌文字位置 |
-| 信息行 | 左列48sp转dp，随字缩放，两行居中、间距2dp；左右列间距10dp。正文bodyMedium/SemiBold，次要bodySmall/onSurfaceVariant。普通行最小64dp、左右12/上下10dp；分区首行最小56dp、上2/下8dp |
+| 标题 / 页眉 | 分区内行最小20dp，外部左右12/上8/下2dp，共用sectionHeader/sectionHeadingHeight；All视觉高度同标题行，labelMedium/SemiBold/onSurfaceVariant。日期小标题labelLarge。AppPageHeader最小48dp、上下2dp，动作不改变品牌文字位置 |
+| 信息行 | 左列48sp转dp，随字缩放，两行居中、间距2dp；左右列间距10dp。正文bodyMedium/SemiBold，次要bodySmall/onSurfaceVariant。普通行最小64dp、左右12/上下10dp；分区首行最小48dp、上0/下8dp。Messages首行同用48dp/上0，空行上0；长内容/大字体自然增长，不以固定高度裁切 |
 | 搜索 / 箭头 | 搜索最小48dp、图标20dp、清除操作区48dp；普通详情箭头16dp，Next地点行20dp，网格角标12dp；装饰图标的动作语义在点击容器 |
 | 空状态 | SectionEmptyRow 分区内直接一行；DataEmptyState 用于独立未加载/空/无匹配，可带恢复动作，不嵌套空卡 |
 | Tab | Home / Classes / Tasks / Me；12sp常规字重，轮廓/实心两态，图标和文字共用高亮。selectable + Role.Tab，indication=null，直接最终色；最小64dp，两侧20dp，安全区一次 |

@@ -28,7 +28,7 @@ internal fun SectionCard(title: String, modifier: Modifier = Modifier,
     AppCard(modifier.fillMaxWidth(), tone = tone) {
         Column {
             Row(Modifier.fillMaxWidth().then(if (headingTag == null) Modifier else Modifier.testTag("$headingTag-header"))
-                .heightIn(min = 28.dp).padding(horizontal = Spacing.contentInset),
+                .padding(Spacing.sectionHeader).heightIn(min = Spacing.sectionHeadingHeight),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (icon != null) Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -44,7 +44,7 @@ internal fun SectionCard(title: String, modifier: Modifier = Modifier,
 
 @Composable
 internal fun SectionAllAction(actionLabel: String, onClick: () -> Unit) {
-    Row(Modifier.widthIn(min = 48.dp).heightIn(min = 28.dp)
+    Row(Modifier.widthIn(min = 48.dp).heightIn(min = Spacing.sectionHeadingHeight)
         .clickable(onClickLabel = actionLabel, role = Role.Button, onClick = onClick)
         .padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.End) {
@@ -58,7 +58,7 @@ internal fun SectionAllAction(actionLabel: String, onClick: () -> Unit) {
 @Composable
 internal fun SectionEmptyRow(text: String, modifier: Modifier = Modifier) {
     Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 2.dp, bottom = 10.dp))
+        modifier = modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 10.dp))
 }
 
 @Composable
@@ -85,8 +85,8 @@ internal fun MetricListRow(onSelect: () -> Unit, actionLabel: String, modifier: 
     content: @Composable ColumnScope.() -> Unit) {
     val width = with(LocalDensity.current) { 48.sp.toDp() }
     Row(modifier.fillMaxWidth().clickable(onClickLabel = actionLabel, onClick = onSelect)
-        .heightIn(min = if (compactTop) 56.dp else 64.dp)
-        .padding(start = 12.dp, end = 12.dp, top = if (compactTop) 2.dp else 10.dp, bottom = if (compactTop) 8.dp else 10.dp),
+        .heightIn(min = if (compactTop) Spacing.sectionFirstRowHeight else 64.dp)
+        .padding(start = 12.dp, end = 12.dp, top = if (compactTop) 0.dp else 10.dp, bottom = if (compactTop) 8.dp else 10.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.width(width), horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(2.dp), content = metric)

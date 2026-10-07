@@ -8,7 +8,20 @@
 
 仅更新三个现有文档，不改源码/测试/依赖/schema/版本；不构建、不运行JVM/UI/设备测试、不部署或请求学校接口。核对本地引用、表格/代码块结构、评估中的源码符号及git diff --check；查阅Compose/Kotlin官方技术说明，不访问用户会话。之前0.18.0手机安装被拒和待验收状态保留。
 
-## 最新代码：0.24.0 / versionCode 33
+## 最新代码：0.24.1 / versionCode 34
+
+2026-10-07：修复首页分区标题上紧下松的问题。标题统一左右12/上8/下2dp与最小20dp内行；All采用相同内行高度。首条课程/Deadline/消息行最小48dp、上0，空状态行上0，减少首行最小高度居中与标题留白叠加；后续行和Next布局不变。
+
+| 检查 | 本次结果 / 边界 |
+| --- | --- |
+| 构建 / Lint | assembleDebug与lintDebug成功，Lint无问题；仅间距和版本调整，未新增测试，未运行JVM/UI Test或Release构建 |
+| 数据 / 文档 | API、认证、依赖、schema5、Today/Tomorrow/周末与Messages逻辑不变；组件间距规范及API进度同步更新 |
+| 物理部署 | 指定10AG4S2KQJ0066R执行install -r成功，dumpsys确认0.24.1 / versionCode34。冷启动Status:ok / COLD / TotalTime470ms，单次Debug值不作性能基准；未卸载/清数据 |
+| 视觉核对 | 只读首页截图核对：Tomorrow与Deadlines标题顶部留白增加、首行间距收紧，Messages标题采用同一标准；截图仅保留在不跟踪的work/home0241.png。五主题/大字体与点击交互仍待用户手动反馈，未自动点击/滑动 |
+
+命令：`:app:assembleDebug :app:lintDebug`，JDK21；日志在不跟踪的work/0241-build.log。手动重点：Today/Tomorrow、Deadlines、Messages标题距卡片顶部及首行的留白更均衡；All不再撑高标题；长文本/大字体自然扩高，点击详情与All仍正常。
+
+## 上一版：0.24.0 / versionCode 33
 
 2026-10-07：首页课程分区改为Today剩余课程/Tomorrow预览与周末祝语；分区标题增加统一图标，Home/Classes/课程详情共用地点图标；Deadlines下新增最近两条Messages摘要，点开详情/关闭保留Home，All进入完整Messages。使用已有缓存与只读协议，无新增API、权限、依赖或schema改动。
 
