@@ -1,5 +1,7 @@
 package uk.ac.warwick.plus.ui
 
+import uk.ac.warwick.plus.ui.components.*
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -51,13 +53,6 @@ fun DataRecoveryRow(lastSynced: Long?, issue: String?, updating: Boolean, needsL
             Text(if (needsLogin) AppActions.SIGN_IN else AppActions.RETRY)
         }
     }
-}
-
-@Composable
-fun ResourceRecoveryRow(state: TimetableState, resource: SyncResource, onLogin: () -> Unit, onRefresh: () -> Unit) {
-    DataRecoveryRow(state.syncedAt(resource), state.issue(resource), state.updating(resource), state.needsLogin,
-        !state.busy && !state.signingOut && !state.logoutFailed, onLogin, onRefresh,
-        resource.feed?.let { state.feed(it).olderPageFailed } == true)
 }
 
 @Composable

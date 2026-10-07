@@ -1,5 +1,11 @@
 package uk.ac.warwick.plus.ui
 
+import java.util.Locale
+
+import androidx.compose.ui.platform.LocalFocusManager
+
+import uk.ac.warwick.plus.ui.components.*
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -23,7 +29,7 @@ fun CourseworkContent(state: CourseworkState, now: Long, busy: Boolean,
     var localFilter by rememberSaveable(stateSaver = CourseworkFilter.saver) { mutableStateOf(CourseworkFilter.UPCOMING) }
     val filter = filterOverride ?: localFilter
     val chooseFilter: (CourseworkFilter) -> Unit = { localFilter = it; onFilterChanged?.invoke(it) }
-    val focus = androidx.compose.ui.platform.LocalFocusManager.current
+    val focus = LocalFocusManager.current
     val ordered = remember(state.entries, query, filter, now) {
         val matching = filterCoursework(state.entries, query, filter, now)
         when (filter) {
@@ -32,9 +38,9 @@ fun CourseworkContent(state: CourseworkState, now: Long, busy: Boolean,
         }
     }
     LazyColumn(Modifier.fillMaxSize().testTag("coursework-list"), contentPadding = PaddingValues(Spacing.page)) {
-        item {
+        item(contentType = "task-controls") {
             Column(Modifier.padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SearchField(query, { query = it }, "Search ${AppLabels.TASKS.lowercase(java.util.Locale.UK)}") { focus.clearFocus() }
+                SearchField(query, { query = it }, "Search ${AppLabels.TASKS.lowercase(Locale.UK)}") { focus.clearFocus() }
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                     val options = CourseworkFilter.entries
                     options.forEachIndexed { index, option ->
@@ -54,7 +60,7 @@ fun CourseworkContent(state: CourseworkState, now: Long, busy: Boolean,
                 DataEmptyState(if (hasQuery) "No matching deadlines" else if (filter == CourseworkFilter.PAST) "No past deadlines" else "No upcoming deadlines",
                     action = if (hasQuery) AppActions.CLEAR_SEARCH else null, onAction = { query = ""; focus.clearFocus() })
             }
-            else -> itemsIndexed(ordered, key = { _, entry -> entry.id }) { index, entry ->
+            else -> itemsIndexed(ordered, key = { _, entry -> entry.id }, contentType = { _, _ -> "task" }) { index, entry ->
                 GroupedListItem(first = index == 0, last = index == ordered.lastIndex) {
                     DeadlineRow(entry, now, DeadlinePresentation.List) { focus.clearFocus(); onSelect(entry) }
                 }

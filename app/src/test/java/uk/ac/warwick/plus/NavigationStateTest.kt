@@ -5,8 +5,31 @@ import org.junit.Test
 import uk.ac.warwick.plus.data.FeedEntry
 import uk.ac.warwick.plus.data.FeedKind
 import uk.ac.warwick.plus.ui.*
+import java.time.LocalDate
 
 class NavigationStateTest {
+    @Test fun navigatorRestoreKeepsDateAndRouteButAccountResetDropsPrivateSelections() {
+        val today = LocalDate.of(2026, 10, 7)
+        val navigator = PlusNavigator(today)
+        navigator.chooseDate(today.plusDays(2), today)
+        navigator.openTasks(CourseworkFilter.PAST)
+        navigator.select(AppTab.ME)
+        navigator.meRoute = MeRoute.Feed(FeedKind.MESSAGES)
+        navigator.detail = DetailSelection.Feed(FeedKind.MESSAGES, "id:with\nseparator")
+        val restored = PlusNavigator.restore(navigator.savedValues())
+        assertEquals(navigator.detail, restored.detail)
+        assertEquals(today.plusDays(2).toEpochDay(), restored.selectedDay)
+        assertFalse(restored.followToday)
+        restored.back()
+        assertEquals(AppTab.ME, restored.tab)
+        assertEquals(MeRoute.Overview, restored.meRoute)
+        restored.meRoute = MeRoute.Settings
+        restored.detail = DetailSelection.Task("private-task")
+        restored.resetForAccountChange()
+        assertEquals(DetailSelection.None, restored.detail)
+        assertEquals(MeRoute.Overview, restored.meRoute)
+        assertEquals(CourseworkFilter.UPCOMING, restored.courseworkFilter)
+    }
     @Test fun restoredDetailWaitsForCacheAndCannotCrossFeedRoutes() {
         val id = "message:with/separators\nand more"
         val route = MeRoute.Feed(FeedKind.MESSAGES)

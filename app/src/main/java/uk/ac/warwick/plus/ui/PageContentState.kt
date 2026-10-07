@@ -11,13 +11,14 @@ internal fun TimetableState.recovery(resource: SyncResource) = RecoveryState(
 
 internal data class HomePageState(val events: List<EventContentItem>, val lastSynced: Long?,
     val busy: Boolean, val coursework: CourseworkState,
-    val timetableRecovery: RecoveryState, val courseworkRecovery: RecoveryState)
+    val timetableRecovery: RecoveryState, val courseworkRecovery: RecoveryState,
+    val conflicts: Set<String>)
 
-internal fun TimetableState.homePage() = HomePageState(events, lastSynced, busy, coursework,
-    recovery(SyncResource.TIMETABLE), recovery(SyncResource.COURSEWORK))
+internal fun TimetableState.homePage(conflicts: Set<String> = conflictingEventIds(events)) = HomePageState(events, lastSynced, busy, coursework,
+    recovery(SyncResource.TIMETABLE), recovery(SyncResource.COURSEWORK), conflicts)
 
 internal data class SchedulePageState(val events: List<EventContentItem>, val lastSynced: Long?,
-    val busy: Boolean, val showFeedback: Boolean)
+    val busy: Boolean, val showFeedback: Boolean, val conflicts: Set<String>)
 
-internal fun TimetableState.schedulePage() = SchedulePageState(events, lastSynced, busy,
-    needsLogin || message != null)
+internal fun TimetableState.schedulePage(conflicts: Set<String> = conflictingEventIds(events)) = SchedulePageState(events, lastSynced, busy,
+    needsLogin || message != null, conflicts)

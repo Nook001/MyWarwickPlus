@@ -1,5 +1,7 @@
 package uk.ac.warwick.plus.ui
 
+import uk.ac.warwick.plus.ui.components.*
+
 import android.content.ClipData
 import android.content.ClipboardManager
 import androidx.compose.foundation.layout.*
@@ -68,6 +70,8 @@ private fun AccountCard(state: TimetableState, onLogin: () -> Unit, onSignOut: (
     LaunchedEffect(copied) { if (copied) { delay(2_000); copied = false } }
     AppCard(Modifier.fillMaxWidth().testTag("me-account"), shape = AppShapes.tile) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+            if (state.logoutFailed) Text(state.globalMessage.orEmpty(), style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(state.name.ifBlank { "Your Warwick account" }, style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
@@ -97,7 +101,7 @@ private fun AccountCard(state: TimetableState, onLogin: () -> Unit, onSignOut: (
                     }
             }
             if (!state.needsLogin && state.account.message != null && onResourceRefresh != null)
-                ResourceRecoveryRow(state, SyncResource.ACCOUNT, onLogin) { onResourceRefresh(SyncResource.ACCOUNT) }
+                ResourceRecoveryRow(state.recovery(SyncResource.ACCOUNT), onLogin) { onResourceRefresh(SyncResource.ACCOUNT) }
         }
     }
 }

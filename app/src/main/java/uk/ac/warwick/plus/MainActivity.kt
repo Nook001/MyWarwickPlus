@@ -25,16 +25,21 @@ class MainActivity : ComponentActivity() {
             val appearance by app.appearance.state.collectAsStateWithLifecycle()
             PlusTheme(appearance, app.appearance::update) {
                 val model: TimetableViewModel = viewModel(factory = viewModelFactory {
-                    initializer { TimetableViewModel(app.repository) }
+                    initializer { TimetableViewModel(app.repository, hasNetwork = app::hasNetwork) }
                 })
                 val state by model.state.collectAsStateWithLifecycle()
                 val login = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-                    if (it.resultCode == Activity.RESULT_OK) model.refresh()
+                    if (it.resultCode == Activity.RESULT_OK) model.refreshAfterSignIn()
                 }
-                PlusScreen(state, model::refresh, { login.launch(Intent(this, LoginActivity::class.java)) },
-                    probe = if (BuildConfig.DEBUG) app.api::probe else null, onSignOut = model::signOut,
-                    onFeedRefresh = model::refreshFeed, onMoreMessages = model::loadMoreMessages,
-                    onNoticeConsumed = model::consumeNotice, onResourceRefresh = model::refreshResource)
+                PlusScreen(state, PlusActions(
+                    refresh = model::refresh,
+                    signIn = { login.launch(Intent(this, LoginActivity::class.java)) },
+                    signOut = model::signOut,
+                    refreshResource = model::refreshResource,
+                    loadOlderMessages = model::loadMoreMessages,
+                    consumeNotice = model::consumeNotice,
+                    probe = if (BuildConfig.DEBUG) app.api::probe else null
+                ))
             }
         }
     }

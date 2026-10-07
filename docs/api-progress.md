@@ -14,7 +14,7 @@
 | `GET /api/tiles/content/library` | 摘要页已接入；浏览器、原生空列表已验证 | Me → Library：学校说明、账户入口；非空时只展示已知 title/text/href 或通用原站提示 | 历史样本 0 条；非空借阅、到期日与欠费结构待验证 |
 | `GET /api/tiles/content/account` | 原生解析与缓存已验证 | Me 邮箱/显式复制；独立 Account 状态与刷新。姓名/账号仍来自 user/info | 2026-10-06 前端结构证据 + 手机 schema 5、id=6、邮箱非空检查；未输出邮箱。空值不猜测地址，复制操作待手动核对 |
 
-0.20.0 未新增接口或调整认证/缓存协议。页面、Tab、Me入口和同步资源名称共用 config/AppLabels：Classes 对应 timetable，Tasks 对应 coursework；Settings、Developer tools 等标题与入口统一。导航保存稳定key/内容ID，重试按类型和最新会话/消息游标分派。物理验收见 [validation.md](validation.md)。
+0.21.0 未新增接口或写操作。JSON 字符串按实际类型读取，null href/name 不再产生错误链接或姓名；登录检查复用应用级 API，成功登录会合并为一次待刷新。无活动网络直接结束，传输错误耗尽重试后停止本轮后续资源；已完成资源和缓存保留。Messages HTML 在后台转换，列表与详情共用按账户创建、约 2 MiB 的文本缓存；不改变服务器已读状态。Classes/Tasks 等显示名称仍来自 AppLabels，FeedKind 的显示扩展位于 UI 层。验证与物理状态见 [validation.md](validation.md)。
 
 六类业务数据独立缓存与记录更新时间；切换账户清空旧数据，失败保留对应缓存。Data status 按需查看和单项恢复；普通页面不显示保存时间页脚。网站快捷入口只是浏览器跳转，不算新增 API。
 

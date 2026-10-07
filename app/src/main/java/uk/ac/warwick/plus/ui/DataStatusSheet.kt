@@ -1,5 +1,7 @@
 package uk.ac.warwick.plus.ui
 
+import uk.ac.warwick.plus.ui.components.*
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
@@ -15,6 +17,7 @@ import uk.ac.warwick.plus.config.AppLabels
 fun DataStatusSheet(state: TimetableState, onLogin: () -> Unit, onRefresh: ((SyncResource) -> Unit)?, onDismiss: () -> Unit) {
     DetailsSheet(onDismiss, contentPadding = PaddingValues(20.dp), itemSpacing = 12.dp) {
         item { Text(AppLabels.DATA_STATUS, style = MaterialTheme.typography.titleLarge) }
+        state.globalMessage?.let { message -> item { Text(message, style = MaterialTheme.typography.bodySmall) } }
         if (state.needsLogin) item {
             DataRecoveryRow(null, null, false, true, !state.busy && !state.logoutFailed, onLogin, {})
         }
@@ -43,6 +46,6 @@ fun DataStatusSheet(state: TimetableState, onLogin: () -> Unit, onRefresh: ((Syn
                 }
             }
         }
-        item { TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Close") } }
+        item { DetailClose(AppActions.CLOSE, onDismiss) }
     }
 }

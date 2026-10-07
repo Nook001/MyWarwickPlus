@@ -1,5 +1,7 @@
 package uk.ac.warwick.plus.ui
 
+import uk.ac.warwick.plus.ui.components.*
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -8,6 +10,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -22,7 +26,6 @@ import java.util.Locale
 import uk.ac.warwick.plus.config.AppActions
 import uk.ac.warwick.plus.config.AppLabels
 import uk.ac.warwick.plus.data.EventContentItem
-import uk.ac.warwick.plus.data.EventEntity
 
 internal val CalendarPickerIcon = ImageVector.Builder("ChooseDate", 24.dp, 24.dp, 24f, 24f).apply {
     path(stroke = SolidColor(Color.Black), strokeLineWidth = 1.8f) {
@@ -35,24 +38,10 @@ internal val CalendarPickerIcon = ImageVector.Builder("ChooseDate", 24.dp, 24.dp
 }.build()
 
 @Composable
-fun ScheduleContent(state: TimetableState, today: LocalDate, now: Long, from: LocalDate,
-    listState: LazyListState, feedback: @Composable () -> Unit = {}, onSelect: (EventEntity) -> Unit) {
-    // Preserve the existing entity-based entry point; the app uses the value-only overload below.
-    ScheduleContent(state.schedulePage(), today, now, from, listState, feedback) { item ->
-        onSelect(item as? EventEntity ?: EventEntity().apply {
-            id = item.id; title = item.title; module = item.module; moduleName = item.moduleName
-            location = item.location; locationUrl = item.locationUrl
-            startMillis = item.startMillis; endMillis = item.endMillis
-            allDay = item.allDay; academicWeek = item.academicWeek
-        })
-    }
-}
-
-@Composable
 internal fun ScheduleContent(state: SchedulePageState, today: LocalDate, now: Long, from: LocalDate,
     listState: LazyListState, feedback: @Composable () -> Unit = {}, onSelect: (EventContentItem) -> Unit) {
     val days = remember(state.events, from) { scheduleDays(state.events, from) }
-    val conflicts = remember(state.events) { conflictingEventIds(state.events) }
+    val conflicts = state.conflicts
     val nextId = remember(state.events, now) {
         nextTimedClass(state.events, now)?.id
     }
@@ -62,7 +51,7 @@ internal fun ScheduleContent(state: SchedulePageState, today: LocalDate, now: Lo
         if (state.showFeedback) item { feedback() }
         if (state.lastSynced == null) item {
             DataEmptyState(if (state.busy) "Loading timetable…" else "Timetable hasn't loaded yet")
-        } else items(days, key = { it.date.toEpochDay() }) { day ->
+        } else items(days, key = { it.date.toEpochDay() }, contentType = { "schedule-day" }) { day ->
             Column(Modifier.fillMaxWidth().testTag("schedule-day-${day.date}"), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 SectionLabel(scheduleDateLabel(day.date, today))
                 AppCard(Modifier.fillMaxWidth()) {
@@ -71,11 +60,7 @@ internal fun ScheduleContent(state: SchedulePageState, today: LocalDate, now: Lo
                     else Column {
                         day.events.forEachIndexed { index, event ->
                             if (index > 0) ListDivider(inset = 0.dp)
-                            val status = when {
-                                !event.allDay && event.startMillis <= now && event.endMillis > now && day.date == today -> AppLabels.NOW
-                                event.id == nextId && atWarwick(event.startMillis).toLocalDate() == day.date -> AppLabels.NEXT
-                                else -> null
-                            }
+                            val status = classStatus(event, now, nextId, day.date)
                             ScheduleClassRow(event, day.date, status, event.id in conflicts) { onSelect(event) }
                         }
                     }
@@ -115,7 +100,13 @@ internal fun ScheduleClassRow(event: EventContentItem, date: LocalDate, status: 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScheduleDateDialog(selected: LocalDate, onDismiss: () -> Unit, onDate: (LocalDate) -> Unit) {
-    val picker = remember { DatePickerState(locale = Locale.UK, initialSelectedDateMillis = pickerMillis(selected), initialDisplayMode = DisplayMode.Input) }
+    val picker = rememberSaveable(saver = listSaver<DatePickerState, Any>(
+        save = { listOf(it.selectedDateMillis ?: Long.MIN_VALUE, it.displayedMonthMillis, it.displayMode == DisplayMode.Input) },
+        restore = { DatePickerState(locale = Locale.UK,
+            initialSelectedDateMillis = (it[0] as Long).takeUnless { date -> date == Long.MIN_VALUE },
+            initialDisplayedMonthMillis = it[1] as Long,
+            initialDisplayMode = if (it[2] as Boolean) DisplayMode.Input else DisplayMode.Picker) }
+    )) { DatePickerState(locale = Locale.UK, initialSelectedDateMillis = pickerMillis(selected), initialDisplayMode = DisplayMode.Input) }
     DatePickerDialog(onDismissRequest = onDismiss,
         confirmButton = { TextButton(onClick = { picker.selectedDateMillis?.let { onDate(pickerDate(it)) } }, enabled = picker.selectedDateMillis != null,
             modifier = Modifier.testTag("schedule-date-confirm")) { Text("Go to date") } },

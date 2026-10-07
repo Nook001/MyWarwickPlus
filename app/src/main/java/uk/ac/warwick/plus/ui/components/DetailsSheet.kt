@@ -1,10 +1,11 @@
-package uk.ac.warwick.plus.ui
+package uk.ac.warwick.plus.ui.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -15,10 +16,29 @@ import androidx.compose.ui.unit.dp
 internal fun DetailsSheet(onDismiss: () -> Unit, modifier: Modifier = Modifier,
     contentPadding: PaddingValues = Spacing.detailPage, itemSpacing: Dp = 20.dp,
     content: LazyListScope.() -> Unit) {
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
-        LazyColumn(modifier, contentPadding = contentPadding, verticalArrangement = Arrangement.spacedBy(itemSpacing), content = content)
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+    val dismiss = rememberUpdatedState(onDismiss)
+    var closing by remember { mutableStateOf(false) }
+    val close: () -> Unit = {
+        if (!closing) {
+            closing = true
+            scope.launch {
+                try {
+                    sheetState.hide()
+                    if (!sheetState.isVisible) dismiss.value()
+                } finally { closing = false }
+            }
+        }
+    }
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        CompositionLocalProvider(LocalDetailDismiss provides close) {
+            LazyColumn(modifier, contentPadding = contentPadding, verticalArrangement = Arrangement.spacedBy(itemSpacing), content = content)
+        }
     }
 }
+
+private val LocalDetailDismiss = staticCompositionLocalOf<(() -> Unit)?> { null }
 
 @Composable
 internal fun DetailHeader(label: String, title: String, gap: Dp = 0.dp) {
@@ -43,5 +63,6 @@ internal fun DetailField(label: String, value: String) {
 }
 
 @Composable
-internal fun DetailClose(label: String, onDismiss: () -> Unit) =
-    TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text(label) }
+internal fun DetailClose(label: String, onDismiss: () -> Unit) {
+    TextButton(onClick = LocalDetailDismiss.current ?: onDismiss, modifier = Modifier.fillMaxWidth()) { Text(label) }
+}

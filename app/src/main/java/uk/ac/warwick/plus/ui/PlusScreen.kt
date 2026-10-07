@@ -1,4 +1,6 @@
 package uk.ac.warwick.plus.ui
+
+import uk.ac.warwick.plus.ui.components.*
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -23,48 +25,30 @@ import uk.ac.warwick.plus.data.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit,
-    probe: ((ProbeEndpoint) -> ProbeResult)? = null, onCourseworkLink: ((String) -> Unit)? = null,
-    onSignOut: () -> Unit = {}, onFeedRefresh: ((FeedKind) -> Unit)? = null,
-    onMoreMessages: () -> Unit = {}, onExternalLink: ((String) -> Unit)? = null,
-    onNoticeConsumed: (Long) -> Unit = {}, onResourceRefresh: ((SyncResource) -> Unit)? = null) {
-    var tab by rememberSaveable(stateSaver = AppTab.saver) { mutableStateOf(AppTab.HOME) }
-    var meRoute by rememberSaveable(stateSaver = MeRoute.saver) { mutableStateOf<MeRoute>(MeRoute.Overview) }
-    var detail by rememberSaveable(stateSaver = DetailSelection.saver) { mutableStateOf<DetailSelection>(DetailSelection.None) }
-    var courseworkFilter by rememberSaveable(stateSaver = CourseworkFilter.saver) { mutableStateOf(CourseworkFilter.UPCOMING) }
-    val selectedId = (detail as? DetailSelection.Class)?.id
-    val courseworkId = (detail as? DetailSelection.Task)?.id
-    val feedEntryId = (detail as? DetailSelection.Feed)?.id
-    val route = (meRoute as? MeRoute.Feed)?.kind
-    val showProbe = meRoute == MeRoute.DeveloperTools
-    val showAppearance = meRoute == MeRoute.Settings
+internal fun PlusScreen(state: TimetableState, actions: PlusActions) {
+    val navigator = rememberPlusNavigator(atWarwick(System.currentTimeMillis()).toLocalDate())
+    val route = (navigator.meRoute as? MeRoute.Feed)?.kind
+    val showProbe = navigator.meRoute == MeRoute.DeveloperTools
+    val showAppearance = navigator.meRoute == MeRoute.Settings
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
     val currentState = rememberUpdatedState(state)
-    val refreshResource: (SyncResource) -> Unit = remember(onResourceRefresh, onFeedRefresh, onRefresh) {
-        { resource ->
-            if (onResourceRefresh != null) onResourceRefresh(resource)
-            else resource.feed?.let { onFeedRefresh?.invoke(it) ?: onRefresh() } ?: onRefresh()
-        }
-    }
-    val recoverResource: (SyncResource) -> Unit = remember(currentState, onMoreMessages, refreshResource) {
-        { resource ->
-            val messages = currentState.value.feed(FeedKind.MESSAGES)
-            if (resource == SyncResource.MESSAGES && messages.olderPageFailed && messages.hasMore && messages.entries.isNotEmpty()) onMoreMessages()
-            else refreshResource(resource)
-        }
-    }
     val dispatchRecovery: (RecoveryAction) -> Unit = { action ->
         when (val resolved = action.resolve(currentState.value)) {
-            RecoveryAction.SignIn -> onLogin()
-            RecoveryAction.RefreshAll -> onRefresh()
-            RecoveryAction.OlderMessages -> onMoreMessages()
-            is RecoveryAction.Refresh -> refreshResource(resolved.resource)
+            RecoveryAction.SignIn -> actions.signIn()
+            RecoveryAction.RefreshAll -> actions.refresh()
+            RecoveryAction.OlderMessages -> actions.loadOlderMessages()
+            is RecoveryAction.Refresh -> actions.refreshResource(resolved.resource)
             null -> Unit
         }
     }
+    val recoverResource: (SyncResource) -> Unit = { resource ->
+        val action = if (resource == SyncResource.MESSAGES && currentState.value.feed(FeedKind.MESSAGES).olderPageFailed)
+            RecoveryAction.OlderMessages else RecoveryAction.Refresh(resource)
+        dispatchRecovery(action)
+    }
     val currentRecovery = rememberUpdatedState(dispatchRecovery)
-    val consumeNotice = rememberUpdatedState(onNoticeConsumed)
+    val consumeNotice = rememberUpdatedState(actions.consumeNotice)
     LaunchedEffect(state.notice?.id) {
         state.notice?.let { notice ->
             try {
@@ -77,7 +61,7 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
             } finally { consumeNotice.value(notice.id) }
         }
     }
-    val launchBrowser = rememberBrowserOpener(onExternalLink)
+    val launchBrowser = rememberBrowserOpener(actions.openExternal)
     val openLink: (String) -> Unit = { raw ->
         if (!launchBrowser(raw)) scope.launch { snackbar.showSnackbar("Couldn't open this link. Try again.") }
     }
@@ -86,9 +70,7 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
         // Empty identity during initial cache loading is not an account switch.
         if (state.accountCode.isNotBlank() || !state.busy || state.signingOut) {
             if (previousAccount.isNotBlank() && previousAccount != state.accountCode) {
-                detail = DetailSelection.None
-                meRoute = MeRoute.Overview
-                courseworkFilter = CourseworkFilter.UPCOMING
+                navigator.resetForAccountChange()
             }
             previousAccount = state.accountCode
         }
@@ -99,7 +81,7 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
         lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             while (true) {
                 now = System.currentTimeMillis()
-                delay(30_000)
+                delay(30_000 - now % 30_000)
             }
         }
     }
@@ -107,103 +89,95 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
     val timetableRecovery = state.recovery(SyncResource.TIMETABLE)
     val courseworkRecovery = state.recovery(SyncResource.COURSEWORK)
     val home = remember(state.events, state.lastSynced, state.busy, state.coursework,
-        timetableRecovery, courseworkRecovery) { state.homePage() }
+        timetableRecovery, courseworkRecovery) { state.homePage(conflicts) }
     val schedule = remember(state.events, state.lastSynced, state.busy, state.needsLogin, state.message) {
-        state.schedulePage()
+        state.schedulePage(conflicts)
     }
     val today = remember(now) { atWarwick(now).toLocalDate() }
     val greeting = greeting(state.name, now)
-    var selectedDay by rememberSaveable { mutableLongStateOf(today.toEpochDay()) }
-    var followToday by rememberSaveable { mutableStateOf(true) }
-    var showDatePicker by rememberSaveable { mutableStateOf(false) }
     val scheduleListState = rememberLazyListState()
-    val scheduleDate = remember(followToday, today, selectedDay) {
-        if (followToday) today else LocalDate.ofEpochDay(selectedDay)
+    val scheduleDate = remember(navigator.followToday, today, navigator.selectedDay) {
+        if (navigator.followToday) today else LocalDate.ofEpochDay(navigator.selectedDay)
     }
     val scheduleScrolled by remember { derivedStateOf { scheduleListState.firstVisibleItemIndex > 0 || scheduleListState.firstVisibleItemScrollOffset > 0 } }
     val chooseScheduleDate: (LocalDate) -> Unit = { date ->
-        selectedDay = date.toEpochDay(); followToday = date == today
+        navigator.chooseDate(date, today)
         scheduleListState.requestScrollToItem(0)
     }
-    LaunchedEffect(state.events, state.coursework, state.feeds, state.busy, detail, meRoute) {
-        detail = detail.validated(state, meRoute)
+    LaunchedEffect(state.events, state.coursework, state.feeds, state.busy, navigator.detail, navigator.meRoute) {
+        navigator.detail = navigator.detail.validated(state, navigator.meRoute)
     }
-    LaunchedEffect(probe, meRoute) {
-        if (probe == null && meRoute == MeRoute.DeveloperTools) meRoute = MeRoute.Overview
+    LaunchedEffect(actions.probe, navigator.meRoute) {
+        if (actions.probe == null && navigator.meRoute == MeRoute.DeveloperTools) navigator.meRoute = MeRoute.Overview
     }
-    BackHandler(tab != AppTab.HOME && detail == DetailSelection.None && !showProbe) {
-        if (tab == AppTab.ME && meRoute != MeRoute.Overview) meRoute = MeRoute.Overview
-        else tab = AppTab.HOME
+    BackHandler(navigator.tab != AppTab.HOME && navigator.detail == DetailSelection.None && !showProbe) {
+        navigator.back()
     }
 
-    Box(Modifier.fillMaxSize()) {
-        ThemeBackground(Modifier.matchParentSize())
-        Scaffold(containerColor = Color.Transparent, contentColor = MaterialTheme.colorScheme.onBackground,
-            contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
-            snackbarHost = { SnackbarHost(snackbar) }, bottomBar = {
-                AppNavigation(tab, state.needsLogin && state.hasSavedData, state.logoutFailed) { selected ->
-                    tab = selected
-                    if (selected == AppTab.ME) { meRoute = MeRoute.Overview; detail = DetailSelection.None }
-                }
-            }) { padding ->
-            Column(Modifier.fillMaxSize().padding(padding)) {
-                AppPageHeader(
-                    title = when (tab) {
-                        AppTab.HOME -> greeting
-                        AppTab.ME -> meRoute.title
-                        else -> tab.label
-                    },
-                    subtitle = if (state.busy) state.syncProgress?.description ?: AppLabels.BRAND else AppLabels.BRAND,
-                    titleModifier = if (tab == AppTab.HOME) Modifier.testTag("home-greeting") else Modifier) {
-                    if (tab == AppTab.CLASSES) {
-                        if (scheduleDate != today || scheduleScrolled) TextButton(onClick = { chooseScheduleDate(today) },
-                            modifier = Modifier.testTag("schedule-today")) { Text(AppLabels.TODAY) }
-                        IconButton(onClick = { showDatePicker = true }, modifier = Modifier.testTag("schedule-date-picker")) {
-                            Icon(CalendarPickerIcon, contentDescription = "Choose date", modifier = Modifier.size(20.dp))
-                        }
+    val feedTextCache = remember(state.accountCode) { FeedTextCache() }
+    CompositionLocalProvider(LocalFeedTextCache provides feedTextCache) {
+        Box(Modifier.fillMaxSize()) {
+            ThemeBackground(Modifier.matchParentSize())
+            Scaffold(containerColor = Color.Transparent, contentColor = MaterialTheme.colorScheme.onBackground,
+                contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
+                snackbarHost = { SnackbarHost(snackbar) }, bottomBar = {
+                    AppNavigation(navigator.tab, state.needsLogin && state.hasSavedData, state.logoutFailed) { selected ->
+                        navigator.select(selected)
                     }
-                    if (tab == AppTab.ME && (route != null || showAppearance)) TextButton(onClick = {
-                        meRoute = MeRoute.Overview; detail = DetailSelection.None
-                    }) { Text(AppActions.BACK) }
-                }
-                SyncProgressBar(state.syncProgress)
-                if (tab == AppTab.ME && showAppearance && !state.signingOut) AppearanceContent() else {
-                    PullToRefreshBox(isRefreshing = state.busy && !state.signingOut,
-                        onRefresh = {
-                            if (!state.signingOut && !state.logoutFailed) {
-                                if (tab == AppTab.ME && route != null && onFeedRefresh != null) onFeedRefresh(route) else onRefresh()
+                }) { padding ->
+                Column(Modifier.fillMaxSize().padding(padding)) {
+                    AppPageHeader(
+                        title = when (navigator.tab) {
+                            AppTab.HOME -> greeting
+                            AppTab.ME -> navigator.meRoute.title
+                            else -> navigator.tab.label
+                        },
+                        subtitle = if (state.busy) state.syncProgress?.description ?: AppLabels.BRAND else AppLabels.BRAND,
+                        titleTag = if (navigator.tab == AppTab.HOME) "home-greeting" else null) {
+                        if (navigator.tab == AppTab.CLASSES) {
+                            if (scheduleDate != today || scheduleScrolled) TextButton(onClick = { chooseScheduleDate(today) },
+                                modifier = Modifier.testTag("schedule-today")) { Text(AppLabels.TODAY) }
+                            IconButton(onClick = { navigator.showDatePicker = true }, modifier = Modifier.testTag("schedule-date-picker")) {
+                                Icon(CalendarPickerIcon, contentDescription = "Choose date", modifier = Modifier.size(20.dp))
                             }
-                        }, indicator = {}, modifier = Modifier.fillMaxSize().testTag("refresh-container")) {
-                        when {
-                            state.signingOut -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Signing out…") }
-                            tab == AppTab.ME -> {
-                                if (route == null) MoreContent(state, onLogin, onSignOut, { meRoute = MeRoute.Feed(it) }, openLink,
-                                    if (probe != null && !state.logoutFailed) ({ meRoute = MeRoute.DeveloperTools }) else null,
-                                    onSettings = { meRoute = MeRoute.Settings }, onResourceRefresh = recoverResource)
-                                else FeedContent(route, state.feed(route), state.busy, state.needsLogin,
-                                    { recoverResource(SyncResource.forFeed(route)) }, onMoreMessages, { detail = DetailSelection.Feed(route, it.id) }, openLink, onLogin)
-                            }
-                            !state.hasSavedData && state.busy && !state.signedIn -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text("Loading your saved data…", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            !state.hasSavedData && state.logoutFailed -> Column(Modifier.padding(Spacing.page)) {
-                                Text(state.message.orEmpty())
-                                Button(onClick = onSignOut) { Text(AppActions.RETRY_SIGN_OUT) }
-                            }
-                            !state.hasSavedData && state.needsLogin -> Welcome(onLogin)
-                            else -> {
-                                when (tab) {
-                                AppTab.HOME -> HomeContent(home, today, now,
-                                    { detail = DetailSelection.Class(it.id) }, { detail = DetailSelection.Task(it.id) },
-                                    { courseworkFilter = CourseworkFilter.UPCOMING; tab = AppTab.TASKS },
-                                    { courseworkFilter = CourseworkFilter.PAST; tab = AppTab.TASKS }, onLogin, recoverResource, openLink)
-                                AppTab.TASKS -> CourseworkContent(state.coursework, now, state.busy,
-                                    feedback = { ResourceRecoveryRow(courseworkRecovery, onLogin) { recoverResource(SyncResource.COURSEWORK) } },
-                                    showFeedback = state.needsLogin || state.coursework.message != null,
-                                    filterOverride = courseworkFilter, onFilterChanged = { courseworkFilter = it }) { detail = DetailSelection.Task(it.id) }
-                                AppTab.CLASSES -> ScheduleContent(schedule, today, now, scheduleDate, scheduleListState,
-                                    feedback = { ResourceRecoveryRow(timetableRecovery, onLogin) { recoverResource(SyncResource.TIMETABLE) } }) { detail = DetailSelection.Class(it.id) }
-                                AppTab.ME -> Unit // Handled before the common data states above.
+                        }
+                        if (navigator.tab == AppTab.ME && (route != null || showAppearance)) TextButton(onClick = {
+                            navigator.meRoute = MeRoute.Overview; navigator.detail = DetailSelection.None
+                        }) { Text(AppActions.BACK) }
+                    }
+                    SyncProgressBar(state.syncProgress)
+                    if (navigator.tab == AppTab.ME && showAppearance && !state.signingOut) AppearanceContent() else {
+                        PullToRefreshBox(isRefreshing = state.busy && !state.signingOut,
+                            onRefresh = {
+                                if (!state.signingOut && !state.logoutFailed) {
+                                    if (navigator.tab == AppTab.ME && route != null) actions.refreshResource(SyncResource.forFeed(route)) else actions.refresh()
+                                }
+                            }, indicator = {}, modifier = Modifier.fillMaxSize().testTag("refresh-container")) {
+                            when {
+                                state.signingOut -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Signing out…") }
+                                navigator.tab == AppTab.ME -> MeTab(state, navigator, actions, recoverResource, openLink)
+                                !state.hasSavedData && state.busy && !state.signedIn -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Text("Loading your saved data…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                !state.hasSavedData && state.logoutFailed -> Column(Modifier.padding(Spacing.page)) {
+                                    Text(state.globalMessage.orEmpty())
+                                    Button(onClick = actions.signOut) { Text(AppActions.RETRY_SIGN_OUT) }
+                                }
+                                !state.hasSavedData && state.needsLogin -> Welcome(actions.signIn)
+                                else -> {
+                                    when (navigator.tab) {
+                                    AppTab.HOME -> HomeContent(home, today, now,
+                                        { navigator.detail = DetailSelection.Class(it.id) }, { navigator.detail = DetailSelection.Task(it.id) },
+                                        { navigator.openTasks(CourseworkFilter.UPCOMING) },
+                                        { navigator.openTasks(CourseworkFilter.PAST) }, actions.signIn, recoverResource, openLink)
+                                    AppTab.TASKS -> CourseworkContent(state.coursework, now, state.busy,
+                                        feedback = { ResourceRecoveryRow(courseworkRecovery, actions.signIn) { recoverResource(SyncResource.COURSEWORK) } },
+                                        showFeedback = state.needsLogin || state.coursework.message != null,
+                                        filterOverride = navigator.courseworkFilter, onFilterChanged = { navigator.courseworkFilter = it }) { navigator.detail = DetailSelection.Task(it.id) }
+                                    AppTab.CLASSES -> ScheduleContent(schedule, today, now, scheduleDate, scheduleListState,
+                                        feedback = { ResourceRecoveryRow(timetableRecovery, actions.signIn) { recoverResource(SyncResource.TIMETABLE) } }) { navigator.detail = DetailSelection.Class(it.id) }
+                                    AppTab.ME -> Unit // Handled before the common data states above.
+                                    }
                                 }
                             }
                         }
@@ -211,19 +185,20 @@ fun PlusScreen(state: TimetableState, onRefresh: () -> Unit, onLogin: () -> Unit
                 }
             }
         }
-    }
-    if (tab == AppTab.CLASSES && showDatePicker && !state.signingOut) ScheduleDateDialog(scheduleDate,
-        onDismiss = { showDatePicker = false }, onDate = { chooseScheduleDate(it); showDatePicker = false })
-    if (!state.signingOut) state.events.firstOrNull { it.id == selectedId }?.let { event ->
-        EventDetails(event, event.id in conflicts, onDismiss = { detail = DetailSelection.None }, onOpen = onExternalLink)
-    }
-    if (!state.signingOut) state.coursework.entries.firstOrNull { it.id == courseworkId }?.let { entry ->
-        CourseworkDetails(entry, { detail = DetailSelection.None }, onCourseworkLink ?: onExternalLink)
-    }
-    if (!state.signingOut && route != null && (detail as? DetailSelection.Feed)?.kind == route) {
-        state.feed(route).entries.firstOrNull { it.id == feedEntryId }?.let {
-            FeedDetails(route, it, onExternalLink, { detail = DetailSelection.None })
+        if (navigator.tab == AppTab.CLASSES && navigator.showDatePicker && !state.signingOut) ScheduleDateDialog(scheduleDate,
+            onDismiss = { navigator.showDatePicker = false }, onDate = { chooseScheduleDate(it); navigator.showDatePicker = false })
+        if (!state.signingOut) when (val selection = navigator.detail) {
+            is DetailSelection.Class -> state.events.firstOrNull { it.id == selection.id }?.let {
+                EventDetails(it, it.id in conflicts, { navigator.detail = DetailSelection.None }, actions.openExternal)
+            }
+            is DetailSelection.Task -> state.coursework.entries.firstOrNull { it.id == selection.id }?.let {
+                CourseworkDetails(it, { navigator.detail = DetailSelection.None }, actions.openExternal)
+            }
+            is DetailSelection.Feed -> if (route == selection.kind) state.feed(route).entries.firstOrNull { it.id == selection.id }?.let {
+                FeedDetails(route, it, actions.openExternal, { navigator.detail = DetailSelection.None })
+            }
+            DetailSelection.None -> Unit
         }
+        if (showProbe && actions.probe != null && !state.signingOut) ApiProbeSheet(actions.probe, actions.signIn, { navigator.meRoute = MeRoute.Overview })
     }
-    if (showProbe && probe != null && !state.signingOut) ApiProbeSheet(probe, onLogin, { meRoute = MeRoute.Overview })
 }

@@ -1,6 +1,6 @@
 # 架构与组件规范
 
-更新：2026-10-07，适用代码 0.20.0。前文记录已落地的组件、共享函数、同步、数据反馈、课表和主题标准；末节保留评估基线并标注实施进度。接口证据见 [protocol.md](protocol.md)，覆盖表见 [api-progress.md](api-progress.md)，验证状态见 [validation.md](validation.md)。
+更新：2026-10-07，适用代码 0.21.0。前文记录已落地的组件、共享函数、同步、数据反馈、课表和主题标准；末节保留评估基线并标注实施进度。接口证据见 [protocol.md](protocol.md)，覆盖表见 [api-progress.md](api-progress.md)，验证状态见 [validation.md](validation.md)。
 
 ## 代码职责
 
@@ -10,16 +10,28 @@
 | --- | --- |
 | auth/ | 官方 WebView SSO、CookieManager、限定 MyWarwick origin 的 CookieJar |
 | data/MyWarwickApi、各 Parser | 只读 GET、响应大小/结构校验、整批解析，不负责 UI |
-| data/TimetableRepository、TimetableDao、TimetableDatabase | 账户隔离、串行读写/退出、事务快照与各资源原子缓存 |
+| data/TimetableRepository、StudentCache、TimetableDao、TimetableDatabase | 仓库只依赖原子缓存接口；账户隔离、串行读写/退出、事务快照；SyncSlots 集中持久 ID |
 | ui/TimetableViewModel | 单份同步任务、完整/单项/分页执行、恢复缓存、阶段进度及通知 |
 | ui/TimetableState、SyncRetry | 状态类型与 withCache/withIssue/resourceFailed；独立重试策略 |
 | config/AppLabels | 页面、分类、区段名称及常用动作文案；只管显示，不作为存储/接口key |
 | ui/NavigationState、SyncOperation | 类型化Tab/筛选/Me子页/详情、轻量Saver、同步操作和当前状态恢复动作 |
-| ui/PlusScreen | 路由/返回、选择项和页面状态、账户变化后的选择清理、连接动作回调 |
+| ui/PlusNavigator、PlusActions、PlusScreen | 导航/选日与轻量 Saver、动作集合；根页面连接投影与当前状态恢复 |
 | ui/*Screen、业务详情 | 组合页面、业务展示及按需详情；不直接读写数据库 |
-| ui/components/ | 基础容器、列表、操作、输入、标题及详情骨架；沿用 ui 包名 |
+| ui/components/ | 基础容器、列表、操作、输入、标题及详情骨架；package 与目录一致 |
+| ui/LegacyUiAdapters | 旧测试的源码兼容入口；正式入口使用类型化动作、页面投影与恢复动作 |
 
 组件只接受展示内容与动作，不持有 ViewModel、不发网络请求、不修改账户。暂不引入多模块、资源插件或并发同步；抽象由实际复用场景推动。
+
+## 0.21.0 质量收敛
+
+- `JsonFields` 共用 envelope/对象数组/唯一 ID 校验和实际类型读取；可选字符串 null/异型值视为空，必需字段拒绝整批，Modules 保持已确认的数字 ID 支持。
+- 全局会话/缓存/退出问题使用 globalMessage；message 只代表课表问题，其他资源保留独立问题。成功的课表不会因 Tasks 登录失效被改成失败；未执行资源的登录提示一致。
+- 仓库在 Mutex 内复用已提交快照给账户回调，每次持久化、cached() 或账户清理更新/作废引用；账户不变时 ViewModel 只更新身份和进度。失败仍从 DAO 恢复，不跳过按资源的账户检查。
+- Feed 文本使用 Default 线程和按账户创建的容量缓存，切换账户/退出后旧缓存不再被根页面持有；内容刷新按源列表校验，避免同 ID 显示旧正文。转换完成前不显示原始 HTML，搜索结果会随正文转换完成更新。
+- 时钟仍只在 STARTED 运行，延迟对齐 :00/:30；冲突集合共用；详情关闭按钮先 hide 后移除，账号切换仍立即清理详情。日期选择保存有效日期、月份与模式，保留 Locale.UK；未完成/无效输入不承诺保存。
+- Android 12+ 明确排除云备份与 D2D 全部存储域，低版本保留 allowBackup=false/fullBackupContent=false；未实测 OEM 迁移。
+
+采用项和未采用理由按原报告编号记录在 [quality-review.md](quality-review.md)。不引入多模块、全量状态表、格式工具、依赖升级或新 UI Test；尚未进行帧时间/启动成本测量。
 
 ## 同步、缓存与恢复
 
@@ -29,12 +41,12 @@
      → user/info 验证/账户隔离 → GET/解析 → 独立写事务 → snapshot → StateFlow
 ```
 
-- 完整刷新顺序：Timetable → Coursework → Messages → Library → Modules → Account；每次资源尝试仍先验证账户。验证成功后的课表解析失败可继续其他资源；未确认账户或登录失效则停止后续任务。
+- 完整刷新顺序：Timetable → Coursework → Messages → Library → Modules → Account；每次资源尝试仍先验证账户。验证成功后的课表解析失败可继续其他资源；未确认账户或登录失效则停止后续任务；传输异常耗尽当前资源预算后同样停止，不把 IOException 一律认定为离线。
 - Repository 的 inStore 统一 IO 与 Mutex；authenticatedSync 统一验证、读取、同步状态创建、持久化与快照。DAO snapshot 在单个 Room 读事务读取六类数据；网络请求在数据库事务外。各数据源保留独立写事务和同步时间。
 - Room 当前 schema 5，显式迁移 1→2（moduleName）→3（Coursework）→4（Feed）→5（sync_state.email）。保留旧数据，不做破坏性重建；旧导出 schema 用于迁移核对，继续保留。
 - 每份同步状态记录账户归属；发现账户变化后，在下载前清空旧数据，再一次应用新身份和快照。withCache 只替换持久字段，保留其他资源的错误、加载和进度。
-- 同步中重复刷新受 busy guard 限制。单项刷新只处理自己的问题和进度，成功不重报另一资源的旧失败；失败恢复已保存快照，不以坏响应覆盖缓存。
-- IOException、HTTP 408 / 5xx 最多额外重试两次，延迟 2 秒、5 秒；认证、解析异常及其他 HTTP 错误（含 429）不自动重试。CancellationException 继续传播。
+- 同步中重复刷新受 busy guard 限制。成功登录在 busy 时排队，当前任务结束后合并为一次完整刷新；退出时清除待刷新。单项刷新只处理自己的问题和进度，成功不重报另一资源的旧失败；失败恢复已保存快照，不以坏响应覆盖缓存。
+- IOException、HTTP 408 / 5xx 最多额外重试两次，延迟 2 秒、5 秒；无活动网络不进入请求和重试；有网络时预算不变。认证、解析异常及其他 HTTP 错误（含 429）不自动重试。CancellationException 继续传播。
 - Messages 最新页 limit=100；只有用户要求才用缓存最旧 id 作 before 游标。先验证/清理账户，再检查游标。分页合并按日期倒序/id 排序、去重、最多 500 条；非空且无新增 ID 的页拒绝。最新页刷新重置旧分页，失败重试保留原游标。
 - 同步调用通过 StudentApi.request → CancellableRequests 绑定协程取消与当前 OkHttp Call.cancel；注册前即建立线程安全取消作用域，取消不能漏掉随后注册的请求。网络读取/解析在 IO 线程执行，响应由 use 关闭，取消后的结果不交回持久化流程；退出前以 NonCancellable 等待该 IO 工作完成，避免迟到 CookieJar 回调恢复旧会话。Sign out 的 cancelAndJoin 会立即取消同步请求，再经 Repository 清理会话/数据库；验证后及写前 ensureActive、Mutex、失败恢复均保留。登录/Developer probe 的同步入口保持原行为；不在等待前清 cookie。
 

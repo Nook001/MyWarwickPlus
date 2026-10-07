@@ -1,4 +1,6 @@
-package uk.ac.warwick.plus.ui
+package uk.ac.warwick.plus.ui.components
+
+import uk.ac.warwick.plus.ui.DetailsChevron
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*

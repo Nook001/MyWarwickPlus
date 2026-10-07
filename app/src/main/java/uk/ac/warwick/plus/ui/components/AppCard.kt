@@ -1,4 +1,7 @@
-package uk.ac.warwick.plus.ui
+package uk.ac.warwick.plus.ui.components
+
+import uk.ac.warwick.plus.ui.LocalAppearance
+import uk.ac.warwick.plus.ui.emphasisColours
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface

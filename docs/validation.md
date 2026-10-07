@@ -8,7 +8,25 @@
 
 仅更新三个现有文档，不改源码/测试/依赖/schema/版本；不构建、不运行JVM/UI/设备测试、不部署或请求学校接口。核对本地引用、表格/代码块结构、评估中的源码符号及git diff --check；查阅Compose/Kotlin官方技术说明，不访问用户会话。之前0.18.0手机安装被拒和待验收状态保留。
 
-## 最新代码：0.20.0 / versionCode 28
+## 最新代码：0.21.0 / versionCode 29
+
+2026-10-07：按质量报告修复 P0 风险并落地维护性与必要细节项，取舍表见 [quality-review.md](quality-review.md)。未改变 API 路径、写操作边界、schema5 或调色值；有活动网络时仍最多额外两次 2s/5s 重试。
+
+| 检查 | 本次结果 / 边界 |
+| --- | --- |
+| Debug 构建 | assembleDebug 成功 |
+| JVM | 73项全部通过；原有68项 + 5项 null/异型字段、登录排队/退出、无网络/会话归属、导航存档转换、快照复用/换账户检查；旧网络失败继续刷新的断言改为新规格，独立HTTP 503恢复仍验证 |
+| Lint | 0 errors / 6 warnings；剩余均为SDK/依赖/Gradle版本提示，不混入本轮升级 |
+| Room / API | 导出schema5无diff，identity hash a201057e1b8a41788b3c7026be00cfee 不变；未新增真实SQLite或学校接口检查 |
+| UI约定 | 既有 AndroidTest 只编译核对，未改写/扩展/执行；兼容入口集中隔离，旧运行期文案断言不记为通过 |
+| 物理部署 | 指定10AG4S2KQJ0066R执行install -r成功；dumpsys确认versionCode29 / versionName0.21.0。冷启动Status:ok / COLD / TotalTime380ms；单次值不作性能基准，未卸载或清除登录缓存，交互待用户手动反馈 |
+| 未执行 | UI Test、模拟器、自动点击/截图/退出/清cookie、OEM迁移、500条真实Messages性能或真机帧时间测量 |
+
+命令：`./gradlew.bat :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:compileDebugAndroidTestKotlin`，JDK21。
+
+手动重点：断网下拉后尽快结束且保留数据；恢复网络可再次刷新；同步中完成登录后自动刷新；Classes 日期弹窗旋转保留有效选日/月份和模式；Me 子页返回、Messages 搜索/打开详情、详情关闭动画；五套背景和原首页布局一致。同步中重新登录只在用户愿意时测试，不自动退出账户。
+
+## 上一版：0.20.0 / versionCode 28
 
 2026-10-07：类型化Tab/筛选/Me子页/详情、同步操作与恢复动作；集中页面命名，Classes/Tasks顶部与Tab一致，Settings/Developer tools入口标题一致。API、schema5、依赖、布局和重试预算不变。
 

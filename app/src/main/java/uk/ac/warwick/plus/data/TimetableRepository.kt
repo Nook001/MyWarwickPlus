@@ -1,5 +1,7 @@
 package uk.ac.warwick.plus.data
 
+import uk.ac.warwick.plus.debugLog
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
@@ -29,61 +31,69 @@ interface StudentApi {
     fun feed(kind: FeedKind, user: SignedInUser, before: String?): ParsedFeed
 }
 
-class TimetableRepository(private val api: StudentApi, private val dao: TimetableDao,
+class TimetableRepository(private val api: StudentApi, private val dao: StudentCache,
+    private val logSync: (() -> String) -> Unit = { debugLog(it) },
     private val endSession: suspend () -> Unit = {}) : TimetableStore {
     private val mutex = Mutex()
+    // Accessed only under mutex. The repository owns all production cache writes.
+    private var currentCache: CachedTimetable? = null
+    private fun readCache() = dao.snapshot().also { currentCache = it }
 
     // Keep network work outside Room transactions, but serialize it with cache reads and sign-out.
     private suspend fun <T> inStore(operation: suspend () -> T): T = withContext(Dispatchers.IO) {
         mutex.withLock {
-            kotlinx.coroutines.currentCoroutineContext().ensureActive()
+            currentCoroutineContext().ensureActive()
             operation()
         }
     }
 
     private suspend fun authenticate(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): SignedInUser {
         val user = api.request { api.user() }
-        kotlinx.coroutines.currentCoroutineContext().ensureActive()
-        if (dao.states().any { it.userCode != user.code }) dao.clear()
-        onAuthenticated(user, dao.snapshot())
+        currentCoroutineContext().ensureActive()
+        val changedAccount = dao.states().any { it.userCode != user.code }
+        if (changedAccount) {
+            dao.clear()
+            currentCache = null
+        }
+        onAuthenticated(user, currentCache ?: readCache())
         return user
     }
 
     private suspend fun <T> authenticatedSync(id: Int, onAuthenticated: (SignedInUser, CachedTimetable) -> Unit,
-        read: suspend (SignedInUser) -> T, save: (T, SyncEntity) -> Unit): CachedTimetable = inStore {
+        read: suspend (SignedInUser) -> T, describe: (T) -> String = { "" }, save: (T, SyncEntity) -> Unit): CachedTimetable = inStore {
         val user = authenticate(onAuthenticated)
         val result = read(user)
         // A blocking HTTP read can finish after cancellation; never persist that result.
-        kotlinx.coroutines.currentCoroutineContext().ensureActive()
+        currentCoroutineContext().ensureActive()
         val state = SyncEntity().apply {
-            this.id = id; userCode = user.code; displayName = user.name; syncedAt = System.currentTimeMillis()
+            this.id = id
+            userCode = user.code
+            displayName = user.name
+            syncedAt = System.currentTimeMillis()
         }
         save(result, state)
-        dao.snapshot()
+        logSync { "Native resource sync succeeded; slot=$id ${describe(result)}" }
+        readCache()
     }
 
-    override suspend fun cached(): CachedTimetable = inStore { dao.snapshot() }
+    override suspend fun cached(): CachedTimetable = inStore { readCache() }
 
     override suspend fun sync(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit) =
-        authenticatedSync(1, onAuthenticated, { user -> api.request { api.timetable(user) } }) { events, state ->
-            dao.replace(events, state)
-            if (uk.ac.warwick.plus.BuildConfig.DEBUG)
-                android.util.Log.i("MyWarwickPlus", "Native timetable sync succeeded; events=${events.size}")
-        }
+        authenticatedSync(SyncSlots.TIMETABLE, onAuthenticated,
+            read = { user -> api.request { api.timetable(user) } },
+            describe = { "events=${it.size}" }, save = dao::replace)
 
     override suspend fun syncCoursework(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit) =
-        authenticatedSync(2, onAuthenticated, { user -> api.request { api.coursework(user) } }) { entries, state ->
-            dao.replaceCoursework(entries, state)
-            if (uk.ac.warwick.plus.BuildConfig.DEBUG)
-                android.util.Log.i("MyWarwickPlus", "Native coursework sync succeeded; items=${entries.size}")
-        }
+        authenticatedSync(SyncSlots.COURSEWORK, onAuthenticated,
+            read = { user -> api.request { api.coursework(user) } },
+            describe = { "items=${it.size}" }, save = dao::replaceCoursework)
 
     override suspend fun syncAccount(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit) =
-        authenticatedSync(6, onAuthenticated, { user -> api.request { api.account(user) } }) { email, state ->
+        authenticatedSync(SyncSlots.ACCOUNT, onAuthenticated,
+            read = { user -> api.request { api.account(user) } },
+            describe = { "emailAvailable=${it.isNotBlank()}" }) { email, state ->
             state.email = email
             dao.replaceAccount(state)
-            if (uk.ac.warwick.plus.BuildConfig.DEBUG)
-                android.util.Log.i("MyWarwickPlus", "Native account sync succeeded; emailAvailable=${email.isNotBlank()}")
         }
 
     override suspend fun syncFeed(kind: FeedKind, before: String?, onAuthenticated: (SignedInUser, CachedTimetable) -> Unit) =
@@ -98,12 +108,16 @@ class TimetableRepository(private val api: StudentApi, private val dao: Timetabl
                 val ids = existing.mapTo(HashSet()) { it.id }
                 val additions = parsed.entries.filter { it.id !in ids }
                 if (parsed.entries.isNotEmpty() && additions.isEmpty()) throw InvalidResponseException()
-                (existing + additions).sortedWith(compareByDescending<FeedEntry> { it.dateMillis }.thenBy { it.id }).take(500)
+                (existing + additions).sortedWith(FeedOrder).take(500)
             }
             entries.forEachIndexed { index, item -> item.position = index }
             parsed.meta.hasMore = parsed.meta.hasMore && entries.size < 500
             ParsedFeed(entries, parsed.meta)
         }) { parsed, state -> dao.replaceFeed(parsed.entries, parsed.meta, state) }
 
-    override suspend fun signOut() = inStore { endSession(); dao.clear() }
+    override suspend fun signOut() = inStore {
+        endSession()
+        dao.clear()
+        currentCache = null
+    }
 }

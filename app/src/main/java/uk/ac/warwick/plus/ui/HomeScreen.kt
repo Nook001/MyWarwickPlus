@@ -1,5 +1,7 @@
 package uk.ac.warwick.plus.ui
 
+import uk.ac.warwick.plus.ui.components.*
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -24,7 +26,7 @@ internal fun HomeContent(state: HomePageState, today: LocalDate, now: Long, onSe
     val next = remember(state.events, now) { currentOrNextClass(state.events, now) }
     val nextId = remember(state.events, now) { nextTimedClass(state.events, now)?.id }
     val todayEvents = remember(state.events, today) { eventsOnDate(state.events, today) }
-    val conflicts = remember(state.events) { conflictingEventIds(state.events) }
+    val conflicts = state.conflicts
     val upcoming = remember(state.coursework.entries, now) {
         state.coursework.entries.filter { it.dueMillis >= now }.sortedBy { it.dueMillis }.take(3)
     }
@@ -57,11 +59,7 @@ internal fun HomeContent(state: HomePageState, today: LocalDate, now: Long, onSe
                 if (todayEvents.isEmpty()) SectionEmptyRow("No classes today", Modifier.testTag("today-empty"))
                 else todayEvents.forEachIndexed { index, event ->
                     if (index > 0) ListDivider()
-                    val status = when {
-                        !event.allDay && event.startMillis <= now && event.endMillis > now -> AppLabels.NOW
-                        event.id == nextId -> AppLabels.NEXT
-                        else -> null
-                    }
+                    val status = classStatus(event, now, nextId, today)
                     ScheduleClassRow(event, today, status, event.id in conflicts, compactTop = index == 0) { onSelect(event) }
                 }
             }
@@ -107,7 +105,7 @@ private fun NextClassCard(event: EventContentItem, now: Long, onSelect: () -> Un
         Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(if (event.startMillis <= now) AppLabels.NOW else AppLabels.NEXT, style = MaterialTheme.typography.labelMedium,
+                Text(if (isClassNow(event, now)) AppLabels.NOW else AppLabels.NEXT, style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold, modifier = Modifier.alignByBaseline())
                 Text(if (event.startMillis <= now) time else "${nextClassLabel(event, now)} · $time",
                     style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium,

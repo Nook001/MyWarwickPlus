@@ -2,7 +2,7 @@
 
 独立的 Android 学生客户端原型，Kotlin + Jetpack Compose。通过官方 WebView SSO 登录，复用 MyWarwick session 与只读聚合接口，不申请新的 OAuth application；不是 Warwick 官方应用。
 
-当前代码：**0.20.0 / versionCode 28**。构建、物理安装和手动验收是不同状态，交付情况见 [验收记录](docs/validation.md)。
+当前代码：**0.21.0 / versionCode 29**。构建、物理安装和手动验收是不同状态，交付情况见 [验收记录](docs/validation.md)。
 
 ## 当前功能
 
@@ -40,5 +40,6 @@ $env:JAVA_HOME = 'D:/Dev/JDK21.0.8'
 | [API 接入进度](docs/api-progress.md) | 每个接口的接入状态、展示用途和未验证范围 |
 | [协议证据与边界](docs/protocol.md) | 请求、响应结构、认证、历史观察与复用风险 |
 | [验证与交付记录](docs/validation.md) | 最新检查、部署/验收状态、必要历史证据与手动检查清单 |
+| [质量分析与实施核对](docs/quality-review.md) | 0.20.0审阅基线、逐项采用结果与暂缓理由 |
 
 文档描述当前行为，不逐版重复实现过程。已完成计划、旧预览设计和详细版本流水账从 Git 历史查阅；每次交付简要报告提交情况，API 覆盖变化更新进度表。

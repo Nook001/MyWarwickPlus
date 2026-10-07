@@ -1,10 +1,9 @@
 package uk.ac.warwick.plus.data
 
 import org.json.JSONObject
-import uk.ac.warwick.plus.config.AppLabels
 
-enum class FeedKind(val key: Int, val label: String, val tile: String) {
-    MESSAGES(3, AppLabels.MESSAGES, "notifications"), LIBRARY(4, AppLabels.LIBRARY, "library"), MODULES(5, AppLabels.MODULES, "modules");
+enum class FeedKind(val key: Int, val tile: String) {
+    MESSAGES(SyncSlots.MESSAGES, "notifications"), LIBRARY(SyncSlots.LIBRARY, "library"), MODULES(SyncSlots.MODULES, "modules");
     fun path(before: String? = null): String = if (this == MESSAGES) {
         "/api/streams/notifications?limit=100" + (before?.let { "&before=" + java.net.URLEncoder.encode(it, "UTF-8") } ?: "")
     } else "/api/tiles/content/$tile"
@@ -15,9 +14,7 @@ data class CachedFeed(val entries: List<FeedEntry>, val meta: FeedMeta?, val syn
 
 object FeedParser {
     fun parse(kind: FeedKind, body: String): ParsedFeed {
-        val root = JSONObject(body)
-        if (!root.optBoolean("success")) throw InvalidResponseException()
-        val data = root.getJSONObject("data")
+        val data = responseData(body)
         val content = if (kind == FeedKind.MESSAGES) data else data.getJSONObject(kind.tile).getJSONObject("content")
         val items = content.getJSONArray(if (kind == FeedKind.MESSAGES) "notifications" else "items")
         val meta = FeedMeta().apply {
@@ -26,27 +23,26 @@ object FeedParser {
             url = safeExternalUrl(content.stringOrEmpty("href")) ?: ""
             hasMore = kind == FeedKind.MESSAGES && items.length() == 100
             if (kind == FeedKind.MESSAGES && content.stringOrEmpty("read").isNotBlank())
-                webReadMillis = networkDate(content.getString("read"))
+                webReadMillis = networkDate(content.requiredString("read"))
         }
-        val entries = (0 until items.length()).map { index ->
-            val item = items.getJSONObject(index)
+        val entries = items.mapObjects { index, item ->
             FeedEntry().apply {
                 feed = kind.key; position = index
                 when (kind) {
                     FeedKind.MESSAGES -> {
-                        id = item.getString("id").also { require(it.isNotBlank()) }
-                        title = item.getString("title").also { require(it.isNotBlank()) }
+                        id = item.requiredString("id").also { require(it.isNotBlank()) }
+                        title = item.requiredString("title").also { require(it.isNotBlank()) }
                         val rich = item.stringOrEmpty("textAsHtml")
                         html = rich.isNotBlank()
                         text = if (html) rich else item.stringOrEmpty("text")
                         url = safeExternalUrl(item.stringOrEmpty("url")) ?: ""
                         provider = item.stringOrEmpty("providerDisplayName").ifBlank { item.stringOrEmpty("provider") }
                         type = item.stringOrEmpty("type")
-                        dateMillis = networkDate(item.getString("date"))
+                        dateMillis = networkDate(item.requiredString("date"))
                     }
                     FeedKind.MODULES -> {
                         id = item.get("id").toString().also { require(it.isNotBlank() && it != "null") }
-                        title = item.getString("fullName").also { require(it.isNotBlank()) }
+                        title = item.requiredString("fullName").also { require(it.isNotBlank()) }
                         moduleCode = item.stringOrEmpty("moduleCode")
                         academicYear = item.stringOrEmpty("academicYear")
                         url = safeCourseworkUrl(item.stringOrEmpty("href")) ?: ""
@@ -64,8 +60,7 @@ object FeedParser {
                 }
                 require(title.length <= 16_384 && text.length <= 131_072 && url.length <= 8_192)
             }
-        }.also { require(it.map { entry -> entry.id }.distinct().size == it.size) }
-        return ParsedFeed(if (kind == FeedKind.MESSAGES) entries.sortedWith(compareByDescending<FeedEntry> { it.dateMillis }.thenBy { it.id }) else entries, meta)
+        }.requireUniqueIds { it.id }
+        return ParsedFeed(if (kind == FeedKind.MESSAGES) entries.sortedWith(FeedOrder) else entries, meta)
     }
-    private fun JSONObject.stringOrEmpty(key: String) = if (isNull(key)) "" else optString(key)
 }

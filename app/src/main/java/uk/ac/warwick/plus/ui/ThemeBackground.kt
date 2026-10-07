@@ -10,7 +10,7 @@ import android.graphics.Shader
 import android.util.LruCache
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -18,6 +18,8 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.core.graphics.createBitmap
 import androidx.compose.ui.unit.IntSize
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -49,7 +51,7 @@ class ThemeBackgroundCache {
         cache[key] ?: withContext(Dispatchers.Default) { render(key) }.also { cache.put(key, it) }
     }
     private fun render(key: BackgroundKey): Bitmap {
-        val bitmap = Bitmap.createBitmap(key.width, key.height, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(key.width, key.height)
         val canvas = BitmapCanvas(bitmap)
         val palette = key.theme.palette()
         canvas.drawColor(palette.background.toArgb())
@@ -84,8 +86,10 @@ private val Backgrounds = ThemeBackgroundCache()
 @Composable
 fun ThemeBackground(modifier: Modifier = Modifier) {
     val appearance = LocalAppearance.current
-    BoxWithConstraints(modifier.fillMaxSize().background(appearance.theme.palette().background)) {
-        val key = backgroundKey(appearance, maxWidth.value / maxHeight.value.coerceAtLeast(1f))
+    var measuredSize by remember { mutableStateOf(IntSize.Zero) }
+    Box(modifier.fillMaxSize().background(appearance.theme.palette().background).onSizeChanged { measuredSize = it }) {
+        if (measuredSize.width == 0 || measuredSize.height == 0) return@Box
+        val key = backgroundKey(appearance, measuredSize.width.toFloat() / measuredSize.height)
         val cached by produceState<Pair<BackgroundKey, Bitmap>?>(null, key) { value = key to Backgrounds.get(key) }
         val image = cached?.takeIf { it.first == key }?.second
         if (image != null) {

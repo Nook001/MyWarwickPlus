@@ -1,5 +1,7 @@
 package uk.ac.warwick.plus.data
 
+import uk.ac.warwick.plus.BuildConfig
+
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
@@ -25,7 +27,7 @@ class MyWarwickApi(session: AuthSession) : StudentApi {
     private fun getResponse(path: String, user: SignedInUser? = null): JsonResponse {
         val request = Request.Builder().url(MY_WARWICK + path)
             .header("Accept", "application/json")
-            .header("User-Agent", "MyWarwickPlus/${uk.ac.warwick.plus.BuildConfig.VERSION_NAME} (Android)")
+            .header("User-Agent", "MyWarwickPlus/${BuildConfig.VERSION_NAME} (Android)")
             .apply {
                 if (user != null && user.csrfHeader.equals("Csrf-Token", ignoreCase = true) && user.csrfToken.isNotBlank()) {
                     header("Csrf-Token", user.csrfToken)
@@ -49,7 +51,7 @@ class MyWarwickApi(session: AuthSession) : StudentApi {
     private fun get(path: String, user: SignedInUser? = null) = getResponse(path, user).body
 
     fun probe(endpoint: ProbeEndpoint): ProbeResult {
-        check(uk.ac.warwick.plus.BuildConfig.DEBUG)
+        check(BuildConfig.DEBUG)
         val start = System.nanoTime()
         val response = getResponse(endpoint.path, user())
         return ProbeSummary.parse(endpoint, response.code, (System.nanoTime() - start) / 1_000_000, response.body)
@@ -59,15 +61,13 @@ class MyWarwickApi(session: AuthSession) : StudentApi {
         val root = JSONObject(get("/user/info"))
         val user = root.optJSONObject("user") ?: throw SignInRequiredException()
         if (root.opt("refresh") is String || !user.optBoolean("authenticated")) throw SignInRequiredException()
-        return SignedInUser(user.getString("usercode"), user.optString("name"),
-            user.optString("csrfHeader"), user.optString("csrfToken"))
+        return SignedInUser(user.requiredString("usercode"), user.stringOrEmpty("name"),
+            user.stringOrEmpty("csrfHeader"), user.stringOrEmpty("csrfToken"))
     }
 
     override fun timetable(user: SignedInUser) = TimetableParser.parse(get("/api/tiles/content/timetable", user))
     override fun account(user: SignedInUser): String {
-        val root = JSONObject(get("/api/tiles/content/account", user))
-        if (!root.optBoolean("success")) throw InvalidResponseException()
-        val content = root.getJSONObject("data").getJSONObject("account").getJSONObject("content")
+        val content = tileContent(get("/api/tiles/content/account", user), "account")
         val email = content.opt("email")
         if (email != null && email != JSONObject.NULL && email !is String) throw InvalidResponseException()
         return (email as? String)?.trim().orEmpty()

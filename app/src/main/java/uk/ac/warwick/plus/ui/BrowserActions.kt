@@ -1,6 +1,6 @@
 package uk.ac.warwick.plus.ui
 
-import android.net.Uri
+import androidx.core.net.toUri
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
@@ -23,7 +23,7 @@ internal fun rememberBrowserOpener(onOpen: ((String) -> Unit)? = null): (String)
             if (url == null) false else try {
                 val open = currentOpen
                 if (open != null) open(url)
-                else CustomTabsIntent.Builder().build().launchUrl(context, Uri.parse(url))
+                else CustomTabsIntent.Builder().build().launchUrl(context, url.toUri())
                 true
             } catch (error: Exception) {
                 if (error is CancellationException) throw error

@@ -1,4 +1,4 @@
-package uk.ac.warwick.plus.ui
+package uk.ac.warwick.plus.ui.components
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.RoundedCornerShape

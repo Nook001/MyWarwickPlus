@@ -2,37 +2,51 @@ package uk.ac.warwick.plus.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import uk.ac.warwick.plus.reportSyncFailure
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import uk.ac.warwick.plus.config.AppLabels
 import uk.ac.warwick.plus.data.*
+import java.io.IOException
 
 class TimetableViewModel(private val repository: TimetableStore,
-    private val reportFailure: (Exception) -> Unit = {
-        if (uk.ac.warwick.plus.BuildConfig.DEBUG) android.util.Log.w("MyWarwickPlus", "Student data sync failed: ${it.javaClass.simpleName}")
-    }) : ViewModel() {
+    private val reportFailure: (Exception) -> Unit = ::reportSyncFailure, private val hasNetwork: () -> Boolean = { true }) : ViewModel() {
     private val mutable = MutableStateFlow(TimetableState(busy = true))
     val state = mutable.asStateFlow()
     private var syncJob: Job? = null
     private var noticeId = 0L
     private var syncId = 0L
+    private var refreshAfterCurrent = false
     init {
         syncJob = viewModelScope.launch {
             try { applyCache(repository.cached()) }
             catch (error: Exception) {
                 if (error is CancellationException) throw error
-                mutable.update { it.copy(message = "Couldn't open your saved data. Try refreshing.") }
+                mutable.update { it.copy(globalMessage = "Couldn't open your saved data. Try refreshing.") }
             } finally { mutable.update { it.copy(busy = false) } }
+            refreshAfterCurrent = false
             refresh()
         }
     }
     private fun applyCache(cache: CachedTimetable) = mutable.update { it.withCache(cache) }
     private fun authenticated(user: SignedInUser, cache: CachedTimetable) {
-        mutable.update { it.withCache(cache).copy(signedIn = true, needsLogin = false, name = user.name,
-            accountCode = user.code, sessionCheckedAt = System.currentTimeMillis(),
-            syncProgress = it.syncProgress?.copy(accountChecked = true)) }
+        mutable.update { state ->
+            val cacheCleared = cache.sync == null && cache.courseworkSync == null &&
+                cache.accountSync == null && cache.feeds.values.all { it.sync == null }
+            val current = if (state.accountCode != user.code || cacheCleared && state.hasSavedData)
+                state.withCache(cache) else state
+            current.copy(signedIn = true, needsLogin = false, globalMessage = null, name = user.name,
+                accountCode = user.code, sessionCheckedAt = System.currentTimeMillis(),
+                syncProgress = state.syncProgress?.copy(accountChecked = true))
+        }
     }
     private suspend fun restoreCache() {
         try { applyCache(repository.cached()) }
@@ -50,23 +64,14 @@ class TimetableViewModel(private val repository: TimetableStore,
             try { operation() } finally {
                 if (!mutable.value.signingOut) {
                     val current = mutable.value
-                    val failures = (resource?.let(::listOf) ?: SyncResource.entries).mapNotNull { kind ->
-                        current.issue(kind)?.let { kind to it }
-                    }
-                    val singleFailure = failures.singleOrNull()
-                    val recovery = when {
-                        olderMessages -> RecoveryAction.OlderMessages
-                        resource != null -> RecoveryAction.Refresh(resource)
-                        singleFailure != null -> RecoveryAction.Refresh(singleFailure.first)
-                        else -> RecoveryAction.RefreshAll
-                    }
-                    val notice = if (failures.isEmpty()) null else SyncNotice(++noticeId,
-                        if (current.needsLogin) "Sign in to update your information."
-                        else if (failures.size > 1) "Couldn't update some information. Your saved data has been kept."
-                        else failures.single().second,
-                        recovery)
+                    val notice = current.completionNotice(noticeId + 1, resource, olderMessages)
+                    if (notice != null) noticeId++
                     mutable.update { it.copy(busy = false, notice = notice,
                         syncProgress = it.syncProgress?.copy(finished = true)) }
+                    if (refreshAfterCurrent) {
+                        refreshAfterCurrent = false
+                        refresh()
+                    }
                 }
             }
         }
@@ -83,26 +88,36 @@ class TimetableViewModel(private val repository: TimetableStore,
         }) }
     }
     fun refresh() = startSync {
-        mutable.update { it.copy(message = null, coursework = it.coursework.copy(message = null), account = it.account.copy(message = null),
+        mutable.update { it.copy(message = null, globalMessage = null, coursework = it.coursework.copy(message = null), account = it.account.copy(message = null),
             feeds = it.feeds.mapValues { (_, feed) -> feed.copy(message = null, olderPageFailed = false) }) }
-        syncResource(SyncResource.TIMETABLE)
-        if (mutable.value.signedIn && !mutable.value.needsLogin) {
-            for (resource in SyncResource.entries.drop(1)) {
-                currentCoroutineContext().ensureActive()
-                if (mutable.value.needsLogin) break
-                syncResource(resource)
+        for (resource in SyncResource.entries) {
+            currentCoroutineContext().ensureActive()
+            val outcome = syncResource(resource)
+            if (mutable.value.needsLogin) {
+                mutable.update { state -> SyncResource.entries.dropWhile { it != resource }.drop(1).fold(state) { next, kind ->
+                    if (next.issue(kind) == null) next.withIssue(kind, "Sign in to update ${kind.label.lowercase()}.") else next
+                } }
+                break
             }
-        } else mutable.update { it.copy(coursework = it.coursework.copy(message =
-            if (it.needsLogin) "Sign in to update coursework." else "Couldn't update coursework. Connect and refresh to try again.")) }
+            // An exhausted transport failure is not proof of being offline. Stop this batch,
+            // but allow a new pull-to-refresh or a targeted resource retry to try again.
+            if (outcome == ResourceOutcome.TransportFailed || !mutable.value.signedIn) break
+        }
     }
+    fun refreshAfterSignIn() {
+        if (mutable.value.signingOut || mutable.value.logoutFailed) return
+        if (mutable.value.busy) refreshAfterCurrent = true else refresh()
+    }
+    private enum class ResourceOutcome { Updated, Failed, TransportFailed }
     // Every resource shares execution/recovery; the store still owns authentication and persistence.
-    private suspend fun syncResource(resource: SyncResource, before: String? = null) {
+    private suspend fun syncResource(resource: SyncResource, before: String? = null): ResourceOutcome {
         beginResource(if (before != null) SyncOperation.OlderMessages else SyncOperation.Refresh(resource))
         mutable.update { state ->
             val cleared = state.withIssue(resource, null)
             resource.feed?.let { kind -> cleared.withFeed(kind) { it.copy(loading = true) } } ?: cleared
         }
         try {
+            if (!hasNetwork()) throw IOException("No active network")
             applyCache(withSyncRetry(onRetry = { attempt ->
                 mutable.update { it.copy(syncProgress = it.syncProgress?.copy(retry = attempt)) }
             }) {
@@ -117,10 +132,12 @@ class TimetableViewModel(private val repository: TimetableStore,
                 val cleared = state.withIssue(resource, null)
                 if (resource == SyncResource.TIMETABLE) cleared.copy(needsLogin = false, signedIn = true) else cleared
             }
+            return ResourceOutcome.Updated
         } catch (error: Exception) {
             if (error is CancellationException) throw error
             reportFailure(error); restoreCache()
             mutable.update { it.resourceFailed(resource, error, before != null) }
+            return if (error is IOException) ResourceOutcome.TransportFailed else ResourceOutcome.Failed
         } finally {
             resource.feed?.let { kind -> mutable.update { it.withFeed(kind) { feed -> feed.copy(loading = false) } } }
             finishResource(mutable.value.issue(resource) != null)
@@ -136,6 +153,7 @@ class TimetableViewModel(private val repository: TimetableStore,
     }
     fun signOut() {
         if (mutable.value.signingOut) return
+        refreshAfterCurrent = false
         val previous = syncJob
         mutable.update { it.copy(signingOut = true, busy = true, syncProgress = null) }
         syncJob = viewModelScope.launch {
@@ -148,7 +166,7 @@ class TimetableViewModel(private val repository: TimetableStore,
                 if (error is CancellationException) throw error
                 reportFailure(error)
                 mutable.value = TimetableState(needsLogin = true, logoutFailed = true,
-                    message = "Couldn't finish signing out. Retry from ${AppLabels.ME} before signing in again.")
+                    globalMessage = "Couldn't finish signing out. Retry from ${AppLabels.ME} before signing in again.")
             }
         }
     }

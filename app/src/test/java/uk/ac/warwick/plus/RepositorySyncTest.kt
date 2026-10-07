@@ -9,39 +9,21 @@ import java.util.concurrent.TimeUnit
 
 class RepositorySyncTest {
     // In-memory storage fixture: these checks cover orchestration, not Room's transaction engine.
-    private class Dao : TimetableDao() {
+    private class Dao : StudentCache {
         var cache = CachedTimetable(emptyList(), null)
         var writes = 0
-        override fun snapshot() = cache
+        var reads = 0
+        override fun snapshot() = cache.also { reads++ }
         override fun states() = listOfNotNull(cache.sync, cache.courseworkSync, cache.accountSync) + cache.feeds.values.mapNotNull { it.sync }
-        override fun events() = cache.events
-        override fun state() = cache.sync
-        override fun coursework() = cache.coursework
-        override fun courseworkState() = cache.courseworkSync
         override fun feedEntries(feed: Int) = cache.feeds[FeedKind.entries.first { it.key == feed }]?.entries.orEmpty()
-        override fun feedMeta(feed: Int) = cache.feeds[FeedKind.entries.first { it.key == feed }]?.meta
-        override fun feedState(feed: Int) = if (feed == 6) cache.accountSync else cache.feeds[FeedKind.entries.first { it.key == feed }]?.sync
+        override fun replaceCoursework(entries: List<CourseworkEntity>, state: SyncEntity) { writes++; cache = cache.copy(coursework = entries, courseworkSync = state) }
+        override fun replaceAccount(state: SyncEntity) { writes++; cache = cache.copy(accountSync = state) }
         override fun clear() { cache = CachedTimetable(emptyList(), null) }
         override fun replace(events: List<EventEntity>, state: SyncEntity) { writes++; cache = cache.copy(events = events, sync = state) }
         override fun replaceFeed(entries: List<FeedEntry>, meta: FeedMeta, state: SyncEntity) {
             writes++
             cache = cache.copy(feeds = cache.feeds + (FeedKind.entries.first { it.key == meta.feed } to CachedFeed(entries, meta, state)))
         }
-        override fun deleteCoursework(): Unit = error("Unused")
-        override fun deleteCourseworkState(): Unit = error("Unused")
-        override fun deleteEvents(): Unit = error("Unused")
-        override fun deleteState(): Unit = error("Unused")
-        override fun insertEvents(events: List<EventEntity>): Unit = error("Unused")
-        override fun insertState(state: SyncEntity): Unit = error("Unused")
-        override fun insertCoursework(entries: List<CourseworkEntity>): Unit = error("Unused")
-        override fun deleteFeedEntries(feed: Int): Unit = error("Unused")
-        override fun deleteFeedMeta(feed: Int): Unit = error("Unused")
-        override fun deleteFeedState(feed: Int): Unit = error("Unused")
-        override fun deleteFeeds(): Unit = error("Unused")
-        override fun deleteFeedMetas(): Unit = error("Unused")
-        override fun deleteFeedStates(): Unit = error("Unused")
-        override fun insertFeedEntries(entries: List<FeedEntry>): Unit = error("Unused")
-        override fun insertFeedMeta(meta: FeedMeta): Unit = error("Unused")
     }
     private open class Api : StudentApi {
         override fun user() = SignedInUser("new-user", "New student", "", "")
@@ -49,6 +31,32 @@ class RepositorySyncTest {
         override fun coursework(user: SignedInUser) = emptyList<CourseworkEntity>()
         override fun account(user: SignedInUser) = ""
         override fun feed(kind: FeedKind, user: SignedInUser, before: String?) = ParsedFeed(emptyList(), FeedMeta())
+    }
+
+    @Test fun sameAccountReusesCommittedCacheButChangedAccountInvalidatesItBeforeFailure() = runBlocking {
+        val dao = Dao()
+        var owner = "first"
+        var failDownload = false
+        val api = object : Api() {
+            override fun user() = SignedInUser(owner, "Student", "", "")
+            override fun timetable(user: SignedInUser): List<EventEntity> {
+                if (failDownload) throw java.io.IOException()
+                return listOf(EventEntity().apply { id = user.code })
+            }
+        }
+        val repo = TimetableRepository(api, dao, logSync = {})
+        repo.cached()
+        repo.sync { _, _ -> }
+        repo.sync { _, cache -> assertEquals("first", cache.events.single().id) }
+        assertEquals(3, dao.reads) // Initial cache plus one committed read per successful sync.
+        owner = "second"
+        failDownload = true
+        try {
+            repo.sync { _, cache -> assertTrue(cache.events.isEmpty()) }
+            fail("Download must fail")
+        } catch (_: java.io.IOException) { }
+        assertTrue(repo.cached().events.isEmpty())
+        assertNull(dao.cache.sync)
     }
 
     @Test fun changedAccountClearsEveryCacheAndRejectsItsOldCursorBeforeDownloading() = runBlocking {
@@ -70,7 +78,8 @@ class RepositorySyncTest {
             repo.syncFeed(FeedKind.MESSAGES, "old-cursor") { user, cache ->
                 authenticated = true
                 assertEquals("new-user", user.code)
-                assertTrue(cache.events.isEmpty()); assertNull(cache.accountSync); assertTrue(cache.feeds.isEmpty())
+                assertNotNull(cache)
+                assertTrue(cache!!.events.isEmpty()); assertNull(cache.accountSync); assertTrue(cache.feeds.isEmpty())
             }
             fail("Previous account's cursor must be rejected")
         } catch (_: IllegalArgumentException) { }

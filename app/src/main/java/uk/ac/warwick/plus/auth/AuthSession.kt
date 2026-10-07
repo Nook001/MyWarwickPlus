@@ -1,5 +1,19 @@
 package uk.ac.warwick.plus.auth
 
+import kotlinx.coroutines.suspendCancellableCoroutine
+
+import kotlinx.coroutines.Dispatchers
+
+import kotlinx.coroutines.withContext
+
+import android.net.Uri
+
+import android.webkit.WebView
+
+import android.webkit.WebStorage
+
+import android.content.Context
+
 import android.webkit.CookieManager
 import okhttp3.Cookie
 import okhttp3.CookieJar
@@ -9,13 +23,13 @@ const val MY_WARWICK = "https://my.warwick.ac.uk"
 
 /** WebView is the cookie authority. Never copy a Warwick-wide cookie to another host. */
 class AuthSession(private val manager: CookieManager = CookieManager.getInstance()) : CookieJar {
-    suspend fun clear(context: android.content.Context) = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-        kotlinx.coroutines.suspendCancellableCoroutine<Unit> { continuation ->
+    suspend fun clear(context: Context) = withContext(Dispatchers.Main) {
+        suspendCancellableCoroutine<Unit> { continuation ->
             manager.removeAllCookies { if (continuation.isActive) continuation.resumeWith(Result.success(Unit)) }
         }
         manager.flush()
-        android.webkit.WebStorage.getInstance().deleteAllData()
-        android.webkit.WebView(context.applicationContext).apply { clearCache(true); clearHistory(); destroy() }
+        WebStorage.getInstance().deleteAllData()
+        WebView(context.applicationContext).apply { clearCache(true); clearHistory(); destroy() }
     }
     override fun loadForRequest(url: HttpUrl): List<Cookie> {
         if (!isApiOrigin(url)) return emptyList()
@@ -34,12 +48,12 @@ class AuthSession(private val manager: CookieManager = CookieManager.getInstance
     override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
         if (!isApiOrigin(url)) return
         cookies.forEach { manager.setCookie(url.toString(), it.toString()) }
-        manager.flush()
+        if (cookies.isNotEmpty()) manager.flush()
     }
 
     companion object {
         fun isApiOrigin(url: HttpUrl) = url.scheme == "https" && url.host == "my.warwick.ac.uk" && url.port == 443
-        fun isLoginUrl(url: android.net.Uri): Boolean = url.scheme == "https" && url.port in listOf(-1, 443) &&
+        fun isLoginUrl(url: Uri): Boolean = url.scheme == "https" && url.port in listOf(-1, 443) &&
             (url.host == "warwick.ac.uk" || url.host?.endsWith(".warwick.ac.uk") == true ||
                 url.host in setOf("login.microsoftonline.com", "login.live.com"))
     }

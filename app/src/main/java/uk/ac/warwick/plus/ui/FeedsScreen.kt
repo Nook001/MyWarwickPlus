@@ -1,5 +1,9 @@
 package uk.ac.warwick.plus.ui
 
+import androidx.compose.ui.platform.LocalFocusManager
+
+import uk.ac.warwick.plus.ui.components.*
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,18 +23,19 @@ fun FeedContent(kind: FeedKind, state: FeedState, busy: Boolean, needsLogin: Boo
     onRefresh: () -> Unit, onMore: () -> Unit, onSelect: (FeedContentItem) -> Unit, onOpen: (String) -> Unit,
     onLogin: () -> Unit = {}) {
     var query by rememberSaveable(kind) { mutableStateOf("") }
-    val focus = androidx.compose.ui.platform.LocalFocusManager.current
-    val textById = remember(state.entries) { state.entries.associate { it.id to feedText(it) } }
+    val focus = LocalFocusManager.current
+    val textById = rememberFeedText(state.entries)
     val filtered = remember(state.entries, query, textById) {
         val search = query.trim()
         state.entries.filter {
-            search.isEmpty() || listOf(it.title, textById.getValue(it.id), it.provider, it.moduleCode)
-                .any { field -> field.contains(search, true) }
+            search.isEmpty() || it.title.contains(search, true) ||
+                (textById[it.id] ?: if (it.html) "" else it.text).contains(search, true) ||
+                it.provider.contains(search, true) || it.moduleCode.contains(search, true)
         }
     }
     LazyColumn(Modifier.fillMaxSize().testTag("feed-list"), contentPadding = PaddingValues(Spacing.page),
         verticalArrangement = Arrangement.spacedBy(Spacing.item)) {
-        item {
+        item(contentType = "feed-header") {
             Text(when (kind) {
                 FeedKind.MESSAGES -> "Messages from MyWarwick. Viewing here doesn't mark messages read on the website."
                 FeedKind.MODULES -> "Modules returned by MyWarwick. Open Moodle for learning materials and announcements."
@@ -52,14 +57,14 @@ fun FeedContent(kind: FeedKind, state: FeedState, busy: Boolean, needsLogin: Boo
             state.entries.isEmpty() -> item { DataEmptyState(if (kind == FeedKind.LIBRARY) "No Library items returned" else "No ${kind.label.lowercase()} in this feed",
                 state.description.takeIf { it.isNotBlank() }) }
             filtered.isEmpty() -> item { DataEmptyState("No matches", action = AppActions.CLEAR_SEARCH, onAction = { query = ""; focus.clearFocus() }) }
-            else -> items(filtered, key = { it.id }) { entry ->
+            else -> items(filtered, key = { it.id }, contentType = { "feed-entry" }) { entry ->
                 AppCard(onClick = { focus.clearFocus(); onSelect(entry) }, modifier = Modifier.fillMaxWidth(),
                     shape = AppShapes.legacyContent, actionLabel = "View ${kind.label.lowercase()} details") {
                     Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         val label = if (kind == FeedKind.MODULES) listOf(entry.moduleCode, entry.academicYear).filter { it.isNotBlank() }.joinToString(" · ") else entry.provider
                         if (label.isNotBlank()) Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                         Text(entry.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                        val text = textById.getValue(entry.id)
+                        val text = textById[entry.id] ?: if (entry.html) "" else entry.text
                         if (text.isNotBlank()) Text(text, style = MaterialTheme.typography.bodyMedium, maxLines = 3, overflow = TextOverflow.Ellipsis)
                         if (kind == FeedKind.MODULES) Text("${entry.announcementCount} announcements returned", style = MaterialTheme.typography.bodySmall)
                         if (entry.dateMillis != 0L) Text(fullDateTimeLabel(entry.dateMillis), style = MaterialTheme.typography.bodySmall)

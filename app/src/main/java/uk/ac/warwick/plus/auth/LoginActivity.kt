@@ -1,7 +1,13 @@
 package uk.ac.warwick.plus.auth
 
+import android.net.http.SslError
+
+import android.graphics.Bitmap
+
 import android.app.Activity
-import android.net.Uri
+import android.annotation.SuppressLint
+import androidx.core.net.toUri
+import kotlinx.coroutines.CancellationException
 import android.os.Bundle
 import android.webkit.*
 import androidx.activity.ComponentActivity
@@ -14,10 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import uk.ac.warwick.plus.data.MyWarwickApi
 import uk.ac.warwick.plus.ui.PlusTheme
 import uk.ac.warwick.plus.PlusApplication
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -30,6 +33,7 @@ class LoginActivity : ComponentActivity() {
     private var problem by mutableStateOf<String?>(null)
     private var pageHost by mutableStateOf("my.warwick.ac.uk")
 
+    @SuppressLint("SetJavaScriptEnabled") // Warwick SSO requires JavaScript; navigation and permissions remain restricted.
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -72,10 +76,10 @@ class LoginActivity : ComponentActivity() {
                                         problem = "This link is outside the Warwick sign-in service."
                                         return true
                                     }
-                                    override fun onPageStarted(view: WebView, url: String, favicon: android.graphics.Bitmap?) {
-                                        pageHost = Uri.parse(url).host.orEmpty()
+                                    override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
+                                        pageHost = url.toUri().host.orEmpty()
                                     }
-                                    override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: android.net.http.SslError) {
+                                    override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: SslError) {
                                         handler.cancel()
                                         problem = "The connection couldn't be verified. Please try again later."
                                     }
@@ -84,17 +88,23 @@ class LoginActivity : ComponentActivity() {
                                     }
                                     override fun onPageFinished(view: WebView, url: String) {
                                         CookieManager.getInstance().flush()
-                                        if (Uri.parse(url).host != "my.warwick.ac.uk" || checking) return
+                                        if (url.toUri().host != "my.warwick.ac.uk" || checking) return
                                         checking = true
                                         lifecycleScope.launch {
-                                            val signedIn = withContext(Dispatchers.IO) {
-                                                runCatching { MyWarwickApi(AuthSession()).user() }.isSuccess
-                                            }
-                                            checking = false
-                                            if (signedIn) {
-                                                setResult(Activity.RESULT_OK)
-                                                finish()
-                                            }
+                                            try {
+                                                val api = (application as PlusApplication).api
+                                                val signedIn = try {
+                                                    api.request { api.user() }
+                                                    true
+                                                } catch (error: Exception) {
+                                                    if (error is CancellationException) throw error
+                                                    false
+                                                }
+                                                if (signedIn) {
+                                                    setResult(Activity.RESULT_OK)
+                                                    finish()
+                                                }
+                                            } finally { checking = false }
                                         }
                                     }
                                 }

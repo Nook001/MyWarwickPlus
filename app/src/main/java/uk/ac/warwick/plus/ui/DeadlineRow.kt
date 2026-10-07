@@ -1,5 +1,7 @@
 package uk.ac.warwick.plus.ui
 
+import uk.ac.warwick.plus.ui.components.*
+
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -12,7 +14,7 @@ internal enum class DeadlinePresentation { Home, List }
 
 @Composable
 internal fun DeadlineRow(entry: CourseworkContentItem, now: Long, presentation: DeadlinePresentation,
-    compactTop: Boolean = false, modifier: Modifier = Modifier, onSelect: () -> Unit) {
+    modifier: Modifier = Modifier, compactTop: Boolean = false, onSelect: () -> Unit) {
     val timing = deadlineTiming(entry.dueMillis, now)
     val home = presentation == DeadlinePresentation.Home
     val date = deadlineDateLabel(entry.dueMillis, now, includeTime = !home)

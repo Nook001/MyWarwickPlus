@@ -1,4 +1,10 @@
-package uk.ac.warwick.plus.ui
+package uk.ac.warwick.plus.ui.components
+
+import androidx.compose.ui.text.input.ImeAction
+
+import androidx.compose.foundation.text.KeyboardActions
+
+import androidx.compose.foundation.text.KeyboardOptions
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
@@ -36,8 +42,8 @@ internal fun SearchField(query: String, onQueryChange: (String) -> Unit, placeho
         BasicTextField(query, onQueryChange, singleLine = true,
             textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search),
-            keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { onSearch() }),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = { onSearch() }),
             modifier = Modifier.fillMaxWidth(), decorationBox = { input ->
                 Row(Modifier.heightIn(min = 48.dp).padding(start = 14.dp, end = if (query.isEmpty()) 14.dp else 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {

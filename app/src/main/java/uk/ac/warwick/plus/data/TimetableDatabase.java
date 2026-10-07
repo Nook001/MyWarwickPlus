@@ -30,4 +30,5 @@ public abstract class TimetableDatabase extends RoomDatabase {
             database.execSQL("CREATE TABLE IF NOT EXISTS feed_meta (feed INTEGER NOT NULL PRIMARY KEY, description TEXT NOT NULL, url TEXT NOT NULL, hasMore INTEGER NOT NULL, webReadMillis INTEGER NOT NULL)");
         }
     };
+    public static final Migration[] MIGRATIONS = {MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5};
 }

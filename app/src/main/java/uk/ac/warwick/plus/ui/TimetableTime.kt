@@ -4,6 +4,17 @@ import java.time.*
 import uk.ac.warwick.plus.config.AppLabels
 import uk.ac.warwick.plus.data.EventContentItem
 
+private val EventOrder = compareBy<EventContentItem> { it.startMillis }.thenBy { it.id }
+
+internal fun isClassNow(event: EventContentItem, now: Long) =
+    !event.allDay && event.startMillis <= now && event.endMillis > now
+
+internal fun classStatus(event: EventContentItem, now: Long, nextId: String?, date: LocalDate): String? = when {
+    isClassNow(event, now) && date == atWarwick(now).toLocalDate() -> AppLabels.NOW
+    event.id == nextId && date == atWarwick(event.startMillis).toLocalDate() -> AppLabels.NEXT
+    else -> null
+}
+
 fun conflictingEventIds(events: List<EventContentItem>): Set<String> = buildSet {
     val timed = events.filter { !it.allDay && it.endMillis > it.startMillis }
     timed.forEachIndexed { index, event ->
@@ -20,7 +31,7 @@ fun eventsOnDate(events: List<EventContentItem>, date: LocalDate): List<EventCon
     return events.filter {
         if (it.startMillis == it.endMillis) it.startMillis in start until end
         else it.startMillis < end && it.endMillis > start
-    }.sortedWith(compareBy<EventContentItem> { it.startMillis }.thenBy { it.id })
+    }.sortedWith(EventOrder)
 }
 
 data class ScheduleDay(val date: LocalDate, val events: List<EventContentItem>)
@@ -36,7 +47,7 @@ fun scheduleDays(events: List<EventContentItem>, from: LocalDate): List<Schedule
             date = date.plusDays(1)
         }
     }
-    return grouped.map { (date, entries) -> ScheduleDay(date, entries.sortedWith(compareBy<EventContentItem> { it.startMillis }.thenBy { it.id })) }
+    return grouped.map { (date, entries) -> ScheduleDay(date, entries.sortedWith(EventOrder)) }
 }
 
 fun scheduleDateLabel(date: LocalDate, today: LocalDate): String = when (date) {
@@ -60,12 +71,13 @@ fun pickerMillis(date: LocalDate): Long = date.toEpochDay() * 86_400_000L
 fun pickerDate(millis: Long): LocalDate = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
 
 fun nextTimedClass(events: List<EventContentItem>, now: Long): EventContentItem? = events
+    .asSequence()
     .filter { !it.allDay && it.startMillis > now }
-    .minWithOrNull(compareBy<EventContentItem> { it.startMillis }.thenBy { it.id })
+    .minWithOrNull(EventOrder)
 
 fun currentOrNextClass(events: List<EventContentItem>, now: Long): EventContentItem? = events
-    .filter { !it.allDay && it.startMillis <= now && it.endMillis > now }
-    .minWithOrNull(compareBy<EventContentItem> { it.startMillis }.thenBy { it.id })
+    .asSequence().filter { isClassNow(it, now) }
+    .minWithOrNull(EventOrder)
     ?: nextTimedClass(events, now)
 
 fun nextClassLabel(event: EventContentItem, now: Long): String = when {

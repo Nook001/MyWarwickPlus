@@ -9,30 +9,30 @@ import java.util.EnumMap;
 import java.util.Map;
 
 @Dao
-public abstract class TimetableDao {
+public abstract class TimetableDao implements StudentCache {
     // All persisted resources belong to one read transaction, including their sync metadata.
     @Transaction public CachedTimetable snapshot() {
         Map<FeedKind, CachedFeed> feeds = new EnumMap<>(FeedKind.class);
         for (FeedKind kind : FeedKind.values()) {
             feeds.put(kind, new CachedFeed(feedEntries(kind.getKey()), feedMeta(kind.getKey()), feedState(kind.getKey())));
         }
-        return new CachedTimetable(events(), state(), coursework(), courseworkState(), feeds, feedState(6));
+        return new CachedTimetable(events(), state(), coursework(), courseworkState(), feeds, feedState(SyncSlots.ACCOUNT));
     }
     @Query("SELECT * FROM events ORDER BY startMillis, id")
     public abstract List<EventEntity> events();
-    @Query("SELECT * FROM sync_state WHERE id = 1")
+    @Query("SELECT * FROM sync_state WHERE id = " + SyncSlots.TIMETABLE)
     public abstract SyncEntity state();
     @Query("SELECT * FROM coursework ORDER BY dueMillis, id")
     public abstract List<CourseworkEntity> coursework();
-    @Query("SELECT * FROM sync_state WHERE id = 2")
+    @Query("SELECT * FROM sync_state WHERE id = " + SyncSlots.COURSEWORK)
     public abstract SyncEntity courseworkState();
     @Query("DELETE FROM coursework")
     public abstract void deleteCoursework();
-    @Query("DELETE FROM sync_state WHERE id = 2")
+    @Query("DELETE FROM sync_state WHERE id = " + SyncSlots.COURSEWORK)
     public abstract void deleteCourseworkState();
     @Query("DELETE FROM events")
     public abstract void deleteEvents();
-    @Query("DELETE FROM sync_state WHERE id = 1")
+    @Query("DELETE FROM sync_state WHERE id = " + SyncSlots.TIMETABLE)
     public abstract void deleteState();
     @Insert public abstract void insertEvents(List<EventEntity> events);
     @Insert public abstract void insertState(SyncEntity state);
@@ -46,7 +46,7 @@ public abstract class TimetableDao {
     @Query("DELETE FROM sync_state WHERE id = :feed") public abstract void deleteFeedState(int feed);
     @Query("DELETE FROM feed_entries") public abstract void deleteFeeds();
     @Query("DELETE FROM feed_meta") public abstract void deleteFeedMetas();
-    @Query("DELETE FROM sync_state WHERE id > 2") public abstract void deleteFeedStates();
+    @Query("DELETE FROM sync_state WHERE id > " + SyncSlots.COURSEWORK) public abstract void deleteNonCoreStates();
     @Insert public abstract void insertFeedEntries(List<FeedEntry> entries);
     @Insert public abstract void insertFeedMeta(FeedMeta meta);
 
@@ -75,10 +75,10 @@ public abstract class TimetableDao {
         deleteCourseworkState();
         deleteFeeds();
         deleteFeedMetas();
-        deleteFeedStates();
+        deleteNonCoreStates();
     }
     @Transaction public void replaceAccount(SyncEntity state) {
-        if (state.id != 6) throw new IllegalArgumentException("Account state does not match");
-        deleteFeedState(6); insertState(state);
+        if (state.id != SyncSlots.ACCOUNT) throw new IllegalArgumentException("Account state does not match");
+        deleteFeedState(SyncSlots.ACCOUNT); insertState(state);
     }
 }

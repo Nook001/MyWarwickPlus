@@ -2,10 +2,6 @@ package uk.ac.warwick.plus.ui
 
 import uk.ac.warwick.plus.data.CourseworkContentItem
 
-fun filterCoursework(entries: List<CourseworkContentItem>, query: String, filter: String, now: Long): List<CourseworkContentItem> {
-    return filterCoursework(entries, query, CourseworkFilter.restore(filter), now)
-}
-
 fun filterCoursework(entries: List<CourseworkContentItem>, query: String, filter: CourseworkFilter, now: Long): List<CourseworkContentItem> {
     val search = query.trim()
     return entries.filter { entry ->

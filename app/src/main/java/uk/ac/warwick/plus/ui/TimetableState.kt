@@ -1,5 +1,9 @@
 package uk.ac.warwick.plus.ui
 
+import java.util.Locale
+
+import uk.ac.warwick.plus.ui.components.*
+
 import java.io.IOException
 import uk.ac.warwick.plus.config.AppActions
 import uk.ac.warwick.plus.config.AppLabels
@@ -11,28 +15,12 @@ data class FeedState(val entries: List<FeedContentItem> = emptyList(), val lastS
     val message: String? = null, val loading: Boolean = false, val hasMore: Boolean = false,
     val description: String = "", val url: String = "", val webReadMillis: Long = 0, val olderPageFailed: Boolean = false)
 
-enum class SyncResource(val label: String, val feed: FeedKind? = null) {
-    TIMETABLE(AppLabels.CLASSES), COURSEWORK(AppLabels.TASKS), MESSAGES(AppLabels.MESSAGES, FeedKind.MESSAGES),
-    LIBRARY(AppLabels.LIBRARY, FeedKind.LIBRARY), MODULES(AppLabels.MODULES, FeedKind.MODULES), ACCOUNT(AppLabels.ACCOUNT);
+enum class SyncResource(val label: String, val slot: Int, val feed: FeedKind? = null) {
+    TIMETABLE(AppLabels.CLASSES, SyncSlots.TIMETABLE), COURSEWORK(AppLabels.TASKS, SyncSlots.COURSEWORK), MESSAGES(AppLabels.MESSAGES, SyncSlots.MESSAGES, FeedKind.MESSAGES),
+    LIBRARY(AppLabels.LIBRARY, SyncSlots.LIBRARY, FeedKind.LIBRARY), MODULES(AppLabels.MODULES, SyncSlots.MODULES, FeedKind.MODULES), ACCOUNT(AppLabels.ACCOUNT, SyncSlots.ACCOUNT);
     companion object { fun forFeed(kind: FeedKind) = entries.first { it.feed == kind } }
 }
-data class SyncNotice(val id: Long, val message: String, val action: RecoveryAction = RecoveryAction.RefreshAll) {
-    // Compatibility for existing fixtures/callers; production stores only one recovery action.
-    constructor(id: Long, message: String, feed: FeedKind?, olderMessages: Boolean = false,
-        resource: SyncResource? = null) : this(id, message, when {
-        olderMessages -> RecoveryAction.OlderMessages
-        resource != null -> RecoveryAction.Refresh(resource)
-        feed != null -> RecoveryAction.Refresh(SyncResource.forFeed(feed))
-        else -> RecoveryAction.RefreshAll
-    })
-    val resource: SyncResource? get() = when (val recovery = action) {
-        is RecoveryAction.Refresh -> recovery.resource
-        RecoveryAction.OlderMessages -> SyncResource.MESSAGES
-        else -> null
-    }
-    val feed: FeedKind? get() = resource?.feed
-    val olderMessages: Boolean get() = action == RecoveryAction.OlderMessages
-}
+data class SyncNotice(val id: Long, val message: String, val action: RecoveryAction = RecoveryAction.RefreshAll)
 // Progress measures settled resource updates, with a half-step after account verification.
 // A settled failure is finished work, not a successful download; retries never add work units.
 data class SyncProgress(val id: Long, val total: Int, val completed: Int = 0,
@@ -49,7 +37,8 @@ data class TimetableState(
     val message: String? = null, val coursework: CourseworkState = CourseworkState(),
     val feeds: Map<FeedKind, FeedState> = emptyMap(), val accountCode: String = "",
     val sessionCheckedAt: Long? = null, val signingOut: Boolean = false, val logoutFailed: Boolean = false,
-    val notice: SyncNotice? = null, val syncProgress: SyncProgress? = null, val account: AccountState = AccountState()
+    val notice: SyncNotice? = null, val syncProgress: SyncProgress? = null, val account: AccountState = AccountState(),
+    val globalMessage: String? = null
 ) {
     fun feed(kind: FeedKind) = feeds[kind] ?: FeedState()
     val email get() = account.email
@@ -112,8 +101,8 @@ internal fun TimetableState.resourceFailed(resource: SyncResource, error: Except
             else -> if (lastSynced != null) "Couldn't read the timetable. Your saved data has been kept." else "Your timetable couldn't be loaded. Try refreshing."
         })
     val session = if (error is SignInRequiredException) copy(needsLogin = true, signedIn = false,
-        message = "Your session has expired. Sign in to update your saved data.") else this
-    val label = resource.label.lowercase(java.util.Locale.UK)
+        globalMessage = "Your session has expired. Sign in to update your saved data.") else this
+    val label = resource.label.lowercase(Locale.UK)
     val issue = when (error) {
         is SignInRequiredException -> "Sign in to update $label."
         is IOException -> "Couldn't connect. Your saved data has been kept."

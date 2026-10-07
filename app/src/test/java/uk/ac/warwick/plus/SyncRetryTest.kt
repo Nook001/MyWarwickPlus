@@ -136,15 +136,15 @@ class SyncRetryTest {
         assertNull(model.state.value.notice)
         assertFalse(model.state.value.feed(FeedKind.MESSAGES).olderPageFailed)
     }
-    @Test fun repeatedFailuresStopAtThreeAttemptsAndSummarizeWithoutClearingSavedData() = runTest(dispatcher) {
+    @Test fun exhaustedTransportFailureStopsUnstartedResourcesWithoutClearingSavedData() = runTest(dispatcher) {
         val store = Store().apply {
             timetableFailure = { IOException() }; courseworkFailure = ServiceException(502)
         }
         val model = TimetableViewModel(store, {}); advanceUntilIdle()
-        assertEquals(3, store.timetableCalls); assertEquals(3, store.courseworkCalls)
-        assertEquals(3, store.feeds.size)
+        assertEquals(3, store.timetableCalls); assertEquals(0, store.courseworkCalls)
+        assertTrue(store.feeds.isEmpty())
         assertFalse(model.state.value.busy); assertTrue(model.state.value.hasSavedData)
-        assertTrue(model.state.value.notice!!.message.contains("some information"))
+        assertTrue(model.state.value.notice!!.message.contains("connect"))
         advanceTimeBy(60_000); runCurrent(); assertEquals(3, store.timetableCalls)
         model.refreshFeed(FeedKind.MODULES); advanceUntilIdle()
         assertNull("A successful feed refresh must not re-announce an earlier timetable failure", model.state.value.notice)
@@ -154,7 +154,7 @@ class SyncRetryTest {
         val feeds = CompletableDeferred<Unit>()
         val store = Store().apply {
             timetableGate = timetable; feedGate = feeds
-            feedFailure = { kind, _ -> if (kind == FeedKind.MESSAGES) IOException() else null }
+            feedFailure = { kind, _ -> if (kind == FeedKind.MESSAGES) ServiceException(503) else null }
         }
         val model = TimetableViewModel(store, {}); runCurrent()
         assertEquals(6, model.state.value.syncProgress!!.total)
@@ -209,5 +209,35 @@ class SyncRetryTest {
         model.refreshResource(SyncResource.COURSEWORK); advanceUntilIdle()
         assertEquals(timetableCalls + 1, store.timetableCalls); assertEquals(feedCalls, store.feeds.size)
         assertNull(model.state.value.coursework.message); assertNull(model.state.value.notice)
+    }
+    @Test fun signInWhileBusyQueuesOneFullRefreshButSignOutDiscardsIt() = runTest(dispatcher) {
+        val store = Store().apply { timetableGate = CompletableDeferred() }
+        val model = TimetableViewModel(store, {})
+        runCurrent()
+        model.refreshAfterSignIn(); model.refreshAfterSignIn()
+        store.timetableGate!!.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(2, store.timetableCalls)
+        assertFalse(model.state.value.busy)
+        store.timetableGate = CompletableDeferred()
+        model.refresh(); runCurrent(); model.refreshAfterSignIn()
+        model.signOut(); advanceUntilIdle()
+        assertEquals(3, store.timetableCalls)
+        assertFalse(model.state.value.hasSavedData)
+    }
+    @Test fun noActiveNetworkSkipsRequestsAndSessionExpiryDoesNotCorruptSuccessfulTimetable() = runTest(dispatcher) {
+        val offline = Store()
+        val model = TimetableViewModel(offline, {}, hasNetwork = { false })
+        advanceUntilIdle()
+        assertEquals(0, offline.timetableCalls)
+        assertTrue(offline.feeds.isEmpty())
+        assertEquals(1, model.state.value.syncProgress!!.completed)
+        val expired = Store().apply { courseworkFailure = SignInRequiredException() }
+        val other = TimetableViewModel(expired, {})
+        advanceUntilIdle()
+        assertNull(other.state.value.issue(SyncResource.TIMETABLE))
+        assertTrue(other.state.value.needsLogin)
+        assertNotNull(other.state.value.globalMessage)
+        assertTrue(other.state.value.notice!!.message.contains("Sign in"))
     }
 }

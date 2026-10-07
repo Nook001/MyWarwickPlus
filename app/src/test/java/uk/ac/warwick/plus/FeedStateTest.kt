@@ -40,7 +40,7 @@ class FeedStateTest {
         }
     }
     @Test fun oneFeedFailureRetainsCacheAndOtherFeedsStillRefresh() = runTest(dispatcher) {
-        val store = Store().apply { errors[FeedKind.MESSAGES] = IOException() }
+        val store = Store().apply { errors[FeedKind.MESSAGES] = ServiceException(503) }
         val model = TimetableViewModel(store, {}); advanceUntilIdle()
         assertEquals(5,store.calls.size)
         assertEquals(1,model.state.value.feed(FeedKind.MESSAGES).entries.size)
