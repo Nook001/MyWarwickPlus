@@ -12,14 +12,8 @@ enum class AppTab(val key: String, val labelRes: Int, val tag: String) {
     ME("me", AppLabels.ME, "more-tab");
 
     companion object {
-        fun restore(value: Any?): AppTab = when (value) {
-            0, "home" -> HOME
-            1, "classes", "schedule" -> CLASSES
-            2, "tasks", "coursework" -> TASKS
-            3, "me", "more" -> ME
-            else -> HOME
-        }
-        val saver = Saver<AppTab, Any>(save = { it.key }, restore = { restore(it) })
+        fun restore(key: String?): AppTab = entries.firstOrNull { it.key == key } ?: HOME
+        val saver = Saver<AppTab, String>(save = { it.key }, restore = { restore(it) })
     }
 }
 
@@ -27,9 +21,8 @@ enum class CourseworkFilter(val key: String, val labelRes: Int) {
     UPCOMING("upcoming", AppLabels.UPCOMING), PAST("past", AppLabels.PAST);
 
     companion object {
-        fun restore(value: Any?): CourseworkFilter =
-            if (value is String && value.equals("past", ignoreCase = true)) PAST else UPCOMING
-        val saver = Saver<CourseworkFilter, Any>(save = { it.key }, restore = { restore(it) })
+        fun restore(key: String?): CourseworkFilter = entries.firstOrNull { it.key == key } ?: UPCOMING
+        val saver = Saver<CourseworkFilter, String>(save = { it.key }, restore = { restore(it) })
     }
 }
 

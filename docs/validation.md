@@ -8,7 +8,24 @@
 
 仅更新三个现有文档，不改源码/测试/依赖/schema/版本；不构建、不运行JVM/UI/设备测试、不部署或请求学校接口。核对本地引用、表格/代码块结构、评估中的源码符号及git diff --check；查阅Compose/Kotlin官方技术说明，不访问用户会话。之前0.18.0手机安装被拒和待验收状态保留。
 
-## 最新代码：0.22.0 / versionCode 30
+## 最新代码：0.22.1 / versionCode 31
+
+2026-10-07：用户授权覆盖安装后清理旧版本兼容代码。删除数据库1→5迁移链/注册与schema1–4导出文件，导航仅接受当前Tab/Filter存储键；保留当前schema5、正常状态校验和学校API实际日期格式处理。Feed圆角token从legacyContent更名为feedContent，数值/布局不变。未增加破坏性数据库重建、卸载或清数据流程。
+
+| 检查 | 本次结果 / 边界 |
+| --- | --- |
+| 构建 / JVM | assembleDebug / assembleRelease成功，Release R8/资源收缩通过；既有74项JVM全部通过，导航断言适配当前键，没有新增测试 |
+| Lint | 0 errors / 0 warnings；移除历史迁移检查后再次lintDebug通过 |
+| Room | schema5无diff、identity hash仍为a201057e1b8a41788b3c7026be00cfee；现有schema5可覆盖升级，schema1–4不再支持直接升级；未新增真实SQLite自动检查 |
+| 历史检查清理 | 仅删除CacheAndAuthTest两项、FeedsCacheTest一项退役迁移检查；未新增/扩展或运行UI Test，其他旧设备检查的过时签名/非空假设未处理，不将其编译或运行计为通过 |
+| 物理部署 | 指定10AG4S2KQJ0066R执行install -r成功；dumpsys确认versionCode31 / versionName0.22.1 / targetSdk37。冷启动Status:ok / COLD / TotalTime514ms，单次值不作性能基准；未卸载/清数据，登录与缓存内容仍需用户手动核对 |
+| 未执行 | UI Test、模拟器、自动点击/截图/退出/清cookie、学校接口抓取、API37运行验证及性能测量 |
+
+命令：`./gradlew.bat :app:assembleDebug :app:assembleRelease :app:testDebugUnitTest :app:lintDebug --console=plain`，JDK21；仅删除退役检查后补跑`:app:lintDebug`。Debug APK导出为MyWarwickPlus-0.22.1-debug.apk。
+
+手动重点：已有登录/主题与缓存仍可用；下拉后数据更新、进度结束；Classes日期跳转及Tasks筛选切换正常。无需清理数据。
+
+## 上一版：0.22.0 / versionCode 30
 
 2026-10-07：19–21 改造完成，具体结构与版本见 [architecture.md](architecture.md)。Kotlin DAO/实体通过 KSP 生成 Room 实现；同步只保存数据，事务快照 Flow 发布内容，ViewModel 保留临时错误和进度。显示名称、常用文案及数量复数进入资源；构建链与依赖分批升级，compile/targetSdk37。保留物理手机缓存所需的 schema5 和迁移，不保留未发布的旧内部调用兼容层。
 
@@ -20,7 +37,7 @@
 | 配置缓存 | 相同四任务重复构建成功，Configuration cache entry reused；103任务中101项 up-to-date。外部插件仍有 Gradle 11 将移除的 setVisible 警告，不推断未来版本兼容 |
 | Room / API | schema5无diff，identity hash a201057e1b8a41788b3c7026be00cfee 不变；核对生成 Flow 观察全部5表及事务实现，未新增真实SQLite或学校接口检查 |
 | UI约定 | AndroidTest源码未改写/扩展/运行；旧接口与非空假设已过时，本轮不将其编译或运行计为通过，不为旧测试恢复兼容层 |
-| 物理部署 | 指定10AG4S2KQJ0066R执行install -r，被手机拒绝（User rejected permissions）；0.22.0尚未装上，等待解锁后重试，未卸载或清除数据 |
+| 物理部署 | 首次安装被拒，用户授权重试后指定10AG4S2KQJ0066R执行install -r成功；dumpsys确认versionCode30 / versionName0.22.0 / targetSdk37，冷启动Status:ok / COLD / TotalTime533ms。单次值不作性能基准；未卸载或清除数据，交互待手动反馈 |
 | 未执行 | UI Test、模拟器、自动点击/截图/退出/清cookie、Android17/API37运行验证、帧时间与实际重组性能测量 |
 
 命令：`./gradlew.bat :app:assembleDebug :app:assembleRelease :app:testDebugUnitTest :app:lintDebug --console=plain`，JDK21。Debug APK 已导出为 MyWarwickPlus-0.22.0-debug.apk；构建、JVM检查和安装不能代替手动验收。

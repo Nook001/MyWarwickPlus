@@ -2,7 +2,7 @@
 
 独立的 Android 学生客户端原型，Kotlin + Jetpack Compose。通过官方 WebView SSO 登录，复用 MyWarwick session 与只读聚合接口，不申请新的 OAuth application；不是 Warwick 官方应用。
 
-当前代码：**0.22.0 / versionCode 30**。构建、物理安装和手动验收是不同状态，交付情况见 [验收记录](docs/validation.md)。
+当前代码：**0.22.1 / versionCode 31**。构建、物理安装和手动验收是不同状态，交付情况见 [验收记录](docs/validation.md)。
 
 ## 当前功能
 
@@ -15,9 +15,11 @@
 
 五套固定颜色主题共用静态渐变背景和可选细纹理。启动先显示缓存；下拉刷新使用真实任务阶段进度，失败保留已存数据。日期按英国时区显示。当前没有后台同步、系统通知、提交作业或消息已读写回。
 
+原型仅使用当前 Room schema5，不维护旧版数据库迁移或旧导航键适配。现有 schema5 可覆盖升级；schema1–4 不再支持直接升级。
+
 ## 开发与部署
 
-Android Studio 打开本目录；需要 JDK 21、Android SDK Platform 37.0。compileSdk 37、targetSdk 36、minSdk 28；依赖版本以 Gradle 文件为准。SDK 路径保存在不跟踪的 local.properties。
+Android Studio 打开本目录；需要 JDK 21、Android SDK Platform 37.0。compileSdk / targetSdk 37、minSdk 28；依赖版本以 Gradle 文件为准。SDK 路径保存在不跟踪的 local.properties。
 
 本机命令：
 

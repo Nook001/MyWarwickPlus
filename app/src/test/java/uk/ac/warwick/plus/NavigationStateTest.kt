@@ -46,12 +46,12 @@ class NavigationStateTest {
         assertEquals(DetailSelection.None, restoredDetail.validated(loaded.copy(feeds = emptyMap()), restoredRoute))
     }
 
-    @Test fun oldAndUnsupportedSavedValuesUseSafeDefaultsWithoutEnumOrdinals() {
-        assertEquals(AppTab.CLASSES, AppTab.restore(1))
-        assertEquals(AppTab.TASKS, AppTab.restore("coursework"))
+    @Test fun currentSavedKeysRestoreAndUnsupportedValuesUseSafeDefaults() {
+        assertEquals(AppTab.CLASSES, AppTab.restore(AppTab.CLASSES.key))
+        assertEquals(AppTab.TASKS, AppTab.restore(AppTab.TASKS.key))
         assertEquals(AppTab.HOME, AppTab.restore("unknown future tab"))
-        assertEquals(CourseworkFilter.PAST, CourseworkFilter.restore("Past"))
-        assertEquals(CourseworkFilter.UPCOMING, CourseworkFilter.restore("Next seven days"))
+        assertEquals(CourseworkFilter.PAST, CourseworkFilter.restore(CourseworkFilter.PAST.key))
+        assertEquals(CourseworkFilter.UPCOMING, CourseworkFilter.restore("unknown filter"))
         assertEquals(MeRoute.Overview, MeRoute.restore(listOf("feed", "999")))
         assertEquals(DetailSelection.None, DetailSelection.restore(listOf("feed", "3")))
         assertEquals(DetailSelection.None, DetailSelection.restore(listOf("class", "")))

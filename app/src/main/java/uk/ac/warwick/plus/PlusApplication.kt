@@ -16,7 +16,7 @@ class PlusApplication : Application() {
     val repository by lazy {
         TimetableRepository(api,
             Room.databaseBuilder(this, TimetableDatabase::class.java, "timetable.db")
-                .addMigrations(*TimetableDatabase.MIGRATIONS).build().timetable(), endSession = { api.cancelRequests(); session.clear(this) })
+                .build().timetable(), endSession = { api.cancelRequests(); session.clear(this) })
     }
     override fun onCreate() {
         super.onCreate()

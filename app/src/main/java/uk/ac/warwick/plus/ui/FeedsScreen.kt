@@ -60,7 +60,7 @@ fun FeedContent(kind: FeedKind, state: FeedState, busy: Boolean, needsLogin: Boo
             filtered.isEmpty() -> item { DataEmptyState(stringResource(R.string.no_matches), action = stringResource(AppActions.CLEAR_SEARCH), onAction = { query = ""; focus.clearFocus() }) }
             else -> items(filtered, key = { it.id }, contentType = { "feed-entry" }) { entry ->
                 AppCard(onClick = { focus.clearFocus(); onSelect(entry) }, modifier = Modifier.fillMaxWidth(),
-                    shape = AppShapes.legacyContent, actionLabel = stringResource(R.string.view_resource_details, stringResource(kind.labelRes))) {
+                    shape = AppShapes.feedContent, actionLabel = stringResource(R.string.view_resource_details, stringResource(kind.labelRes))) {
                     Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         val label = if (kind == FeedKind.MODULES) listOf(entry.moduleCode, entry.academicYear).filter { it.isNotBlank() }.joinToString(" · ") else entry.provider
                         if (label.isNotBlank()) Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)

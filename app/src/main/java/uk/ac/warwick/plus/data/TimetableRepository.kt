@@ -27,7 +27,7 @@ interface TimetableStore {
 }
 
 interface StudentApi {
-    // Synchronous test/probe clients remain compatible; production binds HTTP to cancellation.
+    // Fixtures can execute inline; production binds HTTP operations to coroutine cancellation.
     suspend fun <T> request(operation: () -> T): T = operation()
     fun user(): SignedInUser
     fun timetable(user: SignedInUser): List<EventEntity>

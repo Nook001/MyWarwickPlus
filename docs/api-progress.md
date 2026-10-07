@@ -1,6 +1,6 @@
 # API 接入进度
 
-更新：2026-10-07；代码 0.22.0 / versionCode30。19–21 已落地 Kotlin DAO/实体 + KSP + 事务缓存 Flow、文案资源、依赖/构建链和 targetSdk37。同步不再手动重读全快照，错误/进度保留为临时状态；认证/接口路径/只读边界与 schema5 不变，未重新抓取学校接口。下表为历史证据，不代表当前账户实时数量。协议见 [protocol.md](protocol.md)，架构见 [architecture.md](architecture.md)，交付状态见 [validation.md](validation.md)。
+更新：2026-10-07；代码 0.22.1 / versionCode31。19–21 已落地 Kotlin DAO/实体 + KSP + 事务缓存 Flow、文案资源、依赖/构建链和 targetSdk37；本次移除旧数据库迁移与导航键适配。认证/接口路径/只读边界及当前 schema5 不变，未重新抓取学校接口；学校实际响应的日期格式处理保留。下表为历史证据，不代表当前账户实时数量。协议见 [protocol.md](protocol.md)，架构见 [architecture.md](architecture.md)，交付状态见 [validation.md](validation.md)。
 
 ## 已接入
 

@@ -61,10 +61,10 @@ internal class PlusNavigator(today: LocalDate) {
             fun strings(index: Int) = (values.getOrNull(index) as? List<*>)
                 ?.filterIsInstance<String>().orEmpty()
             return PlusNavigator(LocalDate.ofEpochDay(0)).apply {
-                tab = AppTab.restore(values.getOrNull(0))
+                tab = AppTab.restore(values.getOrNull(0) as? String)
                 meRoute = MeRoute.restore(strings(1))
                 detail = DetailSelection.restore(strings(2))
-                courseworkFilter = CourseworkFilter.restore(values.getOrNull(3))
+                courseworkFilter = CourseworkFilter.restore(values.getOrNull(3) as? String)
                 selectedDay = (values.getOrNull(4) as? Long)?.takeIf {
                     it in LocalDate.MIN.toEpochDay()..LocalDate.MAX.toEpochDay()
                 } ?: 0

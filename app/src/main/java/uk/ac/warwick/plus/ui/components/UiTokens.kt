@@ -10,7 +10,7 @@ internal object AppShapes {
     val section = RoundedCornerShape(sectionRadius)
     val tile = RoundedCornerShape(16.dp)
     val featured = RoundedCornerShape(18.dp)
-    val legacyContent = RoundedCornerShape(20.dp)
+    val feedContent = RoundedCornerShape(20.dp)
     val search = RoundedCornerShape(24.dp)
 }
 

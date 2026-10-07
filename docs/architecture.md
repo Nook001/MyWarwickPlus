@@ -1,6 +1,6 @@
 # 架构与组件规范
 
-更新：2026-10-07，适用代码 0.22.0。前文记录已落地的组件、共享函数、同步、数据反馈、课表和主题标准；末节保留评估基线并标注实施进度。接口证据见 [protocol.md](protocol.md)，覆盖表见 [api-progress.md](api-progress.md)，验证状态见 [validation.md](validation.md)。
+更新：2026-10-07，适用代码 0.22.1。前文记录已落地的组件、共享函数、同步、数据反馈、课表和主题标准；末节保留评估基线并标注实施进度。接口证据见 [protocol.md](protocol.md)，覆盖表见 [api-progress.md](api-progress.md)，验证状态见 [validation.md](validation.md)。
 
 ## 代码职责
 
@@ -39,7 +39,7 @@
 - StudentCache 增加变更观察；DAO RawQuery 显式跟踪 events/coursework/sync_state/feed_entries/feed_meta，信号触发 snapshot 单事务读取，避免 combine 独立查询形成混合快照。Kotlin 实体按值比较，Flow distinctUntilChanged；UI 仍接收不可修改的字段快照。
 - 同步是命令，不返回/重读整份缓存。只有冷启动、Flow 或账户归属变化时读取快照；失败保留内容。内存 revision 在串行锁内更新，UI 拒绝较旧快照；退出取消观察，成功清理后重建观察。错误/加载/重试/进度不持久化。
 - AppLabels/AppActions、导航、主题/网站目录保存资源 ID。UiText.Resource/Quantity/Literal 在 UI 解析，嵌套消息参数仍由资源格式化，ViewModel 不持有 Context。布局、API key/路径、存储身份不从显示文字派生。
-- 尚无正式 release，移除 LegacyUiAdapters；旧设备测试非空假设和旧签名已过时，本轮不修改/执行 UI Test，也不为其保留生产适配。保留 schema/migration 是为了实际测试机登录与缓存，不构成维护旧原型接口的要求。
+- 尚无正式 release，移除 LegacyUiAdapters；旧设备测试非空假设和旧签名已过时，不为其保留生产适配。0.22.1 进一步删除 schema1–4 迁移及导出文件、旧数字 Tab/页面别名与文案筛选键适配，只使用当前存储键；缺失或无效状态仍回退默认值。未修改/执行 UI Test。
 - Android 17 行为按官方文档审阅；使用 Network Security Config 禁止明文，不绕过 TLS/CT。没有 LAN/OTP/后台音频/RemoteViews 功能，不增加无关权限。现有手机 API36，API37 系统运行验证仍待对应设备；构建通过不能替代运行验证。
 
 依据：[AGP 9.4](https://developer.android.com/build/releases/agp-9-4-0-release-notes)、[内置 Kotlin](https://developer.android.com/build/migrate-to-built-in-kotlin)、[Gradle 9.8](https://docs.gradle.org/9.8.0/release-notes.html)、[Android 17 目标行为](https://developer.android.com/about/versions/17/behavior-changes-17)。检查与交付见 [validation.md](validation.md)。工具链尚有 Configuration.setVisible 的 Gradle 11 弃用提示，不宣称兼容未来 Gradle。
@@ -55,7 +55,7 @@
 
 - 完整刷新顺序：Timetable → Coursework → Messages → Library → Modules → Account；每次资源尝试仍先验证账户。验证成功后的课表解析失败可继续其他资源；未确认账户或登录失效则停止后续任务；传输异常耗尽当前资源预算后同样停止，不把 IOException 一律认定为离线。
 - Repository 的 inStore 统一 IO 与 Mutex；authenticatedSync 统一验证、网络读取、同步状态创建与持久化；同步方法只返回 Unit。DAO snapshot 在单个 Room 读事务读取六类数据；网络请求在数据库事务外。各数据源保留独立写事务和同步时间。
-- Room 当前 schema 5，显式迁移 1→2（moduleName）→3（Coursework）→4（Feed）→5（sync_state.email）。保留旧数据，不做破坏性重建；旧导出 schema 用于迁移核对，继续保留。
+- Room 当前 schema 5，仅保留当前导出 schema；数据库名称、字段与 identity hash 不变，现有 schema5 覆盖安装继续读取缓存。无迁移链或破坏性重建回退，schema1–4 不再支持直接升级；安装包不会自动清除数据库、Cookie 或主题偏好。
 - 每份同步状态记录账户归属；发现账户变化后，在下载前清空旧数据，再一次应用新身份和快照。withCache 只替换持久字段，保留其他资源的错误、加载和进度。
 - 同步中重复刷新受 busy guard 限制。成功登录在 busy 时排队，当前任务结束后合并为一次完整刷新；退出时清除待刷新。单项刷新只处理自己的问题和进度，成功不重报另一资源的旧失败；失败保留现有展示；无有效新写入时 Flow 不替换内容，不以坏响应覆盖缓存。
 - IOException、HTTP 408 / 5xx 最多额外重试两次，延迟 2 秒、5 秒；无活动网络不进入请求和重试；有网络时预算不变。认证、解析异常及其他 HTTP 错误（含 429）不自动重试。CancellationException 继续传播。
@@ -121,7 +121,7 @@
 | 几何 / 颜色 | 标准（最小值允许长内容/大字体增长） |
 | --- | --- |
 | 颜色角色 | Normal=surfaceContainerLow/onSurface；Quiet=surfaceContainer/onSurface；Selected=primaryContainer/onPrimaryContainer；Featured=emphasisColours，由主题决定，页面不判断主题名 |
-| 圆角 AppShapes | 分区/列表/紧凑入口 14dp；账户/网格 16dp；强调/设置/Tab 18dp；原 Feed 兼容形状 20dp；搜索 24dp |
+| 圆角 AppShapes | 分区/列表/紧凑入口 14dp；账户/网格 16dp；强调/设置/Tab 18dp；Feed 内容 20dp；搜索 24dp |
 | Spacing | Home/Classes/Me 左右16、顶部4、底部16dp；Tasks/Feed/Appearance 保留20dp。首页区块24、Me区块16、列表12、网格8dp；父组件拥有间距 |
 | 标题 / 页眉 | 分区最小28dp，labelMedium/SemiBold/onSurfaceVariant；日期小标题 labelLarge。AppPageHeader 最小48dp、上下2dp，动作不改变品牌文字位置 |
 | 信息行 | 左列48sp转dp，随字缩放，两行居中、间距2dp；左右列间距10dp。正文bodyMedium/SemiBold，次要bodySmall/onSurfaceVariant。普通行最小64dp、左右12/上下10dp；分区首行最小56dp、上2/下8dp |
