@@ -1,7 +1,6 @@
 package uk.ac.warwick.plus.ui
 
 import uk.ac.warwick.plus.R
-
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
@@ -52,12 +51,9 @@ class TimetableViewModel(private val repository: TimetableStore,
             }
         }
     }
-    private fun authenticated(user: SignedInUser, cache: CachedTimetable) {
+    private fun authenticated(user: SignedInUser, clearedCache: CachedTimetable?) {
         mutable.update { state ->
-            val cacheCleared = cache.sync == null && cache.courseworkSync == null &&
-                cache.accountSync == null && cache.feeds.values.all { it.sync == null }
-            val current = if (state.accountCode != user.code || cacheCleared && state.hasSavedData)
-                state.withCache(cache) else state
+            val current = if (clearedCache != null) state.withCache(clearedCache) else state
             current.copy(signedIn = true, needsLogin = false, globalMessage = null, name = user.name,
                 accountCode = user.code, sessionCheckedAt = System.currentTimeMillis(),
                 syncProgress = state.syncProgress?.copy(accountChecked = true))

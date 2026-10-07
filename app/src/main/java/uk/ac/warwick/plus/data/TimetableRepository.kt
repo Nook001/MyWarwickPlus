@@ -19,10 +19,10 @@ data class CachedTimetable(val events: List<EventEntity>, val sync: SyncEntity?,
 interface TimetableStore {
     fun observeCache(): Flow<CachedTimetable>
     suspend fun cached(): CachedTimetable
-    suspend fun sync(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): CachedTimetable
-    suspend fun syncCoursework(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): CachedTimetable
-    suspend fun syncAccount(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): CachedTimetable
-    suspend fun syncFeed(kind: FeedKind, before: String?, onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): CachedTimetable
+    suspend fun sync(onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit): Unit
+    suspend fun syncCoursework(onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit): Unit
+    suspend fun syncAccount(onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit): Unit
+    suspend fun syncFeed(kind: FeedKind, before: String?, onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit): Unit
     suspend fun signOut()
 }
 
@@ -40,10 +40,9 @@ class TimetableRepository(private val api: StudentApi, private val dao: StudentC
     private val logSync: (() -> String) -> Unit = { debugLog(it) },
     private val endSession: suspend () -> Unit = {}) : TimetableStore {
     private val mutex = Mutex()
-    // Accessed only under mutex. The repository owns all production cache writes.
-    private var currentCache: CachedTimetable? = null
+    // Accessed only under mutex; this ordering also protects against late Flow reads.
     private var revision = 0L
-    private fun readCache() = dao.snapshot().copy(revision = revision).also { currentCache = it }
+    private fun readCache() = dao.snapshot().copy(revision = revision)
 
     override fun observeCache(): Flow<CachedTimetable> = dao.changes()
         .map { inStore { readCache() } }.distinctUntilChanged()
@@ -56,21 +55,20 @@ class TimetableRepository(private val api: StudentApi, private val dao: StudentC
         }
     }
 
-    private suspend fun authenticate(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): SignedInUser {
+    private suspend fun authenticate(onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit): SignedInUser {
         val user = api.request { api.user() }
         currentCoroutineContext().ensureActive()
         val changedAccount = dao.states().any { it.userCode != user.code }
         if (changedAccount) {
             dao.clear()
             revision++
-            currentCache = null
         }
-        onAuthenticated(user, currentCache ?: readCache())
+        onAuthenticated(user, if (changedAccount) readCache() else null)
         return user
     }
 
-    private suspend fun <T> authenticatedSync(id: Int, onAuthenticated: (SignedInUser, CachedTimetable) -> Unit,
-        read: suspend (SignedInUser) -> T, describe: (T) -> String = { "" }, save: (T, SyncEntity) -> Unit): CachedTimetable = inStore {
+    private suspend fun <T> authenticatedSync(id: Int, onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit,
+        read: suspend (SignedInUser) -> T, describe: (T) -> String = { "" }, save: (T, SyncEntity) -> Unit): Unit = inStore {
         val user = authenticate(onAuthenticated)
         val result = read(user)
         // A blocking HTTP read can finish after cancellation; never persist that result.
@@ -84,22 +82,21 @@ class TimetableRepository(private val api: StudentApi, private val dao: StudentC
         save(result, state)
         revision++
         logSync { "Native resource sync succeeded; slot=$id ${describe(result)}" }
-        readCache()
     }
 
     override suspend fun cached(): CachedTimetable = inStore { readCache() }
 
-    override suspend fun sync(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit) =
+    override suspend fun sync(onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit) =
         authenticatedSync(SyncSlots.TIMETABLE, onAuthenticated,
             read = { user -> api.request { api.timetable(user) } },
             describe = { "events=${it.size}" }, save = dao::replace)
 
-    override suspend fun syncCoursework(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit) =
+    override suspend fun syncCoursework(onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit) =
         authenticatedSync(SyncSlots.COURSEWORK, onAuthenticated,
             read = { user -> api.request { api.coursework(user) } },
             describe = { "items=${it.size}" }, save = dao::replaceCoursework)
 
-    override suspend fun syncAccount(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit) =
+    override suspend fun syncAccount(onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit) =
         authenticatedSync(SyncSlots.ACCOUNT, onAuthenticated,
             read = { user -> api.request { api.account(user) } },
             describe = { "emailAvailable=${it.isNotBlank()}" }) { email, state ->
@@ -107,7 +104,7 @@ class TimetableRepository(private val api: StudentApi, private val dao: StudentC
             dao.replaceAccount(state)
         }
 
-    override suspend fun syncFeed(kind: FeedKind, before: String?, onAuthenticated: (SignedInUser, CachedTimetable) -> Unit) =
+    override suspend fun syncFeed(kind: FeedKind, before: String?, onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit) =
         authenticatedSync(kind.key, onAuthenticated, read = { user ->
             val existing = dao.feedEntries(kind.key)
             if (before != null) {
@@ -126,10 +123,9 @@ class TimetableRepository(private val api: StudentApi, private val dao: StudentC
             ParsedFeed(entries, parsed.meta)
         }) { parsed, state -> dao.replaceFeed(parsed.entries, parsed.meta, state) }
 
-    override suspend fun signOut() = inStore {
+    override suspend fun signOut(): Unit = inStore {
         endSession()
         dao.clear()
         revision++
-        currentCache = null
     }
 }

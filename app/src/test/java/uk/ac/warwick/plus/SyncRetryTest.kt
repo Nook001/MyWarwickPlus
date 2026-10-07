@@ -36,21 +36,21 @@ class SyncRetryTest {
         var feedGate: CompletableDeferred<Unit>? = null
         var feedFailure: (FeedKind, String?) -> Exception? = { _, _ -> null }
         val feeds = mutableListOf<Pair<FeedKind, String?>>()
-        override suspend fun syncAccount(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): CachedTimetable {
-            accountCalls++; onAuthenticated(user, cache); accountFailure?.let { throw it }; return cache
+        override suspend fun syncAccount(onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit): Unit {
+            accountCalls++; onAuthenticated(user, cache); accountFailure?.let { throw it }; return
         }
         override suspend fun cached() = cache
-        override suspend fun sync(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): CachedTimetable {
+        override suspend fun sync(onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit): Unit {
             timetableCalls++; onAuthenticated(user, cache)
             timetableGate?.await()
-            timetableFailure(timetableCalls)?.let { throw it }; return cache
+            timetableFailure(timetableCalls)?.let { throw it }; return
         }
-        override suspend fun syncCoursework(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): CachedTimetable {
-            courseworkCalls++; onAuthenticated(user, cache); courseworkFailure?.let { throw it }; return cache
+        override suspend fun syncCoursework(onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit): Unit {
+            courseworkCalls++; onAuthenticated(user, cache); courseworkFailure?.let { throw it }; return
         }
-        override suspend fun syncFeed(kind: FeedKind, before: String?, onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): CachedTimetable {
+        override suspend fun syncFeed(kind: FeedKind, before: String?, onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit): Unit {
             feeds += kind to before; onAuthenticated(user, cache); feedGate?.await()
-            feedFailure(kind, before)?.let { throw it }; return cache
+            feedFailure(kind, before)?.let { throw it }; return
         }
         override suspend fun signOut() { cache = CachedTimetable(emptyList(), null) }
     }

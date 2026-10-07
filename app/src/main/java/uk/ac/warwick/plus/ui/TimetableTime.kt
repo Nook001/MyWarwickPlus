@@ -1,7 +1,6 @@
 package uk.ac.warwick.plus.ui
 
 import uk.ac.warwick.plus.R
-
 import java.time.*
 import uk.ac.warwick.plus.config.AppLabels
 import uk.ac.warwick.plus.data.EventContentItem

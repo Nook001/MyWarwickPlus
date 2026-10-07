@@ -1,11 +1,8 @@
 package uk.ac.warwick.plus.ui
 
 import uk.ac.warwick.plus.R
-
 import androidx.compose.ui.res.stringResource
-
 import uk.ac.warwick.plus.ui.components.*
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn

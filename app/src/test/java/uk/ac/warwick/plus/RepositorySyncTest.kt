@@ -35,7 +35,7 @@ class RepositorySyncTest {
         override fun feed(kind: FeedKind, user: SignedInUser, before: String?) = ParsedFeed(emptyList(), FeedMeta())
     }
 
-    @Test fun sameAccountReusesCommittedCacheButChangedAccountInvalidatesItBeforeFailure() = runBlocking {
+    @Test fun sameAccountWritesDoNotReadSnapshotsButChangedAccountClearsBeforeFailure() = runBlocking {
         val dao = Dao()
         var owner = "first"
         var failDownload = false
@@ -48,13 +48,14 @@ class RepositorySyncTest {
         }
         val repo = TimetableRepository(api, dao, logSync = {})
         repo.cached()
-        repo.sync { _, _ -> }
-        repo.sync { _, cache -> assertEquals("first", cache.events.single().id) }
-        assertEquals(3, dao.reads) // Initial cache plus one committed read per successful sync.
+        repo.sync { _, cleared -> assertNull(cleared) }
+        repo.sync { _, cleared -> assertNull(cleared) }
+        assertEquals(1, dao.reads) // Writes are commands; only observation/explicit reads fetch snapshots.
+        assertEquals("first", repo.cached().events.single().id)
         owner = "second"
         failDownload = true
         try {
-            repo.sync { _, cache -> assertTrue(cache.events.isEmpty()) }
+            repo.sync { _, cache -> assertTrue(cache!!.events.isEmpty()) }
             fail("Download must fail")
         } catch (_: java.io.IOException) { }
         assertTrue(repo.cached().events.isEmpty())

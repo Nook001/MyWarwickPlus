@@ -2,10 +2,8 @@ package uk.ac.warwick.plus.ui.components
 
 import uk.ac.warwick.plus.R
 import androidx.compose.ui.res.stringResource
-
 import uk.ac.warwick.plus.ui.MeIcons
 import uk.ac.warwick.plus.ui.DetailsChevron
-
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable

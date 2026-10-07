@@ -1,24 +1,24 @@
 # 架构与组件规范
 
-更新：2026-10-07，适用代码 0.21.0。前文记录已落地的组件、共享函数、同步、数据反馈、课表和主题标准；末节保留评估基线并标注实施进度。接口证据见 [protocol.md](protocol.md)，覆盖表见 [api-progress.md](api-progress.md)，验证状态见 [validation.md](validation.md)。
+更新：2026-10-07，适用代码 0.22.0。前文记录已落地的组件、共享函数、同步、数据反馈、课表和主题标准；末节保留评估基线并标注实施进度。接口证据见 [protocol.md](protocol.md)，覆盖表见 [api-progress.md](api-progress.md)，验证状态见 [validation.md](validation.md)。
 
 ## 代码职责
 
-单个 app module，Kotlin 业务/Compose UI，Room 使用 Java 注解处理，无 KSP/kapt。源码根目录为 `app/src/main/java/uk/ac/warwick/plus/`。
+单个 app module，Kotlin 业务/Compose UI，Room DAO/实体使用 Kotlin + KSP 2.3.12，无 kapt；数据库类保留原身份与 schema。源码根目录为 `app/src/main/java/uk/ac/warwick/plus/`。
 
 | 来源 | 职责 |
 | --- | --- |
 | auth/ | 官方 WebView SSO、CookieManager、限定 MyWarwick origin 的 CookieJar |
 | data/MyWarwickApi、各 Parser | 只读 GET、响应大小/结构校验、整批解析，不负责 UI |
 | data/TimetableRepository、StudentCache、TimetableDao、TimetableDatabase | 仓库只依赖原子缓存接口；账户隔离、串行读写/退出、事务快照；SyncSlots 集中持久 ID |
-| ui/TimetableViewModel | 单份同步任务、完整/单项/分页执行、恢复缓存、阶段进度及通知 |
+| ui/TimetableViewModel | 单份同步任务、完整/单项/分页执行、缓存 Flow 观察、阶段进度及通知 |
 | ui/TimetableState、SyncRetry | 状态类型与 withCache/withIssue/resourceFailed；独立重试策略 |
-| config/AppLabels | 页面、分类、区段名称及常用动作文案；只管显示，不作为存储/接口key |
+| config/AppLabels | 页面、分类、区段及动作的资源 ID；文字在 strings.xml，不作为存储/接口key |
 | ui/NavigationState、SyncOperation | 类型化Tab/筛选/Me子页/详情、轻量Saver、同步操作和当前状态恢复动作 |
 | ui/PlusNavigator、PlusActions、PlusScreen | 导航/选日与轻量 Saver、动作集合；根页面连接投影与当前状态恢复 |
 | ui/*Screen、业务详情 | 组合页面、业务展示及按需详情；不直接读写数据库 |
 | ui/components/ | 基础容器、列表、操作、输入、标题及详情骨架；package 与目录一致 |
-| ui/LegacyUiAdapters | 旧测试的源码兼容入口；正式入口使用类型化动作、页面投影与恢复动作 |
+| ui/UiText、res/values/strings.xml | 延迟解析的消息/进度描述、格式化参数、数量与静态文案 |
 
 组件只接受展示内容与动作，不持有 ViewModel、不发网络请求、不修改账户。暂不引入多模块、资源插件或并发同步；抽象由实际复用场景推动。
 
@@ -26,33 +26,45 @@
 
 - `JsonFields` 共用 envelope/对象数组/唯一 ID 校验和实际类型读取；可选字符串 null/异型值视为空，必需字段拒绝整批，Modules 保持已确认的数字 ID 支持。
 - 全局会话/缓存/退出问题使用 globalMessage；message 只代表课表问题，其他资源保留独立问题。成功的课表不会因 Tasks 登录失效被改成失败；未执行资源的登录提示一致。
-- 仓库在 Mutex 内复用已提交快照给账户回调，每次持久化、cached() 或账户清理更新/作废引用；账户不变时 ViewModel 只更新身份和进度。失败仍从 DAO 恢复，不跳过按资源的账户检查。
+- 每资源仍验证账户。账户未变只回调身份与进度；发现归属变化，先原子清理并立即投影空快照。正常内容由 Room Flow 驱动，不保留同步后手工全量重读或失败恢复路径。
 - Feed 文本使用 Default 线程和按账户创建的容量缓存，切换账户/退出后旧缓存不再被根页面持有；内容刷新按源列表校验，避免同 ID 显示旧正文。转换完成前不显示原始 HTML，搜索结果会随正文转换完成更新。
 - 时钟仍只在 STARTED 运行，延迟对齐 :00/:30；冲突集合共用；详情关闭按钮先 hide 后移除，账号切换仍立即清理详情。日期选择保存有效日期、月份与模式，保留 Locale.UK；未完成/无效输入不承诺保存。
 - Android 12+ 明确排除云备份与 D2D 全部存储域，低版本保留 allowBackup=false/fullBackupContent=false；未实测 OEM 迁移。
 
-采用项和未采用理由按原报告编号记录在 [quality-review.md](quality-review.md)。不引入多模块、全量状态表、格式工具、依赖升级或新 UI Test；尚未进行帧时间/启动成本测量。
+采用项和未采用理由按原报告编号记录在 [quality-review.md](quality-review.md)。不引入多模块、全量状态表、格式工具或新 UI Test；19–21 的升级见下节；尚未进行帧时间/启动成本测量。
+
+## 0.22.0：19–21 改造
+
+- 构建：AGP 9.4.1、Gradle 9.8.0（官方 SHA-256）、内置 Kotlin/Compose compiler 2.2.10、KSP 2.3.12；configuration cache 默认启用。Room 2.8.5、Browser 1.10.0、OkHttp 5.5.0、协程运行/测试 1.11.0；compile/target SDK 37，min SDK 28/JVM 17。
+- StudentCache 增加变更观察；DAO RawQuery 显式跟踪 events/coursework/sync_state/feed_entries/feed_meta，信号触发 snapshot 单事务读取，避免 combine 独立查询形成混合快照。Kotlin 实体按值比较，Flow distinctUntilChanged；UI 仍接收不可修改的字段快照。
+- 同步是命令，不返回/重读整份缓存。只有冷启动、Flow 或账户归属变化时读取快照；失败保留内容。内存 revision 在串行锁内更新，UI 拒绝较旧快照；退出取消观察，成功清理后重建观察。错误/加载/重试/进度不持久化。
+- AppLabels/AppActions、导航、主题/网站目录保存资源 ID。UiText.Resource/Quantity/Literal 在 UI 解析，嵌套消息参数仍由资源格式化，ViewModel 不持有 Context。布局、API key/路径、存储身份不从显示文字派生。
+- 尚无正式 release，移除 LegacyUiAdapters；旧设备测试非空假设和旧签名已过时，本轮不修改/执行 UI Test，也不为其保留生产适配。保留 schema/migration 是为了实际测试机登录与缓存，不构成维护旧原型接口的要求。
+- Android 17 行为按官方文档审阅；使用 Network Security Config 禁止明文，不绕过 TLS/CT。没有 LAN/OTP/后台音频/RemoteViews 功能，不增加无关权限。现有手机 API36，API37 系统运行验证仍待对应设备；构建通过不能替代运行验证。
+
+依据：[AGP 9.4](https://developer.android.com/build/releases/agp-9-4-0-release-notes)、[内置 Kotlin](https://developer.android.com/build/migrate-to-built-in-kotlin)、[Gradle 9.8](https://docs.gradle.org/9.8.0/release-notes.html)、[Android 17 目标行为](https://developer.android.com/about/versions/17/behavior-changes-17)。检查与交付见 [validation.md](validation.md)。工具链尚有 Configuration.setVisible 的 Gradle 11 弃用提示，不宣称兼容未来 Gradle。
 
 ## 同步、缓存与恢复
 
 ```text
 冷启动：Room snapshot → StateFlow → 页面 → 前台刷新
 刷新：ViewModel → SyncRetry → Repository 串行锁
-     → user/info 验证/账户隔离 → GET/解析 → 独立写事务 → snapshot → StateFlow
+     → user/info 验证/账户隔离 → GET/解析 → 独立写事务
+缓存：Room 表 invalidation Flow → 串行锁 + 单次事务快照 → 值去重 → StateFlow
 ```
 
 - 完整刷新顺序：Timetable → Coursework → Messages → Library → Modules → Account；每次资源尝试仍先验证账户。验证成功后的课表解析失败可继续其他资源；未确认账户或登录失效则停止后续任务；传输异常耗尽当前资源预算后同样停止，不把 IOException 一律认定为离线。
-- Repository 的 inStore 统一 IO 与 Mutex；authenticatedSync 统一验证、读取、同步状态创建、持久化与快照。DAO snapshot 在单个 Room 读事务读取六类数据；网络请求在数据库事务外。各数据源保留独立写事务和同步时间。
+- Repository 的 inStore 统一 IO 与 Mutex；authenticatedSync 统一验证、网络读取、同步状态创建与持久化；同步方法只返回 Unit。DAO snapshot 在单个 Room 读事务读取六类数据；网络请求在数据库事务外。各数据源保留独立写事务和同步时间。
 - Room 当前 schema 5，显式迁移 1→2（moduleName）→3（Coursework）→4（Feed）→5（sync_state.email）。保留旧数据，不做破坏性重建；旧导出 schema 用于迁移核对，继续保留。
 - 每份同步状态记录账户归属；发现账户变化后，在下载前清空旧数据，再一次应用新身份和快照。withCache 只替换持久字段，保留其他资源的错误、加载和进度。
-- 同步中重复刷新受 busy guard 限制。成功登录在 busy 时排队，当前任务结束后合并为一次完整刷新；退出时清除待刷新。单项刷新只处理自己的问题和进度，成功不重报另一资源的旧失败；失败恢复已保存快照，不以坏响应覆盖缓存。
+- 同步中重复刷新受 busy guard 限制。成功登录在 busy 时排队，当前任务结束后合并为一次完整刷新；退出时清除待刷新。单项刷新只处理自己的问题和进度，成功不重报另一资源的旧失败；失败保留现有展示；无有效新写入时 Flow 不替换内容，不以坏响应覆盖缓存。
 - IOException、HTTP 408 / 5xx 最多额外重试两次，延迟 2 秒、5 秒；无活动网络不进入请求和重试；有网络时预算不变。认证、解析异常及其他 HTTP 错误（含 429）不自动重试。CancellationException 继续传播。
 - Messages 最新页 limit=100；只有用户要求才用缓存最旧 id 作 before 游标。先验证/清理账户，再检查游标。分页合并按日期倒序/id 排序、去重、最多 500 条；非空且无新增 ID 的页拒绝。最新页刷新重置旧分页，失败重试保留原游标。
-- 同步调用通过 StudentApi.request → CancellableRequests 绑定协程取消与当前 OkHttp Call.cancel；注册前即建立线程安全取消作用域，取消不能漏掉随后注册的请求。网络读取/解析在 IO 线程执行，响应由 use 关闭，取消后的结果不交回持久化流程；退出前以 NonCancellable 等待该 IO 工作完成，避免迟到 CookieJar 回调恢复旧会话。Sign out 的 cancelAndJoin 会立即取消同步请求，再经 Repository 清理会话/数据库；验证后及写前 ensureActive、Mutex、失败恢复均保留。登录/Developer probe 的同步入口保持原行为；不在等待前清 cookie。
+- 同步调用通过 StudentApi.request → CancellableRequests 绑定协程取消与当前 OkHttp Call.cancel；注册前即建立线程安全取消作用域，取消不能漏掉随后注册的请求。网络读取/解析在 IO 线程执行，响应由 use 关闭，取消后的结果不交回持久化流程；退出前以 NonCancellable 等待该 IO 工作完成，避免迟到 CookieJar 回调恢复旧会话。Sign out 的 cancelAndJoin 会立即取消同步请求，再经 Repository 清理会话/数据库；验证后及写前 ensureActive、Mutex 均保留；退出先取消并等待同步与缓存观察。登录/Developer probe 的同步入口保持原行为；不在等待前清 cookie。
 
 ## 展示快照与计算边界
 
-- withCache 将 Room Entity 转为私有 Kotlin 值快照（所有字段 val）；页面消费 EventContentItem / CourseworkContentItem / FeedContentItem 只读契约，保留 ID、完整详情、链接与排序信息。Java Entity 仅增加兼容 getter，不改列或 schema；旧 ScheduleContent 入口保留适配，应用走页面值状态入口。
+- withCache 将 Room Entity 转为私有 Kotlin 值快照（所有字段 val）；页面消费 EventContentItem / CourseworkContentItem / FeedContentItem 只读契约，保留 ID、完整详情、链接与排序信息。Entity 为 Kotlin 可变 data class，仅用于解析/Room；UI 不持有持久化对象。schema 未变，旧 UI 适配已删除。
 - 新列表按字段值相等复用原列表，否则包装为不可修改列表；进度 copy 不重新投影数据。每次真实缓存投影仍读取全资源，并逐资源比对，不把同步时间当内容相等的依据。不向 Entity / 任意 List 添加 @Immutable。
 - Home / Classes 使用只包含本页数据及恢复状态的投影，进度由顶部读取；恢复回调保持引用并在点击时取最新状态。首页 next/today/deadlines、Tasks 搜索分类/排序、详情冲突集合按各自数据/时间依赖 remember；查询仍留页面本地。
 - 时钟在 Lifecycle.STARTED 期间每30秒更新，回前台立即校准，继续按 Europe/London 计算午夜与 DST；不截断原始 deadline 时间。冲突匹配仍为 O(n²)，内层索引循环避免反复 drop 临时列表。
@@ -60,10 +72,10 @@
 
 ## 页面命名、导航与恢复动作
 
-- 页面/入口/同步资源共享 `config/AppLabels.kt` 的名称：Home、Classes、Tasks、Me；Settings、Data status、Developer tools、Messages、Library、Modules。Tab与顶部直接使用同一个label；Home顶部继续显示个性化招呼语。Now/Next/Today/Deadlines区段与常用Sign in/Sign out/Retry/Back等动作也集中维护，说明性长句留在所属组件。
+- 页面/入口/同步资源共享 `config/AppLabels.kt` 的名称：Home、Classes、Tasks、Me；Settings、Data status、Developer tools、Messages、Library、Modules。Tab与顶部直接解析同一个 labelRes；Home顶部继续显示个性化招呼语。Now/Next/Today/Deadlines区段与常用Sign in/Sign out/Retry/Back等动作也集中维护，主要说明/错误/进度也使用资源；保留英文与英国日期格式，未新增翻译。
 - 显示名与身份分开：AppTab/CourseworkFilter用显式key，MeRoute只允许Overview/Settings/DeveloperTools/Feed，DetailSelection只允许None/Class/Task/Feed。Saver仅保存key、Feed现有固定数据库key与内容ID，不保存实体、HTML或列表，不使用enum.ordinal。旧数字Tab/字符串筛选值有解码回退；这不是跨应用版本Compose存档位置的迁移保证。
 - Classes选日、followToday与列表状态仍保留；Tasks查询仍在本页，不改切页后的查询产品规则。恢复详情先等资源缓存可判定，再检查ID和Feed归属；初始空身份/空缓存不当成账户切换。真正退出或账户变化仍清理详情/Me子路由/筛选；Debug工具不可用时回退Me首页。
-- SyncProgress只存SyncOperation（Refresh(resource)/OlderMessages），界面再生成文字。SyncNotice只存一个RecoveryAction（RefreshAll/Refresh(resource)/OlderMessages/SignIn），旧feed/resource/olderMessages兼容入口只转换或派生，不另存重叠状态。
+- SyncProgress只存SyncOperation（Refresh(resource)/OlderMessages），界面再生成文字。SyncNotice只存一个RecoveryAction（RefreshAll/Refresh(resource)/OlderMessages/SignIn），旧feed/resource/olderMessages兼容入口已删除，不另存重叠状态。
 - Snackbar按notice ID执行一次；动作及消费回调用rememberUpdatedState取得最新实现。点击时检查当前busy/退出/登录状态，过期会话转登录；旧更早消息提示仅在当前仍有失败标志与有效分页入口时沿用当前游标，否则刷新最新Messages。重试预算、顺序、缓存保留与notice消费ID规则不变。
 
 ## 数据反馈

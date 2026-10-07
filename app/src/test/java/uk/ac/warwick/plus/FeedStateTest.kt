@@ -30,14 +30,14 @@ class FeedStateTest {
         var logoutError = false
         var signedOut = false
         val calls = mutableListOf<Pair<FeedKind,String?>>()
-        override suspend fun syncAccount(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit) = cache
+        override suspend fun syncAccount(onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit) { }
         override suspend fun cached() = cache
-        override suspend fun sync(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): CachedTimetable {
-            onAuthenticated(user,cache); gate?.await(); return cache
+        override suspend fun sync(onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit): Unit {
+            onAuthenticated(user,cache); gate?.await(); return
         }
-        override suspend fun syncCoursework(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit) = cache
-        override suspend fun syncFeed(kind: FeedKind, before: String?, onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): CachedTimetable {
-            calls.add(kind to before); onAuthenticated(user,cache); errors[kind]?.let { throw it }; return cache
+        override suspend fun syncCoursework(onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit) { }
+        override suspend fun syncFeed(kind: FeedKind, before: String?, onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit): Unit {
+            calls.add(kind to before); onAuthenticated(user,cache); errors[kind]?.let { throw it }; return
         }
         override suspend fun signOut() {
             if (logoutError) throw IOException()

@@ -1,9 +1,7 @@
 package uk.ac.warwick.plus.ui
 
 import uk.ac.warwick.plus.R
-
 import androidx.compose.ui.res.stringResource
-
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState

@@ -1,7 +1,6 @@
 package uk.ac.warwick.plus.ui
 
 import uk.ac.warwick.plus.R
-
 import androidx.compose.ui.graphics.vector.ImageVector
 import uk.ac.warwick.plus.auth.MY_WARWICK
 import uk.ac.warwick.plus.config.AppLabels

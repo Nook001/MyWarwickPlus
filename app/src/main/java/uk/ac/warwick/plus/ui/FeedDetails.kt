@@ -1,13 +1,10 @@
 package uk.ac.warwick.plus.ui
 
 import uk.ac.warwick.plus.R
-
 import androidx.compose.ui.res.stringResource
-
+import androidx.compose.ui.res.pluralStringResource
 import java.net.URI
-
 import uk.ac.warwick.plus.ui.components.*
-
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -25,7 +22,9 @@ fun FeedDetails(kind: FeedKind, entry: FeedContentItem, onOpen: ((String) -> Uni
         if (entry.provider.isNotBlank()) item { Text(entry.provider) }
         if (entry.dateMillis != 0L) item { Text(stringResource(R.string.warwick_time, fullDateTimeLabel(entry.dateMillis))) }
         if (plainText.isNotBlank()) item { Text(plainText) }
-        if (kind == FeedKind.MODULES) item { Text(stringResource(R.string.module_counts, entry.announcementCount, entry.evaluationCount)) }
+        if (kind == FeedKind.MODULES) item { Text(stringResource(R.string.module_counts,
+            pluralStringResource(R.plurals.announcement_count, entry.announcementCount, entry.announcementCount),
+            pluralStringResource(R.plurals.evaluation_count, entry.evaluationCount, entry.evaluationCount))) }
         safeExternalUrl(entry.url)?.let { url -> item {
             ExternalLinkButton(url, if (kind == FeedKind.MODULES) stringResource(R.string.open_module_moodle) else stringResource(R.string.open_source_website), onOpen)
             Text(URI(url).host, style = MaterialTheme.typography.bodySmall)

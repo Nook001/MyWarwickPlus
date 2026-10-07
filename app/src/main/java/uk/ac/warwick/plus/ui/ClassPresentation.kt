@@ -1,7 +1,6 @@
 package uk.ac.warwick.plus.ui
 
 import uk.ac.warwick.plus.R
-
 import uk.ac.warwick.plus.data.EventContentItem
 
 internal data class ClassIdentity(val name: String, val code: String)

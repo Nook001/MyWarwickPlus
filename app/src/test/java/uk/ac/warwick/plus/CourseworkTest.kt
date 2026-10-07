@@ -68,21 +68,21 @@ class CourseworkTest {
         var courseworkGate: CompletableDeferred<Unit>? = null
         var courseworkCalls = 0
         var changeAccount = false
-        override suspend fun syncAccount(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit) = data
+        override suspend fun syncAccount(onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit) { }
         override suspend fun cached() = data
-        override suspend fun syncFeed(kind: FeedKind, before: String?, onAuthenticated: (SignedInUser, CachedTimetable) -> Unit) = data
+        override suspend fun syncFeed(kind: FeedKind, before: String?, onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit) { }
         override suspend fun signOut() { data = CachedTimetable(emptyList(), null) }
-        override suspend fun sync(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): CachedTimetable {
+        override suspend fun sync(onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit): Unit {
             onAuthenticated(user, data)
-            timetableError?.let { throw it }; return data
+            timetableError?.let { throw it }; return
         }
-        override suspend fun syncCoursework(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): CachedTimetable {
+        override suspend fun syncCoursework(onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit): Unit {
             courseworkCalls++
             if (changeAccount) data = CachedTimetable(emptyList(), null)
             onAuthenticated(if (changeAccount) user.copy(code = "other", name = "Other") else user, data)
             courseworkGate?.await()
             courseworkError?.let { throw it }
-            return data
+            return
         }
     }
     @Test fun courseworkFailurePreservesBothCachesAndRetryRecovers() = runTest(dispatcher) {

@@ -1,15 +1,10 @@
 package uk.ac.warwick.plus.ui
 
 import uk.ac.warwick.plus.R
-
 import androidx.compose.ui.res.stringResource
-
 import java.util.Locale
-
 import androidx.compose.ui.platform.LocalFocusManager
-
 import uk.ac.warwick.plus.ui.components.*
-
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed

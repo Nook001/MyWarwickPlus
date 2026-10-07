@@ -1,20 +1,8 @@
 # API 接入进度
 
-更新：2026-10-07；当前交付版本 0.21.0，19–21 改造进行中。已升级 Browser 1.10.0、协程运行/测试 1.11.0、JVM JSON 20260814，并启用 Gradle configuration cache；Debug/JVM 检查通过，第二次相同构建确认复用配置缓存。接口和展示范围未扩大，未重新请求学校接口。下表数量是历史样本，不代表当前账户的实时数据。请求结构见 [protocol.md](protocol.md)，交付状态见 [validation.md](validation.md)。
+更新：2026-10-07；代码 0.22.0 / versionCode30。19–21 已落地 Kotlin DAO/实体 + KSP + 事务缓存 Flow、文案资源、依赖/构建链和 targetSdk37。同步不再手动重读全快照，错误/进度保留为临时状态；认证/接口路径/只读边界与 schema5 不变，未重新抓取学校接口。下表为历史证据，不代表当前账户实时数量。协议见 [protocol.md](protocol.md)，架构见 [architecture.md](architecture.md)，交付状态见 [validation.md](validation.md)。
 
 ## 已接入
-
-19 第一阶段：TimetableDao 已迁为 Kotlin，Room 2.8.5 改用 KSP 2.3.12；AGP 内置 Kotlin 保留。Debug 与 73 项 JVM 检查通过，导出 schema5 无变化。DAO 明确可空的查询结果；旧设备测试的非空假设不再符合该类型边界，本轮未修改或执行 UI Test，不为旧测试添加运行时代码适配。
-
-19 第二阶段：全部缓存表的 Room invalidation Flow 驱动事务快照，按值去重；实体迁为 Kotlin data class。ViewModel 不再在每次同步成功/失败后手动重读缓存；保留首次启动读取、账户验证时清空旧账户、退出取消观察和 HTTP 等待边界。内存 revision 防止晚到的旧读取覆盖换账户后的状态，错误/重试/进度不写入缓存。API 与 schema5 无变化。
-
-21：页面/Tab/筛选名称、动作、主题和服务名称、空态、主要无障碍提示、错误及进度文案集中为 strings.xml 资源；数量使用 plurals，格式化文案使用位置参数。AppLabels/AppActions 与页面定义只保留资源 ID，UiText 延迟到 UI 解析，不向 ViewModel 注入 Context。删除未发布旧 UI 调用适配；JVM 既有检查改用类型化筛选/恢复动作/消息描述。Debug、74 项 JVM 与 Lint 通过；英文内容、英国日期格式仍保留，未新增翻译。开发者诊断和少量时间组合文本后续按需要迁移。
-
-20 HTTP 阶段：OkHttp 5.5.0 已通过 Debug/JVM 检查，包括真实阻塞响应体取消与调用注册前取消的既有检查。仍使用有边界的同步 body 读取与响应关闭；不改为只等待响应头的异步包装。学校路径、CookieJar、Csrf-Token、大小限制与退出等待保持。
-
-20 Gradle 阶段：wrapper 升为 9.8.0，使用官方分发 SHA-256 校验并重新生成 wrapper；Debug/JVM 检查通过。AGP/SDK 后续单独升级。
-
-20 AGP 阶段：AGP 9.4.1 与 Gradle 9.8.0 / KSP 2.3.12 构建通过；Compose compiler 继续与 AGP 内置 Kotlin 2.2.10 匹配。相同构建复用 configuration cache。工具链内部仍有 Configuration.setVisible 的 Gradle 11 弃用提示，不属于应用源码故障。
 
 | API / 方法 | 接入情况 | 使用与展示 | 验证 / 限制 |
 | --- | --- | --- | --- |

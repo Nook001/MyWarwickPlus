@@ -8,7 +8,26 @@
 
 仅更新三个现有文档，不改源码/测试/依赖/schema/版本；不构建、不运行JVM/UI/设备测试、不部署或请求学校接口。核对本地引用、表格/代码块结构、评估中的源码符号及git diff --check；查阅Compose/Kotlin官方技术说明，不访问用户会话。之前0.18.0手机安装被拒和待验收状态保留。
 
-## 最新代码：0.21.0 / versionCode 29
+## 最新代码：0.22.0 / versionCode 30
+
+2026-10-07：19–21 改造完成，具体结构与版本见 [architecture.md](architecture.md)。Kotlin DAO/实体通过 KSP 生成 Room 实现；同步只保存数据，事务快照 Flow 发布内容，ViewModel 保留临时错误和进度。显示名称、常用文案及数量复数进入资源；构建链与依赖分批升级，compile/targetSdk37。保留物理手机缓存所需的 schema5 和迁移，不保留未发布的旧内部调用兼容层。
+
+| 检查 | 本次结果 / 边界 |
+| --- | --- |
+| 构建 | assembleDebug / assembleRelease 成功；Release 的 R8 与资源收缩通过，产物未签名、未发布 |
+| JVM | 74项全部通过；只新增1项缓存流更新/旧快照拒绝/退出状态检查，其余适配类型化文案与 Flow 命令接口；既有 HTTP 阻塞取消及取消注册竞争检查通过 |
+| Lint | 0 errors / 0 warnings，报告为 No issues found |
+| 配置缓存 | 相同四任务重复构建成功，Configuration cache entry reused；103任务中101项 up-to-date。外部插件仍有 Gradle 11 将移除的 setVisible 警告，不推断未来版本兼容 |
+| Room / API | schema5无diff，identity hash a201057e1b8a41788b3c7026be00cfee 不变；核对生成 Flow 观察全部5表及事务实现，未新增真实SQLite或学校接口检查 |
+| UI约定 | AndroidTest源码未改写/扩展/运行；旧接口与非空假设已过时，本轮不将其编译或运行计为通过，不为旧测试恢复兼容层 |
+| 物理部署 | 指定10AG4S2KQJ0066R执行install -r，被手机拒绝（User rejected permissions）；0.22.0尚未装上，等待解锁后重试，未卸载或清除数据 |
+| 未执行 | UI Test、模拟器、自动点击/截图/退出/清cookie、Android17/API37运行验证、帧时间与实际重组性能测量 |
+
+命令：`./gradlew.bat :app:assembleDebug :app:assembleRelease :app:testDebugUnitTest :app:lintDebug --console=plain`，JDK21。Debug APK 已导出为 MyWarwickPlus-0.22.0-debug.apk；构建、JVM检查和安装不能代替手动验收。
+
+手动重点：已有缓存冷启动可见；下拉刷新后内容更新且进度结束；断网保留数据、联网恢复；Classes/Tasks/Me 的名称、数量文案与错误提示正常。真实账户切换与Sign out仅在用户愿意重新登录时测试。物理测试机为API36，target37的运行期行为仍需相应设备复核。
+
+## 上一版：0.21.0 / versionCode 29
 
 2026-10-07：按质量报告修复 P0 风险并落地维护性与必要细节项，取舍表见 [quality-review.md](quality-review.md)。未改变 API 路径、写操作边界、schema5 或调色值；有活动网络时仍最多额外两次 2s/5s 重试。
 

@@ -1,9 +1,7 @@
 package uk.ac.warwick.plus.ui
 
 import uk.ac.warwick.plus.R
-
 import androidx.compose.ui.res.stringResource
-
 import uk.ac.warwick.plus.ui.components.*
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*

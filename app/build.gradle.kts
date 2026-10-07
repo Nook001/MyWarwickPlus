@@ -10,9 +10,9 @@ android {
     defaultConfig {
         applicationId = "uk.ac.warwick.plus"
         minSdk = 28
-        targetSdk = 36
-        versionCode = 29
-        versionName = "0.21.0"
+        targetSdk = 37
+        versionCode = 30
+        versionName = "0.22.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { compose = true; buildConfig = true }
@@ -23,6 +23,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }

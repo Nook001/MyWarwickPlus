@@ -107,7 +107,6 @@
     <string name="resource_read_failed">Couldn\'t read %1$s. Your saved data has been kept.</string>
     <string name="sign_in_update_information">Sign in to update your information.</string>
     <string name="information_update_failed">Couldn\'t update some information. Your saved data has been kept.</string>
-    <string name="progress_finished">%1$d of %2$d updates finished; %3$d failed</string>
     <string name="progress_retry">%1$s %2$d/2 · %3$s</string>
     <string name="progress_updating">Updating %1$s · %2$d/%3$d</string>
     <string name="sign_out_question">%1$s?</string>
@@ -149,7 +148,6 @@
     <string name="library_feed_description">Your Library account summary from MyWarwick.</string>
     <string name="library_not_loaded">Your Library summary hasn\'t loaded yet</string>
     <string name="continues_after">Continues tomorrow</string>
-    <string name="action_search">Search</string>
     <string name="service_moodle">Moodle</string>
     <string name="service_email">Email</string>
     <string name="service_tabula">Tabula</string>
@@ -173,7 +171,7 @@
     <string name="theme_rosewood_detail">Deep burgundy</string>
     <string name="deadline_time">Deadline\n%1$s · Warwick time</string>
     <string name="warwick_time">%1$s · Warwick time</string>
-    <string name="module_counts">%1$d announcements · %2$d evaluations returned. View their contents on the module site.</string>
+    <string name="module_counts">%1$s · %2$s. View their contents on the module site.</string>
     <string name="loading_resource">Loading %1$s…</string>
     <string name="waiting_resource">Waiting to load %1$s…</string>
     <string name="resource_not_loaded">%1$s haven\'t loaded yet</string>
@@ -183,5 +181,18 @@
     <plurals name="announcement_count">
         <item quantity="one">%1$d announcement returned</item>
         <item quantity="other">%1$d announcements returned</item>
+    </plurals>
+    <string name="app_name" translatable="false">MyWarwick+</string>
+    <string name="sign_in_to_warwick">Sign in to Warwick</string>
+    <string name="login_external_link">This link is outside the Warwick sign-in service.</string>
+    <string name="login_unverified_connection">The connection couldn\'t be verified. Please try again later.</string>
+    <string name="login_connection_failed">Couldn\'t reach Warwick. Check your connection and try again.</string>
+    <plurals name="progress_finished">
+        <item quantity="one">%1$d of %2$d update finished; %3$d failed</item>
+        <item quantity="other">%1$d of %2$d updates finished; %3$d failed</item>
+    </plurals>
+    <plurals name="evaluation_count">
+        <item quantity="one">%1$d evaluation returned</item>
+        <item quantity="other">%1$d evaluations returned</item>
     </plurals>
 </resources>

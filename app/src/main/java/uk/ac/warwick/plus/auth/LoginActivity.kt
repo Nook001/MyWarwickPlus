@@ -1,9 +1,13 @@
 package uk.ac.warwick.plus.auth
 
+import uk.ac.warwick.plus.R
+import uk.ac.warwick.plus.config.AppActions
+import uk.ac.warwick.plus.ui.UiText
+import uk.ac.warwick.plus.ui.text
+import uk.ac.warwick.plus.ui.render
+import androidx.compose.ui.res.stringResource
 import android.net.http.SslError
-
 import android.graphics.Bitmap
-
 import android.app.Activity
 import android.annotation.SuppressLint
 import androidx.core.net.toUri
@@ -30,7 +34,7 @@ class LoginActivity : ComponentActivity() {
     private var webView: WebView? = null
     private var checking = false
     private var loadingProgress by mutableIntStateOf(0)
-    private var problem by mutableStateOf<String?>(null)
+    private var problem by mutableStateOf<UiText?>(null)
     private var pageHost by mutableStateOf("my.warwick.ac.uk")
 
     @SuppressLint("SetJavaScriptEnabled") // Warwick SSO requires JavaScript; navigation and permissions remain restricted.
@@ -45,15 +49,15 @@ class LoginActivity : ComponentActivity() {
                 }
                 Scaffold(topBar = {
                     TopAppBar(title = { Column {
-                        Text("Sign in to Warwick", style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.sign_in_to_warwick), style = MaterialTheme.typography.titleMedium)
                         Text(pageHost, style = MaterialTheme.typography.labelSmall)
-                    } }, navigationIcon = { TextButton(onClick = { finish() }) { Text("Close") } })
+                    } }, navigationIcon = { TextButton(onClick = { finish() }) { Text(stringResource(AppActions.CLOSE)) } })
                 }) { padding ->
                     Column(Modifier.fillMaxSize().padding(padding)) {
                         if (loadingProgress < 100) LinearProgressIndicator(Modifier.fillMaxWidth())
-                        problem?.let { text ->
-                            Text(text, Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error)
-                            TextButton(onClick = { problem = null; webView?.loadUrl(MY_WARWICK) }) { Text("Try again") }
+                        problem?.let { message ->
+                            Text(message.render(), Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error)
+                            TextButton(onClick = { problem = null; webView?.loadUrl(MY_WARWICK) }) { Text(stringResource(AppActions.RETRY)) }
                         }
                         AndroidView(modifier = Modifier.fillMaxSize(), factory = { context ->
                             WebView(context).apply {
@@ -73,7 +77,7 @@ class LoginActivity : ComponentActivity() {
                                     override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                                         if (!request.isForMainFrame) return false
                                         if (AuthSession.isLoginUrl(request.url)) return false
-                                        problem = "This link is outside the Warwick sign-in service."
+                                        problem = text(R.string.login_external_link)
                                         return true
                                     }
                                     override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
@@ -81,10 +85,10 @@ class LoginActivity : ComponentActivity() {
                                     }
                                     override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: SslError) {
                                         handler.cancel()
-                                        problem = "The connection couldn't be verified. Please try again later."
+                                        problem = text(R.string.login_unverified_connection)
                                     }
                                     override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
-                                        if (request.isForMainFrame) problem = "Couldn't reach Warwick. Check your connection and try again."
+                                        if (request.isForMainFrame) problem = text(R.string.login_connection_failed)
                                     }
                                     override fun onPageFinished(view: WebView, url: String) {
                                         CookieManager.getInstance().flush()

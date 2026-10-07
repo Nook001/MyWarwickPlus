@@ -4,6 +4,18 @@
 
 基线：`:app:testDebugUnitTest` 68 项全部通过；`:app:lintDebug` 0 errors / 17 warnings；Compose 编译器报告中所有 UI 函数均为 restartable + skippable（strong skipping 默认开启）。本报告为静态审阅结论，未做真机性能测量；凡标注"未测"的性能判断都需要用 Perfetto / Macrobenchmark 验证后再投入。
 
+## 后续实施（0.22.0，2026-10-07）
+
+下方 0.21.0 处置表是历史记录；此前暂缓的 19–21 已按独立批次落地。尚无正式发布版本，不再为旧 UI 调用保留兼容适配；测试机已有数据仍保留。
+
+| 编号 | 当前结果 |
+| --- | --- |
+| 19 | Kotlin DAO/实体 + KSP；全部缓存表 Flow 信号驱动事务快照，值去重与 revision 顺序保护；同步只负责写入，删除写后/失败全量重读；退出等待同步/观察 |
+| 20 | Browser 1.10.0、OkHttp 5.5.0、协程 1.11.0、JVM JSON 20260814；Gradle 9.8.0/AGP 9.4.1/configuration cache；targetSdk37、Network Security Config。既有取消/账户隔离规则保留 |
+| 21 | strings.xml + plurals + 参数化 UiText，命名配置保存资源 ID；不仅为翻译，也用于一致文案/无障碍/格式化；主要页面、错误和进度已迁移，开发者诊断/少量时间组合仍为英文 |
+
+完整实现约定见 [architecture.md](architecture.md)，检查及手机状态见 [validation.md](validation.md)。既有 UI Test 源码未改动也未执行，旧签名/空值假设使其不再编译；不记作测试通过。Room 引擎/Android17运行/性能测量仍与 JVM 编排检查区分。
+
 ## 实施核对（0.21.0，2026-10-07）
 
 下文保留 0.20.0 的静态审阅基线，已发现的问题不再视为当前仍全部存在。认可风险与优先级，但评分是主观排序；“全部 UI 函数可跳过”不用于证明所有组合或真实帧性能。未采纳所有建议中的示例实现。

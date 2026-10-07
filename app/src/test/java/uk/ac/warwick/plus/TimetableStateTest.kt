@@ -1,7 +1,6 @@
 package uk.ac.warwick.plus
 
 import uk.ac.warwick.plus.ui.*
-
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.*
@@ -28,15 +27,15 @@ class TimetableStateTest {
             get() = snapshots.value
             set(value) { snapshots.value = value }
         override fun observeCache() = snapshots
-        var operation: suspend ((SignedInUser, CachedTimetable) -> Unit) -> CachedTimetable = { cache }
+        var operation: suspend ((SignedInUser, CachedTimetable?) -> Unit) -> CachedTimetable = { cache }
         var calls = 0
-        override suspend fun syncAccount(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit) = cache
+        override suspend fun syncAccount(onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit) { }
         override suspend fun cached() = cache
-        override suspend fun syncCoursework(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit) = cache
-        override suspend fun syncFeed(kind: FeedKind, before: String?, onAuthenticated: (SignedInUser, CachedTimetable) -> Unit) = cache
+        override suspend fun syncCoursework(onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit) { }
+        override suspend fun syncFeed(kind: FeedKind, before: String?, onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit) { }
         override suspend fun signOut() { cache = CachedTimetable(emptyList(), null) }
-        override suspend fun sync(onAuthenticated: (SignedInUser, CachedTimetable) -> Unit): CachedTimetable {
-            calls++; return operation(onAuthenticated)
+        override suspend fun sync(onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit): Unit {
+            calls++; cache = operation(onAuthenticated)
         }
     }
 

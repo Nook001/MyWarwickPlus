@@ -1,11 +1,8 @@
 package uk.ac.warwick.plus.ui
 
 import uk.ac.warwick.plus.R
-
 import java.util.Locale
-
 import uk.ac.warwick.plus.ui.components.*
-
 import java.io.IOException
 import uk.ac.warwick.plus.config.AppActions
 import uk.ac.warwick.plus.config.AppLabels
@@ -29,7 +26,7 @@ data class SyncProgress(val id: Long, val total: Int, val completed: Int = 0,
     val operation: SyncOperation = SyncOperation.Refresh(SyncResource.TIMETABLE),
     val accountChecked: Boolean = false, val retry: Int = 0, val failures: Int = 0, val finished: Boolean = false) {
     val fraction: Float get() = ((completed + if (accountChecked) .5f else 0f) / total).coerceIn(0f, 1f)
-    val description: UiText get() = if (finished) text(R.string.progress_finished, completed, total, failures)
+    val description: UiText get() = if (finished) UiText.Quantity(R.plurals.progress_finished, total, listOf(completed, total, failures))
         else if (retry > 0) text(R.string.progress_retry, text(AppActions.RETRY), retry, text(operation.labelRes))
         else text(R.string.progress_updating, text(operation.labelRes), completed + 1, total)
 }
