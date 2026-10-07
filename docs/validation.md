@@ -17,8 +17,9 @@
 | 构建 | assembleDebug / assembleRelease成功；Release R8/资源收缩通过 |
 | JVM | 76项全部通过；仅新增2项日程时间逻辑检查，覆盖精确结束边界、空今日与完成今日共用Tomorrow、跨日/英国夏令时、周末及零时长全日项。既有导航检查只适配新增当前Tab参数 |
 | Lint / 静态 | lintDebug无问题，schema5无diff；稳定分区key、消息只转换两条可见HTML、账户隔离文本缓存与详情ID校验保留 |
-| 物理部署 | 指定10AG4S2KQJ0066R执行install -r被手机拒绝（User rejected permissions）；0.24.0尚未安装，手机仍为上一版0.23.0 Debug。等待解锁/手机端允许后重试，未卸载/清数据 |
-| 未执行 | 未新增/执行UI Test；新布局、大字体/五主题视觉、消息详情返回、真实日程切换待手机手动验收；未改手机时间或自动操作账户 |
+| 物理部署 | 首次被拒，用户授权“重试”后指定10AG4S2KQJ0066R执行install -r成功。dumpsys确认0.24.0 / versionCode33 / DEBUGGABLE；冷启动Status:ok / COLD / TotalTime488ms，单次Debug值不作性能基准。未卸载/清数据，登录缓存交互待用户手动核对 |
+| 视觉核对 | 只读截取当前主题首页：晚间已显示Tomorrow · 8 Oct，Now/Next、日程、Deadlines标题图标及地点定位针可见，课程代码/地点同行，Messages标题位于Deadlines下方。截图仅在不跟踪的work/home024.png，不写入Git；消息正文仍需用户滚动核对 |
+| 未执行 | 未新增/执行UI Test；五主题/大字体、消息详情返回/All、进行中课程与周末祝语待手机手动验收；未改手机时间、自动点击/滑动或操作账户 |
 
 命令：`:app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:assembleRelease`，JDK21；日志在不跟踪的work/024-build.log。无数据的Tomorrow/消息摘要不显示空卡片；Library/公交数据发现仍待后续，未虚构摘要。
 
