@@ -19,7 +19,7 @@
 | 采集入口 | 两个Python脚本仅标准库，语法核对并实际采集/分析；明确物理序列号，拒绝模拟器/debuggable，记录配置/版本/APK SHA-256与trace。官方Windows Trace Processor v58.2，SHA-256 adfa6bad3d72be3ba9b83fa2b17b69fa13b3ab1cad0f42e52b86188bd5f0f997 |
 | 有效启动追踪 | vivo V2502A / API36；同profile类型、64MiB/8秒配置、各5次进程冷启动；未更改ART编译模式/网络/屏幕设置或清登录缓存。本次buffer丢包/解析错误均为0，服务跨会话累计计数单独保留 |
 | 手动Classes | 用户明确“准备好了”，随后提示开Classes/来回滚动并录制12秒；非自动UI操作。1140个应用帧，App Deadline Missed 1、Buffer Stuffing 3、Dropped Frame 1、Prediction Error 298、None 837；平均frame slice时长3.703ms，不作为显示帧间隔或FPS |
-| 物理部署 | 基线与候选profile均指定10AG4S2KQJ0066R执行install -r成功。恢复日常Debug的两次安装均被手机拒绝（User rejected permissions），当前仍为0.23.0 profile；已再次核对versionCode32与非debuggable状态，等待手机端允许后重试，未卸载/清数据 |
+| 物理部署 | 基线与候选profile均指定10AG4S2KQJ0066R执行install -r成功。恢复日常Debug前两次被手机拒绝，用户再次授权“重试”后覆盖安装成功；dumpsys确认0.23.0 / versionCode32 / DEBUGGABLE。冷启动Status:ok / COLD / TotalTime445ms，单次Debug值不作性能基准；未卸载/清数据，登录与缓存交互待用户手动核对 |
 | 未执行 | UI Test、自动点击/滑动/截图/退出、API37运行验证、Messages滚动、主题切换内存、Baseline Profile生成或Macrobenchmark |
 
 启动结果来自Perfetto的首帧TTID（ms）；am值只作采集辅助，不混作发布基准：
