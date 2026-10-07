@@ -12,6 +12,8 @@
 
 20 HTTP 阶段：OkHttp 5.5.0 已通过 Debug/JVM 检查，包括真实阻塞响应体取消与调用注册前取消的既有检查。仍使用有边界的同步 body 读取与响应关闭；不改为只等待响应头的异步包装。学校路径、CookieJar、Csrf-Token、大小限制与退出等待保持。
 
+20 Gradle 阶段：wrapper 升为 9.8.0，使用官方分发 SHA-256 校验并重新生成 wrapper；Debug/JVM 检查通过。AGP/SDK 后续单独升级。
+
 | API / 方法 | 接入情况 | 使用与展示 | 验证 / 限制 |
 | --- | --- | --- | --- |
 | `GET /user/info` | 原生已验证 | 每资源更新前验证账户并取得 CSRF；Me 使用姓名、usercode | WebView session；不保存或输出认证字段 |
