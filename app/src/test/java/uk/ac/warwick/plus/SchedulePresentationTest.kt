@@ -44,9 +44,9 @@ class SchedulePresentationTest {
                 assertEquals(it,pickerDate(pickerMillis(it)))
             }
             val today=LocalDate.of(2026,10,4)
-            assertEquals("Today",scheduleDateLabel(today,today))
-            assertEquals("Tomorrow · 5 Oct",scheduleDateLabel(today.plusDays(1),today))
-            assertEquals("Fri 1 Jan 2027",scheduleDateLabel(LocalDate.of(2027,1,1),today))
+            assertEquals(text(R.string.label_today),scheduleDateLabel(today,today))
+            assertEquals(text(R.string.tomorrow_date, "5 Oct"),scheduleDateLabel(today.plusDays(1),today))
+            assertEquals(UiText.Literal("Fri 1 Jan 2027"),scheduleDateLabel(LocalDate.of(2027,1,1),today))
         } finally { TimeZone.setDefault(previous) }
     }
 }

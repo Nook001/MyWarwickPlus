@@ -2,7 +2,7 @@ package uk.ac.warwick.plus.ui
 
 import uk.ac.warwick.plus.data.EventContentItem
 
-internal data class RecoveryState(val lastSynced: Long?, val issue: String?, val updating: Boolean,
+internal data class RecoveryState(val lastSynced: Long?, val issue: UiText?, val updating: Boolean,
     val needsLogin: Boolean, val enabled: Boolean)
 
 internal fun TimetableState.recovery(resource: SyncResource) = RecoveryState(

@@ -1,5 +1,9 @@
 package uk.ac.warwick.plus.ui
 
+import uk.ac.warwick.plus.R
+
+import androidx.compose.ui.res.stringResource
+
 import uk.ac.warwick.plus.ui.components.*
 
 import androidx.compose.foundation.layout.*
@@ -50,17 +54,17 @@ internal fun ScheduleContent(state: SchedulePageState, today: LocalDate, now: Lo
         verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (state.showFeedback) item { feedback() }
         if (state.lastSynced == null) item {
-            DataEmptyState(if (state.busy) "Loading timetable…" else "Timetable hasn't loaded yet")
+            DataEmptyState(if (state.busy) stringResource(R.string.loading_timetable) else stringResource(R.string.timetable_not_loaded))
         } else items(days, key = { it.date.toEpochDay() }, contentType = { "schedule-day" }) { day ->
             Column(Modifier.fillMaxWidth().testTag("schedule-day-${day.date}"), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                SectionLabel(scheduleDateLabel(day.date, today))
+                SectionLabel(scheduleDateLabel(day.date, today).render())
                 AppCard(Modifier.fillMaxWidth()) {
-                    if (day.events.isEmpty()) Text(if (day.date == today) "No classes today" else "No classes on this day",
+                    if (day.events.isEmpty()) Text(if (day.date == today) stringResource(R.string.no_classes_today) else stringResource(R.string.no_classes_on_day),
                         style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp))
                     else Column {
                         day.events.forEachIndexed { index, event ->
                             if (index > 0) ListDivider(inset = 0.dp)
-                            val status = classStatus(event, now, nextId, day.date)
+                            val status = classStatus(event, now, nextId, day.date)?.let { stringResource(it) }
                             ScheduleClassRow(event, day.date, status, event.id in conflicts) { onSelect(event) }
                         }
                     }
@@ -75,9 +79,9 @@ internal fun ScheduleClassRow(event: EventContentItem, date: LocalDate, status: 
     compactTop: Boolean = false, onSelect: () -> Unit) {
     val identity = classIdentity(event)
     val time = scheduleTime(event, date)
-    MetricListRow(onSelect, "View class details", Modifier.testTag("schedule-class-${date}-${event.id}"),
+    MetricListRow(onSelect, stringResource(R.string.view_class_details), Modifier.testTag("schedule-class-${date}-${event.id}"),
         compactTop = compactTop, metric = {
-            Text(if (event.allDay) "All day" else time.start, style = if (event.allDay) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
+            Text(if (event.allDay) stringResource(R.string.all_day) else time.start, style = if (event.allDay) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary, maxLines = 1, softWrap = false)
             if (!event.allDay) Text(time.end, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1, softWrap = false)
@@ -91,9 +95,9 @@ internal fun ScheduleClassRow(event: EventContentItem, date: LocalDate, status: 
         }
         if (!event.allDay && (time.continuesBefore || time.continuesAfter)) Text(
             listOfNotNull(if (time.continuesBefore) "Continues from previous day" else null,
-                if (time.continuesAfter) "Continues tomorrow" else null).joinToString(" · "),
+                if (time.continuesAfter) stringResource(R.string.continues_after) else null).joinToString(" · "),
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        if (conflict) Text("Overlaps another class", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+        if (conflict) Text(stringResource(R.string.class_overlap), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
     }
 }
 
@@ -109,9 +113,9 @@ fun ScheduleDateDialog(selected: LocalDate, onDismiss: () -> Unit, onDate: (Loca
     )) { DatePickerState(locale = Locale.UK, initialSelectedDateMillis = pickerMillis(selected), initialDisplayMode = DisplayMode.Input) }
     DatePickerDialog(onDismissRequest = onDismiss,
         confirmButton = { TextButton(onClick = { picker.selectedDateMillis?.let { onDate(pickerDate(it)) } }, enabled = picker.selectedDateMillis != null,
-            modifier = Modifier.testTag("schedule-date-confirm")) { Text("Go to date") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(AppActions.CANCEL) } }) {
-        DatePicker(picker, modifier = Modifier.verticalScroll(rememberScrollState()), title = { Text("Choose date", Modifier.padding(24.dp)) },
+            modifier = Modifier.testTag("schedule-date-confirm")) { Text(stringResource(R.string.go_to_date)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(AppActions.CANCEL)) } }) {
+        DatePicker(picker, modifier = Modifier.verticalScroll(rememberScrollState()), title = { Text(stringResource(R.string.choose_date), Modifier.padding(24.dp)) },
             headline = null, showModeToggle = true)
     }
 }

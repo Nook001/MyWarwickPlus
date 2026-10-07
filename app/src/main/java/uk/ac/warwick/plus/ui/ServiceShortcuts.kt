@@ -1,5 +1,8 @@
 package uk.ac.warwick.plus.ui
 
+import uk.ac.warwick.plus.R
+import androidx.compose.ui.res.stringResource
+
 import uk.ac.warwick.plus.ui.components.*
 
 import androidx.compose.foundation.layout.*
@@ -53,11 +56,11 @@ internal object ServiceIcons {
 internal fun HomeQuickLinks(onOpen: (String) -> Unit) {
     Row(Modifier.fillMaxWidth().testTag("home-quick-links"), horizontalArrangement = Arrangement.spacedBy(Spacing.grid)) {
         HomeServices.forEach { service ->
-            val label = requireNotNull(service.homeLabel)
+            val label = stringResource(requireNotNull(service.homeLabelRes))
             ActionTile(label, service.icon, { onOpen(service.url) },
                 layout = ActionTileLayout.Compact,
-                modifier = Modifier.weight(1f).testTag("home-service-${label.lowercase()}"),
-                actionLabel = "Open ${service.label} in browser")
+                modifier = Modifier.weight(1f).testTag("home-service-${service.name.lowercase()}"),
+                actionLabel = stringResource(R.string.open_in_browser, stringResource(service.labelRes)))
         }
     }
 }

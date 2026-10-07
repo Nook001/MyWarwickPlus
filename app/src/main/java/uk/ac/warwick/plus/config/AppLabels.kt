@@ -1,35 +1,37 @@
 package uk.ac.warwick.plus.config
 
+import uk.ac.warwick.plus.R
+
 // Display names only. Navigation keys, database IDs and API paths never derive from these.
 object AppLabels {
-    const val HOME = "Home"
-    const val CLASSES = "Classes"
-    const val TASKS = "Tasks"
-    const val ME = "Me"
-    const val SETTINGS = "Settings"
-    const val DATA_STATUS = "Data status"
-    const val DEVELOPER_TOOLS = "Developer tools"
-    const val MESSAGES = "Messages"
-    const val LIBRARY = "Library"
-    const val MODULES = "Modules"
-    const val ACCOUNT = "Account"
-    const val UPCOMING = "Upcoming"
-    const val PAST = "Past"
-    const val OLDER_MESSAGES = "Older messages"
-    const val NOW = "Now"
-    const val NEXT = "Next"
-    const val TODAY = "Today"
-    const val DEADLINES = "Deadlines"
-    const val BRAND = "MY WARWICK +"
+    val HOME = R.string.label_home
+    val CLASSES = R.string.label_classes
+    val TASKS = R.string.label_tasks
+    val ME = R.string.label_me
+    val SETTINGS = R.string.label_settings
+    val DATA_STATUS = R.string.label_data_status
+    val DEVELOPER_TOOLS = R.string.label_developer_tools
+    val MESSAGES = R.string.label_messages
+    val LIBRARY = R.string.label_library
+    val MODULES = R.string.label_modules
+    val ACCOUNT = R.string.label_account
+    val UPCOMING = R.string.label_upcoming
+    val PAST = R.string.label_past
+    val OLDER_MESSAGES = R.string.label_older_messages
+    val NOW = R.string.label_now
+    val NEXT = R.string.label_next
+    val TODAY = R.string.label_today
+    val DEADLINES = R.string.label_deadlines
+    val BRAND = R.string.label_brand
 }
 
 object AppActions {
-    const val SIGN_IN = "Sign in"
-    const val SIGN_OUT = "Sign out"
-    const val RETRY = "Retry"
-    const val BACK = "Back"
-    const val CANCEL = "Cancel"
-    const val CLEAR_SEARCH = "Clear search"
-    const val CLOSE = "Close"
-    const val RETRY_SIGN_OUT = "Retry sign-out"
+    val SIGN_IN = R.string.action_sign_in
+    val SIGN_OUT = R.string.action_sign_out
+    val RETRY = R.string.action_retry
+    val BACK = R.string.action_back
+    val CANCEL = R.string.action_cancel
+    val CLEAR_SEARCH = R.string.action_clear_search
+    val CLOSE = R.string.action_close
+    val RETRY_SIGN_OUT = R.string.action_retry_sign_out
 }

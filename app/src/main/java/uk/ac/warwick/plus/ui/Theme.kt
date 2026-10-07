@@ -1,5 +1,7 @@
 package uk.ac.warwick.plus.ui
 
+import uk.ac.warwick.plus.R
+
 import uk.ac.warwick.plus.ui.components.*
 
 import android.app.Activity
@@ -11,10 +13,10 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-enum class ColourTheme(val id: String, val label: String, val description: String) {
-    FOREST("forest", "Forest", "Forest green"), LAKE("lake", "Lake", "Mist blue"),
-    HEATHER("heather", "Heather", "Soft purple"), SAND("sand", "Sand", "Warm sandstone"),
-    ROSEWOOD("rosewood", "Rosewood", "Deep burgundy");
+enum class ColourTheme(val id: String, val labelRes: Int, val descriptionRes: Int) {
+    FOREST("forest", R.string.theme_forest, R.string.theme_forest_detail), LAKE("lake", R.string.theme_lake, R.string.theme_lake_detail),
+    HEATHER("heather", R.string.theme_heather, R.string.theme_heather_detail), SAND("sand", R.string.theme_sand, R.string.theme_sand_detail),
+    ROSEWOOD("rosewood", R.string.theme_rosewood, R.string.theme_rosewood_detail);
     companion object { fun fromId(id: String?) = entries.firstOrNull { it.id == id } ?: FOREST }
 }
 

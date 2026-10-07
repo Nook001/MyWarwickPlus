@@ -19,7 +19,7 @@ class FeedStateTest {
     private val user = SignedInUser("example", "Example student", "", "")
     private inner class Store : TimetableStore {
         private val snapshots = MutableStateFlow(CachedTimetable(emptyList(), SyncEntity().apply { userCode = user.code; displayName = user.name; syncedAt = 100 },
-            feeds = FeedKind.entries.associateWith { kind -> CachedFeed(listOf(FeedEntry().apply { feed = kind.key; id = "saved"; title = "Saved ${kind.label}" }),
+            feeds = FeedKind.entries.associateWith { kind -> CachedFeed(listOf(FeedEntry().apply { feed = kind.key; id = "saved"; title = "Saved ${kind.name}" }),
                 FeedMeta().apply { feed = kind.key; hasMore = kind == FeedKind.MESSAGES }, SyncEntity().apply { id = kind.key; userCode = user.code; syncedAt = 200 }) }))
         var cache: CachedTimetable
             get() = snapshots.value

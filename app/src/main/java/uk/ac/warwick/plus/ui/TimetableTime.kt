@@ -1,5 +1,7 @@
 package uk.ac.warwick.plus.ui
 
+import uk.ac.warwick.plus.R
+
 import java.time.*
 import uk.ac.warwick.plus.config.AppLabels
 import uk.ac.warwick.plus.data.EventContentItem
@@ -9,7 +11,7 @@ private val EventOrder = compareBy<EventContentItem> { it.startMillis }.thenBy {
 internal fun isClassNow(event: EventContentItem, now: Long) =
     !event.allDay && event.startMillis <= now && event.endMillis > now
 
-internal fun classStatus(event: EventContentItem, now: Long, nextId: String?, date: LocalDate): String? = when {
+internal fun classStatus(event: EventContentItem, now: Long, nextId: String?, date: LocalDate): Int? = when {
     isClassNow(event, now) && date == atWarwick(now).toLocalDate() -> AppLabels.NOW
     event.id == nextId && date == atWarwick(event.startMillis).toLocalDate() -> AppLabels.NEXT
     else -> null
@@ -50,10 +52,10 @@ fun scheduleDays(events: List<EventContentItem>, from: LocalDate): List<Schedule
     return grouped.map { (date, entries) -> ScheduleDay(date, entries.sortedWith(EventOrder)) }
 }
 
-fun scheduleDateLabel(date: LocalDate, today: LocalDate): String = when (date) {
-    today -> AppLabels.TODAY
-    today.plusDays(1) -> "Tomorrow · ${shortDateLabel(date)}"
-    else -> weekdayDateLabel(date, includeYear = date.year != today.year)
+fun scheduleDateLabel(date: LocalDate, today: LocalDate): UiText = when (date) {
+    today -> text(AppLabels.TODAY)
+    today.plusDays(1) -> text(R.string.tomorrow_date, shortDateLabel(date))
+    else -> UiText.Literal(weekdayDateLabel(date, includeYear = date.year != today.year))
 }
 
 data class ScheduleTime(val start: String, val end: String, val continuesBefore: Boolean, val continuesAfter: Boolean)
@@ -80,10 +82,10 @@ fun currentOrNextClass(events: List<EventContentItem>, now: Long): EventContentI
     .minWithOrNull(EventOrder)
     ?: nextTimedClass(events, now)
 
-fun nextClassLabel(event: EventContentItem, now: Long): String = when {
-    event.startMillis <= now -> "Happening now"
-    event.startMillis - now < 60 * 60_000 -> "In ${(event.startMillis - now + 59_999) / 60_000} min"
-    atWarwick(event.startMillis).toLocalDate() == atWarwick(now).toLocalDate() -> "Later today"
-    atWarwick(event.startMillis).toLocalDate() == atWarwick(now).toLocalDate().plusDays(1) -> "Tomorrow"
-    else -> relativeDateLabel(atWarwick(event.startMillis).toLocalDate())
+fun nextClassLabel(event: EventContentItem, now: Long): UiText = when {
+    event.startMillis <= now -> text(R.string.happening_now)
+    event.startMillis - now < 60 * 60_000 -> text(R.string.in_minutes, (event.startMillis - now + 59_999) / 60_000)
+    atWarwick(event.startMillis).toLocalDate() == atWarwick(now).toLocalDate() -> text(R.string.later_today)
+    atWarwick(event.startMillis).toLocalDate() == atWarwick(now).toLocalDate().plusDays(1) -> text(R.string.tomorrow)
+    else -> UiText.Literal(relativeDateLabel(atWarwick(event.startMillis).toLocalDate()))
 }

@@ -1,5 +1,9 @@
 package uk.ac.warwick.plus.ui
 
+import uk.ac.warwick.plus.R
+
+import androidx.compose.ui.res.stringResource
+
 import uk.ac.warwick.plus.ui.components.*
 
 import androidx.compose.foundation.layout.*
@@ -16,36 +20,36 @@ import uk.ac.warwick.plus.config.AppLabels
 @Composable
 fun DataStatusSheet(state: TimetableState, onLogin: () -> Unit, onRefresh: ((SyncResource) -> Unit)?, onDismiss: () -> Unit) {
     DetailsSheet(onDismiss, contentPadding = PaddingValues(20.dp), itemSpacing = 12.dp) {
-        item { Text(AppLabels.DATA_STATUS, style = MaterialTheme.typography.titleLarge) }
-        state.globalMessage?.let { message -> item { Text(message, style = MaterialTheme.typography.bodySmall) } }
+        item { Text(stringResource(AppLabels.DATA_STATUS), style = MaterialTheme.typography.titleLarge) }
+        state.globalMessage?.let { message -> item { Text(message.render(), style = MaterialTheme.typography.bodySmall) } }
         if (state.needsLogin) item {
             DataRecoveryRow(null, null, false, true, !state.busy && !state.logoutFailed, onLogin, {})
         }
         items(SyncResource.entries, key = { it.name }) { resource ->
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(resource.label, style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(resource.labelRes), style = MaterialTheme.typography.titleSmall)
                     Text(when {
-                        state.updating(resource) -> "Updating…"
-                        state.needsLogin && state.syncedAt(resource) != null -> "Saved data · sign in to update"
-                        state.needsLogin -> "Sign in required"
-                        resource.feed?.let { state.feed(it).olderPageFailed } == true && state.syncedAt(resource) != null -> "Older page failed · current messages kept"
-                        state.issue(resource) != null && state.syncedAt(resource) != null -> "Update failed · previous data kept"
-                        state.issue(resource) != null -> "Not loaded · update failed"
-                        state.syncedAt(resource) == null -> "Not loaded"
-                        else -> "Data available"
+                        state.updating(resource) -> stringResource(R.string.updating)
+                        state.needsLogin && state.syncedAt(resource) != null -> stringResource(R.string.saved_sign_in)
+                        state.needsLogin -> stringResource(R.string.sign_in_required)
+                        resource.feed?.let { state.feed(it).olderPageFailed } == true && state.syncedAt(resource) != null -> stringResource(R.string.older_page_kept)
+                        state.issue(resource) != null && state.syncedAt(resource) != null -> stringResource(R.string.update_failed_kept)
+                        state.issue(resource) != null -> stringResource(R.string.not_loaded_failed)
+                        state.syncedAt(resource) == null -> stringResource(R.string.not_loaded)
+                        else -> stringResource(R.string.data_available)
                     }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     state.syncedAt(resource)?.let { time ->
-                        Text("Last updated ${updatedTimeLabel(time)} · Warwick time",
+                        Text(stringResource(R.string.last_updated, updatedTimeLabel(time)),
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 if (onRefresh != null) TextButton(onClick = { onRefresh(resource) },
                     enabled = !state.busy && !state.needsLogin && !state.logoutFailed) {
-                    Text(if (state.issue(resource) != null) AppActions.RETRY else "Refresh")
+                    Text(if (state.issue(resource) != null) stringResource(AppActions.RETRY) else stringResource(R.string.action_refresh))
                 }
             }
         }
-        item { DetailClose(AppActions.CLOSE, onDismiss) }
+        item { DetailClose(stringResource(AppActions.CLOSE), onDismiss) }
     }
 }

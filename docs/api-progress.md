@@ -8,6 +8,8 @@
 
 19 第二阶段：全部缓存表的 Room invalidation Flow 驱动事务快照，按值去重；实体迁为 Kotlin data class。ViewModel 不再在每次同步成功/失败后手动重读缓存；保留首次启动读取、账户验证时清空旧账户、退出取消观察和 HTTP 等待边界。内存 revision 防止晚到的旧读取覆盖换账户后的状态，错误/重试/进度不写入缓存。API 与 schema5 无变化。
 
+21：页面/Tab/筛选名称、动作、主题和服务名称、空态、主要无障碍提示、错误及进度文案集中为 strings.xml 资源；数量使用 plurals，格式化文案使用位置参数。AppLabels/AppActions 与页面定义只保留资源 ID，UiText 延迟到 UI 解析，不向 ViewModel 注入 Context。删除未发布旧 UI 调用适配；JVM 既有检查改用类型化筛选/恢复动作/消息描述。Debug、74 项 JVM 与 Lint 通过；英文内容、英国日期格式仍保留，未新增翻译。开发者诊断和少量时间组合文本后续按需要迁移。
+
 | API / 方法 | 接入情况 | 使用与展示 | 验证 / 限制 |
 | --- | --- | --- | --- |
 | `GET /user/info` | 原生已验证 | 每资源更新前验证账户并取得 CSRF；Me 使用姓名、usercode | WebView session；不保存或输出认证字段 |

@@ -19,9 +19,10 @@ internal fun SyncProgressBar(progress: SyncProgress?) {
         LaunchedEffect(progress.finished) {
             if (progress.finished) { delay(250); visible = false }
         }
+        val description = progress.description.render()
         val fraction by animateFloatAsState(progress.fraction, animationSpec = tween(200), label = "API progress")
         if (visible) LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth()
-            .semantics { contentDescription = progress.description },
+            .semantics { contentDescription = description },
             color = if (progress.finished && progress.failures > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
     }
 }

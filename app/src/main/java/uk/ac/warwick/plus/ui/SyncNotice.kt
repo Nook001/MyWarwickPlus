@@ -1,5 +1,7 @@
 package uk.ac.warwick.plus.ui
 
+import uk.ac.warwick.plus.R
+
 internal fun TimetableState.completionNotice(
     id: Long, resource: SyncResource?, olderMessages: Boolean
 ): SyncNotice? {
@@ -13,8 +15,8 @@ internal fun TimetableState.completionNotice(
         else -> failures.singleOrNull()?.let { RecoveryAction.Refresh(it.first) } ?: RecoveryAction.RefreshAll
     }
     val text = when {
-        needsLogin -> "Sign in to update your information."
-        failures.size > 1 -> "Couldn't update some information. Your saved data has been kept."
+        needsLogin -> text(R.string.sign_in_update_information)
+        failures.size > 1 -> text(R.string.information_update_failed)
         else -> failures.single().second
     }
     return SyncNotice(id, text, action)

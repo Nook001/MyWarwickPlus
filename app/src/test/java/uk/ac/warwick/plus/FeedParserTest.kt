@@ -53,9 +53,9 @@ class FeedParserTest {
         val entries = listOf(CourseworkEntity().apply { id = "past"; dueMillis = now - 1; title = "Past report" },
             CourseworkEntity().apply { id = "soon"; dueMillis = now + 60_000; title = "Compiler report" },
             CourseworkEntity().apply { id = "far"; dueMillis = now + 10 * 86_400_000; title = "Future report" })
-        assertEquals(listOf("soon"), filterCoursework(entries, "compiler", "Upcoming", now).map { it.id })
-        assertEquals(listOf("past"), filterCoursework(entries, "", "Past", now).map { it.id })
-        assertEquals(listOf("soon", "far"), filterCoursework(entries, "", "Upcoming", now).map { it.id })
+        assertEquals(listOf("soon"), filterCoursework(entries, "compiler", CourseworkFilter.UPCOMING, now).map { it.id })
+        assertEquals(listOf("past"), filterCoursework(entries, "", CourseworkFilter.PAST, now).map { it.id })
+        assertEquals(listOf("soon", "far"), filterCoursework(entries, "", CourseworkFilter.UPCOMING, now).map { it.id })
         assertEquals(3, entries.size)
     }
     @Test fun backToBackAllDayAndZeroDurationEventsDoNotCreateFalseConflicts() {

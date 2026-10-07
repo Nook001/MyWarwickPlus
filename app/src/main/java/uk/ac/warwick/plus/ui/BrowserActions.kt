@@ -39,6 +39,6 @@ internal fun ExternalLinkButton(url: String, label: String, onOpen: ((String) ->
     val open = rememberBrowserOpener(onOpen)
     var failed by remember(url) { mutableStateOf(false) }
     OutlinedButton(onClick = { failed = !open(url) }, modifier = Modifier.fillMaxWidth()) { Text(label) }
-    if (failed) Text("Couldn't open this link. Try again.", style = MaterialTheme.typography.bodySmall,
+    if (failed) Text(androidx.compose.ui.res.stringResource(uk.ac.warwick.plus.R.string.link_open_failed), style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.error)
 }

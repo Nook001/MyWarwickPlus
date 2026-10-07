@@ -1,5 +1,9 @@
 package uk.ac.warwick.plus.ui
 
+import uk.ac.warwick.plus.R
+
+import androidx.compose.ui.res.stringResource
+
 import uk.ac.warwick.plus.ui.components.*
 
 import androidx.compose.foundation.background
@@ -24,7 +28,7 @@ fun AppearanceContent() {
     val update = LocalAppearanceChange.current
     LazyColumn(Modifier.fillMaxSize().testTag("appearance-list").selectableGroup(),
         contentPadding = PaddingValues(Spacing.page), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item { SectionLabel("COLOUR THEME") }
+        item { SectionLabel(stringResource(R.string.colour_theme)) }
         items(ColourTheme.entries, key = { it.id }) { theme ->
             val selected = appearance.theme == theme
             AppCard(shape = AppShapes.featured, tone = if (selected) CardTone.Selected else CardTone.Normal) {
@@ -34,8 +38,8 @@ fun AppearanceContent() {
                     horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Box(Modifier.size(28.dp).background(theme.palette().next, CircleShape))
                     Column(Modifier.weight(1f)) {
-                        Text(theme.label, style = MaterialTheme.typography.titleMedium)
-                        Text(theme.description, style = MaterialTheme.typography.bodySmall)
+                        Text(stringResource(theme.labelRes), style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(theme.descriptionRes), style = MaterialTheme.typography.bodySmall)
                     }
                     RadioButton(selected, onClick = null)
                 }
@@ -48,8 +52,8 @@ fun AppearanceContent() {
                     .padding(14.dp), verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Column(Modifier.weight(1f)) {
-                        Text("Fine texture", style = MaterialTheme.typography.titleMedium)
-                        Text("A subtle frosted finish", style = MaterialTheme.typography.bodySmall)
+                        Text(stringResource(R.string.fine_texture), style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.fine_texture_detail), style = MaterialTheme.typography.bodySmall)
                     }
                     Switch(appearance.texture, onCheckedChange = null)
                 }

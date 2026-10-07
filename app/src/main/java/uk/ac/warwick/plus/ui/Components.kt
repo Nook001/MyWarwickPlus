@@ -1,5 +1,9 @@
 package uk.ac.warwick.plus.ui
 
+import uk.ac.warwick.plus.R
+
+import androidx.compose.ui.res.stringResource
+
 import uk.ac.warwick.plus.ui.components.*
 
 import androidx.compose.foundation.layout.*
@@ -11,7 +15,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import uk.ac.warwick.plus.config.AppActions
 
-fun classCountLabel(count: Int) = if (count == 1) "1 class" else "$count classes"
+@Composable
+fun classCountLabel(count: Int) = androidx.compose.ui.res.pluralStringResource(R.plurals.class_count, count, count)
 
 @Composable
 fun SectionLabel(text: String, trailing: String? = null) {
@@ -36,21 +41,21 @@ fun DataEmptyState(text: String, detail: String? = null, action: String? = null,
 }
 
 @Composable
-fun DataRecoveryRow(lastSynced: Long?, issue: String?, updating: Boolean, needsLogin: Boolean,
+fun DataRecoveryRow(lastSynced: Long?, issue: UiText?, updating: Boolean, needsLogin: Boolean,
     enabled: Boolean, onLogin: () -> Unit, onRefresh: () -> Unit, olderPageFailed: Boolean = false) {
     if (updating || (!needsLogin && issue == null)) return
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(when {
-            needsLogin && lastSynced != null -> "Saved data · sign in to update"
-            needsLogin -> "Sign in to load this information"
-            olderPageFailed -> "Older messages couldn't be loaded"
-            lastSynced != null -> "Showing previous data"
-            else -> "Couldn't load this information"
+            needsLogin && lastSynced != null -> stringResource(R.string.saved_sign_in)
+            needsLogin -> stringResource(R.string.sign_in_load)
+            olderPageFailed -> stringResource(R.string.older_messages_failed)
+            lastSynced != null -> stringResource(R.string.showing_previous_data)
+            else -> stringResource(R.string.information_load_failed)
         }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f))
         TextButton(onClick = if (needsLogin) onLogin else onRefresh, enabled = enabled) {
-            Text(if (needsLogin) AppActions.SIGN_IN else AppActions.RETRY)
+            Text(if (needsLogin) stringResource(AppActions.SIGN_IN) else stringResource(AppActions.RETRY))
         }
     }
 }

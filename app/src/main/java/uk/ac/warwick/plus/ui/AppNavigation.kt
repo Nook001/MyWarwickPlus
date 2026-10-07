@@ -1,5 +1,9 @@
 package uk.ac.warwick.plus.ui
 
+import uk.ac.warwick.plus.R
+
+import androidx.compose.ui.res.stringResource
+
 import uk.ac.warwick.plus.ui.components.*
 
 import androidx.compose.foundation.background
@@ -46,12 +50,13 @@ private fun RowScope.CompactTab(label: String, selected: Boolean, onSelect: () -
 
 @Composable
 internal fun AppNavigation(tab: AppTab, needsSignIn: Boolean, logoutFailed: Boolean, onSelect: (AppTab) -> Unit) {
+    val attention = stringResource(if (logoutFailed) R.string.sign_out_attention else R.string.sign_in_required)
     Surface(color = MaterialTheme.colorScheme.surface) {
         Row(Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal))
             .padding(horizontal = 20.dp).selectableGroup().testTag("compact-tab-bar"), verticalAlignment = Alignment.CenterVertically) {
             AppTab.entries.forEach { item ->
                 val selected = tab == item
-                CompactTab(item.label, selected, { onSelect(item) }, item.tag) {
+                CompactTab(stringResource(item.labelRes), selected, { onSelect(item) }, item.tag) {
                     Box(Modifier.size(24.dp)) {
                         val icon = when (item) {
                             AppTab.HOME -> if (selected) NavigationIcons.homeFilled else NavigationIcons.homeOutline
@@ -62,7 +67,7 @@ internal fun AppNavigation(tab: AppTab, needsSignIn: Boolean, logoutFailed: Bool
                         Icon(icon, null, Modifier.size(24.dp))
                         if (item == AppTab.ME && (needsSignIn || logoutFailed)) Box(Modifier.align(Alignment.TopEnd)
                             .size(5.dp).background(MaterialTheme.colorScheme.error, CircleShape).semantics {
-                                contentDescription = if (logoutFailed) "Sign-out needs attention" else "Sign in required"
+                                contentDescription = attention
                             })
                     }
                 }

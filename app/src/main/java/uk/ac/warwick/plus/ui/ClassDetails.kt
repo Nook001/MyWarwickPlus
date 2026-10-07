@@ -1,5 +1,9 @@
 package uk.ac.warwick.plus.ui
 
+import uk.ac.warwick.plus.R
+
+import androidx.compose.ui.res.stringResource
+
 import uk.ac.warwick.plus.ui.components.*
 
 import androidx.compose.foundation.layout.*
@@ -16,17 +20,17 @@ internal fun EventDetails(event: EventContentItem, conflict: Boolean, onDismiss:
     DetailsSheet(onDismiss, Modifier.testTag("class-details"),
         contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp)) {
         item {
-            DetailHeader("CLASS DETAILS", classIdentity(event).name, gap = 8.dp)
+            DetailHeader(stringResource(R.string.class_details), classIdentity(event).name, gap = 8.dp)
         }
-        if (event.module.isNotBlank()) item { DetailField("Module", event.module) }
-        if (event.moduleName.isNotBlank() && event.moduleName != event.title) item { DetailField("Timetable entry", event.title) }
+        if (event.module.isNotBlank()) item { DetailField(stringResource(R.string.module), event.module) }
+        if (event.moduleName.isNotBlank() && event.moduleName != event.title) item { DetailField(stringResource(R.string.timetable_entry), event.title) }
         item {
-            DetailField("When", classDetailTime(event))
+            DetailField(stringResource(R.string.when_label), classDetailTime(event))
         }
-        item { DetailField("Location", event.location.ifBlank { "Location hasn't been provided" }) }
-        if (conflict) item { Text("Another class overlaps this time in your saved timetable.", color = MaterialTheme.colorScheme.error) }
-        if (event.academicWeek > 0) item { DetailField("Academic week", event.academicWeek.toString()) }
-        safeExternalUrl(event.locationUrl)?.let { url -> item { ExternalLinkButton(url, "Open location", onOpen) } }
-        item { DetailClose("Close details", onDismiss) }
+        item { DetailField(stringResource(R.string.location), event.location.ifBlank { stringResource(R.string.location_not_provided) }) }
+        if (conflict) item { Text(stringResource(R.string.class_overlap_detail), color = MaterialTheme.colorScheme.error) }
+        if (event.academicWeek > 0) item { DetailField(stringResource(R.string.academic_week), event.academicWeek.toString()) }
+        safeExternalUrl(event.locationUrl)?.let { url -> item { ExternalLinkButton(url, stringResource(R.string.open_location), onOpen) } }
+        item { DetailClose(stringResource(R.string.close_details), onDismiss) }
     }
 }

@@ -5,7 +5,7 @@ import androidx.compose.runtime.saveable.listSaver
 import uk.ac.warwick.plus.config.AppLabels
 import uk.ac.warwick.plus.data.FeedKind
 
-enum class AppTab(val key: String, val label: String, val tag: String) {
+enum class AppTab(val key: String, val labelRes: Int, val tag: String) {
     HOME("home", AppLabels.HOME, "tab-home"),
     CLASSES("classes", AppLabels.CLASSES, "schedule-tab"),
     TASKS("tasks", AppLabels.TASKS, "tab-coursework"),
@@ -23,7 +23,7 @@ enum class AppTab(val key: String, val label: String, val tag: String) {
     }
 }
 
-enum class CourseworkFilter(val key: String, val label: String) {
+enum class CourseworkFilter(val key: String, val labelRes: Int) {
     UPCOMING("upcoming", AppLabels.UPCOMING), PAST("past", AppLabels.PAST);
 
     companion object {
@@ -39,11 +39,11 @@ sealed interface MeRoute {
     data object DeveloperTools : MeRoute
     data class Feed(val kind: FeedKind) : MeRoute
 
-    val title: String get() = when (this) {
+    val titleRes: Int get() = when (this) {
         Overview -> AppLabels.ME
         Settings -> AppLabels.SETTINGS
         DeveloperTools -> AppLabels.DEVELOPER_TOOLS
-        is Feed -> kind.label
+        is Feed -> kind.labelRes
     }
 
     fun savedValues(): List<String> = when (this) {

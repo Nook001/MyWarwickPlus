@@ -1,5 +1,7 @@
 package uk.ac.warwick.plus
 
+import uk.ac.warwick.plus.ui.*
+
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.*
@@ -79,7 +81,7 @@ class TimetableStateTest {
         assertEquals(100L, model.state.value.lastSynced)
         assertEquals(1, model.state.value.events.size)
         assertFalse(model.state.value.needsLogin)
-        assertTrue(model.state.value.message!!.contains("Showing your saved timetable"))
+        assertEquals(text(R.string.connection_saved_timetable), model.state.value.message)
         store.operation = { callback -> callback(user, store.cache); store.cache }
         model.refresh(); advanceUntilIdle()
         assertTrue(model.state.value.signedIn)

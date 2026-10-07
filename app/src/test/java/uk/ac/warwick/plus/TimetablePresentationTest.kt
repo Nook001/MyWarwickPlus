@@ -26,9 +26,9 @@ class TimetablePresentationTest {
     }
     @Test fun countdownDistinguishesNowTomorrowAndRoundsUp() {
         val item = event("2026-10-05T10:00:00+01:00", "2026-10-05T11:00:00+01:00")
-        assertEquals("In 2 min", nextClassLabel(item, item.startMillis - 61_000))
-        assertEquals("Happening now", nextClassLabel(item, item.startMillis))
-        assertEquals("Tomorrow", nextClassLabel(item, item.startMillis - 24 * 3_600_000))
+        assertEquals(text(R.string.in_minutes, 2L), nextClassLabel(item, item.startMillis - 61_000))
+        assertEquals(text(R.string.happening_now), nextClassLabel(item, item.startMillis))
+        assertEquals(text(R.string.tomorrow), nextClassLabel(item, item.startMillis - 24 * 3_600_000))
     }
     @Test fun probeExposesOnlySchemaAndCounts() {
         val body = """{"success":true,"data":{"coursework":{"content":{"items":[{"id":"private-id","title":"Private title","date":"2026-10-15T12:00:00.000+01","href":"https://tabula.warwick.ac.uk/private"}]}}}}"""

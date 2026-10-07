@@ -1,5 +1,9 @@
 package uk.ac.warwick.plus.ui
 
+import uk.ac.warwick.plus.R
+
+import androidx.compose.ui.res.stringResource
+
 import uk.ac.warwick.plus.ui.components.*
 
 import androidx.compose.material3.*
@@ -14,16 +18,16 @@ import uk.ac.warwick.plus.data.safeCourseworkUrl
 fun CourseworkDetails(entry: CourseworkContentItem, onDismiss: () -> Unit, onOpen: ((String) -> Unit)? = null) {
     DetailsSheet(onDismiss, Modifier.testTag("coursework-details")) {
         item {
-            DetailHeader("COURSEWORK DETAILS", entry.title)
+            DetailHeader(stringResource(R.string.coursework_details), entry.title)
         }
-        item { Text("Deadline\n${fullDateTimeLabel(entry.dueMillis)} · Warwick time") }
+        item { Text(stringResource(R.string.deadline_time, fullDateTimeLabel(entry.dueMillis))) }
         if (entry.description.isNotBlank()) item { Text(entry.description, style = MaterialTheme.typography.bodyLarge) }
-        item { Text("This feed covers a limited period and doesn't provide submission status. Check the source service for instructions and your submission record.",
+        item { Text(stringResource(R.string.coursework_source_detail),
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         safeCourseworkUrl(entry.url)?.let { url -> item {
-            ExternalLinkButton(url, "Open source service", onOpen)
-            Text("The browser may ask you to sign in separately.", style = MaterialTheme.typography.bodySmall)
+            ExternalLinkButton(url, stringResource(R.string.open_source_service), onOpen)
+            Text(stringResource(R.string.browser_sign_in_detail), style = MaterialTheme.typography.bodySmall)
         } }
-        item { DetailClose("Close coursework details", onDismiss) }
+        item { DetailClose(stringResource(R.string.close_coursework_details), onDismiss) }
     }
 }

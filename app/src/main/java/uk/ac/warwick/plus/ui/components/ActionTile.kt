@@ -1,5 +1,8 @@
 package uk.ac.warwick.plus.ui.components
 
+import uk.ac.warwick.plus.R
+import androidx.compose.ui.res.stringResource
+
 import uk.ac.warwick.plus.ui.MeIcons
 import uk.ac.warwick.plus.ui.DetailsChevron
 
@@ -20,9 +23,9 @@ internal enum class ActionDestination { Internal, External }
 @Composable
 internal fun ActionTile(label: String, icon: ImageVector, onClick: () -> Unit,
     layout: ActionTileLayout, modifier: Modifier = Modifier, minimumHeight: Dp = 64.dp,
-    destination: ActionDestination? = null, actionLabel: String = "Open $label") {
+    destination: ActionDestination? = null, actionLabel: String? = null) {
     val compact = layout == ActionTileLayout.Compact
-    AppCard(onClick, modifier, shape = if (compact) AppShapes.section else AppShapes.tile, actionLabel = actionLabel) {
+    AppCard(onClick, modifier, shape = if (compact) AppShapes.section else AppShapes.tile, actionLabel = actionLabel ?: stringResource(R.string.open_item, label)) {
         Box(Modifier.heightIn(min = minimumHeight)) {
             Column(Modifier.align(Alignment.Center).then(if (compact)
                 Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp) else Modifier.padding(10.dp)),

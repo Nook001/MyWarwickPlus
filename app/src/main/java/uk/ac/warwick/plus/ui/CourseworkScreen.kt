@@ -1,5 +1,9 @@
 package uk.ac.warwick.plus.ui
 
+import uk.ac.warwick.plus.R
+
+import androidx.compose.ui.res.stringResource
+
 import java.util.Locale
 
 import androidx.compose.ui.platform.LocalFocusManager
@@ -40,12 +44,12 @@ fun CourseworkContent(state: CourseworkState, now: Long, busy: Boolean,
     LazyColumn(Modifier.fillMaxSize().testTag("coursework-list"), contentPadding = PaddingValues(Spacing.page)) {
         item(contentType = "task-controls") {
             Column(Modifier.padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SearchField(query, { query = it }, "Search ${AppLabels.TASKS.lowercase(Locale.UK)}") { focus.clearFocus() }
+                SearchField(query, { query = it }, stringResource(R.string.search_items, stringResource(AppLabels.TASKS))) { focus.clearFocus() }
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                     val options = CourseworkFilter.entries
                     options.forEachIndexed { index, option ->
                         SegmentedButton(selected = filter == option, onClick = { chooseFilter(option); focus.clearFocus() },
-                            shape = SegmentedButtonDefaults.itemShape(index, options.size)) { Text(option.label) }
+                            shape = SegmentedButtonDefaults.itemShape(index, options.size)) { Text(stringResource(option.labelRes)) }
                     }
                 }
             }
@@ -53,12 +57,12 @@ fun CourseworkContent(state: CourseworkState, now: Long, busy: Boolean,
         if (showFeedback) item { Box(Modifier.padding(bottom = 12.dp)) { feedback() } }
         when {
             state.lastSynced == null -> item {
-                DataEmptyState(if (busy) "Loading coursework…" else "Coursework hasn't loaded yet")
+                DataEmptyState(if (busy) stringResource(R.string.loading_coursework) else stringResource(R.string.coursework_not_loaded))
             }
             ordered.isEmpty() -> item {
                 val hasQuery = query.isNotBlank()
-                DataEmptyState(if (hasQuery) "No matching deadlines" else if (filter == CourseworkFilter.PAST) "No past deadlines" else "No upcoming deadlines",
-                    action = if (hasQuery) AppActions.CLEAR_SEARCH else null, onAction = { query = ""; focus.clearFocus() })
+                DataEmptyState(if (hasQuery) stringResource(R.string.no_matching_deadlines) else if (filter == CourseworkFilter.PAST) stringResource(R.string.no_past_deadlines) else stringResource(R.string.no_upcoming_deadlines),
+                    action = if (hasQuery) stringResource(AppActions.CLEAR_SEARCH) else null, onAction = { query = ""; focus.clearFocus() })
             }
             else -> itemsIndexed(ordered, key = { _, entry -> entry.id }, contentType = { _, _ -> "task" }) { index, entry ->
                 GroupedListItem(first = index == 0, last = index == ordered.lastIndex) {

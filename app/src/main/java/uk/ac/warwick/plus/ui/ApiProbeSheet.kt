@@ -1,5 +1,7 @@
 package uk.ac.warwick.plus.ui
 
+import androidx.compose.ui.res.stringResource
+
 import uk.ac.warwick.plus.ui.components.*
 
 import androidx.compose.foundation.layout.*
@@ -24,7 +26,7 @@ fun ApiProbeSheet(probe: (ProbeEndpoint) -> ProbeResult, onLogin: () -> Unit, on
     val scope = rememberCoroutineScope()
     DetailsSheet(onDismiss, itemSpacing = 16.dp) {
         item {
-            Text(AppLabels.DEVELOPER_TOOLS, style = MaterialTheme.typography.headlineSmall)
+            Text(stringResource(AppLabels.DEVELOPER_TOOLS), style = MaterialTheme.typography.headlineSmall)
             Text("Debug build · manual, read-only requests. Shows field names and counts; no credentials or personal values.",
                 style = MaterialTheme.typography.bodyMedium)
         }
@@ -66,7 +68,7 @@ fun ApiProbeSheet(probe: (ProbeEndpoint) -> ProbeResult, onLogin: () -> Unit, on
             if (value.itemCount == 0) Text("An empty list doesn't establish the item schema or confirm full service coverage.",
                 style = MaterialTheme.typography.bodySmall)
         } }
-        if (problem != null) item { Text(problem!!); if (loginRequired) TextButton(onClick = { onDismiss(); onLogin() }) { Text(AppActions.SIGN_IN) } }
-        item { TextButton(onClick = onDismiss) { Text(AppActions.CLOSE) } }
+        if (problem != null) item { Text(problem!!); if (loginRequired) TextButton(onClick = { onDismiss(); onLogin() }) { Text(stringResource(AppActions.SIGN_IN)) } }
+        item { TextButton(onClick = onDismiss) { Text(stringResource(AppActions.CLOSE)) } }
     }
 }

@@ -78,7 +78,7 @@ class SyncRetryTest {
         val model = TimetableViewModel(store, {}); advanceUntilIdle()
         assertEquals(3, store.accountCalls)
         assertEquals("student@example.invalid", model.state.value.email)
-        assertEquals(SyncResource.ACCOUNT, model.state.value.notice!!.resource)
+        assertEquals(RecoveryAction.Refresh(SyncResource.ACCOUNT), model.state.value.notice!!.action)
         assertEquals(6, model.state.value.syncProgress!!.completed)
         val calls = Triple(store.timetableCalls, store.courseworkCalls, store.feeds.size)
         store.accountFailure = null
@@ -99,7 +99,7 @@ class SyncRetryTest {
         assertEquals(1, store.timetableCalls); assertEquals(1, store.courseworkCalls)
         assertEquals("cursor", model.state.value.feed(FeedKind.MESSAGES).entries.single().id)
         val notice = model.state.value.notice!!
-        assertEquals(FeedKind.MESSAGES, notice.feed)
+        assertEquals(RecoveryAction.Refresh(SyncResource.MESSAGES), notice.action)
         model.consumeNotice(notice.id); assertNull(model.state.value.notice)
         model.refreshFeed(FeedKind.MESSAGES); advanceUntilIdle()
         assertTrue(model.state.value.notice!!.id > notice.id)
@@ -134,7 +134,7 @@ class SyncRetryTest {
         store.feedFailure = { _, before -> if (before != null) IOException() else null }
         model.loadMoreMessages(); advanceUntilIdle()
         assertEquals(List(3) { FeedKind.MESSAGES to "cursor" }, store.feeds.filter { it.second != null })
-        assertTrue(model.state.value.notice!!.olderMessages)
+        assertEquals(RecoveryAction.OlderMessages, model.state.value.notice!!.action)
         assertTrue(model.state.value.feed(FeedKind.MESSAGES).olderPageFailed)
         store.feedFailure = { _, _ -> null }
         model.loadMoreMessages(); advanceUntilIdle()
@@ -149,7 +149,7 @@ class SyncRetryTest {
         assertEquals(3, store.timetableCalls); assertEquals(0, store.courseworkCalls)
         assertTrue(store.feeds.isEmpty())
         assertFalse(model.state.value.busy); assertTrue(model.state.value.hasSavedData)
-        assertTrue(model.state.value.notice!!.message.contains("connect"))
+        assertEquals(text(R.string.connection_saved_timetable), model.state.value.notice!!.message)
         advanceTimeBy(60_000); runCurrent(); assertEquals(3, store.timetableCalls)
         model.refreshFeed(FeedKind.MODULES); advanceUntilIdle()
         assertNull("A successful feed refresh must not re-announce an earlier timetable failure", model.state.value.notice)
@@ -208,7 +208,7 @@ class SyncRetryTest {
         assertNull(model.state.value.notice)
         assertNotNull(model.state.value.coursework.message)
         model.refreshResource(SyncResource.COURSEWORK); advanceUntilIdle()
-        assertEquals(SyncResource.COURSEWORK, model.state.value.notice!!.resource)
+        assertEquals(RecoveryAction.Refresh(SyncResource.COURSEWORK), model.state.value.notice!!.action)
         assertEquals(1, model.state.value.syncProgress!!.total)
         store.courseworkFailure = null
         model.refreshResource(SyncResource.COURSEWORK); advanceUntilIdle()
@@ -243,6 +243,6 @@ class SyncRetryTest {
         assertNull(other.state.value.issue(SyncResource.TIMETABLE))
         assertTrue(other.state.value.needsLogin)
         assertNotNull(other.state.value.globalMessage)
-        assertTrue(other.state.value.notice!!.message.contains("Sign in"))
+        assertEquals(text(R.string.sign_in_update_information), other.state.value.notice!!.message)
     }
 }

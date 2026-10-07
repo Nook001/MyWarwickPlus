@@ -11,8 +11,8 @@ sealed interface SyncOperation {
         is Refresh -> target
         OlderMessages -> SyncResource.MESSAGES
     }
-    val label: String get() = when (this) {
-        is Refresh -> target.label
+    val labelRes: Int get() = when (this) {
+        is Refresh -> target.labelRes
         OlderMessages -> AppLabels.OLDER_MESSAGES
     }
 }

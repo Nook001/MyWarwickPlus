@@ -1,5 +1,7 @@
 package uk.ac.warwick.plus.ui
 
+import uk.ac.warwick.plus.R
+
 import java.util.Locale
 
 import uk.ac.warwick.plus.ui.components.*
@@ -9,36 +11,36 @@ import uk.ac.warwick.plus.config.AppActions
 import uk.ac.warwick.plus.config.AppLabels
 import uk.ac.warwick.plus.data.*
 
-data class CourseworkState(val entries: List<CourseworkContentItem> = emptyList(), val lastSynced: Long? = null, val message: String? = null)
-data class AccountState(val email: String = "", val lastSynced: Long? = null, val message: String? = null)
+data class CourseworkState(val entries: List<CourseworkContentItem> = emptyList(), val lastSynced: Long? = null, val message: UiText? = null)
+data class AccountState(val email: String = "", val lastSynced: Long? = null, val message: UiText? = null)
 data class FeedState(val entries: List<FeedContentItem> = emptyList(), val lastSynced: Long? = null,
-    val message: String? = null, val loading: Boolean = false, val hasMore: Boolean = false,
+    val message: UiText? = null, val loading: Boolean = false, val hasMore: Boolean = false,
     val description: String = "", val url: String = "", val webReadMillis: Long = 0, val olderPageFailed: Boolean = false)
 
-enum class SyncResource(val label: String, val slot: Int, val feed: FeedKind? = null) {
+enum class SyncResource(val labelRes: Int, val slot: Int, val feed: FeedKind? = null) {
     TIMETABLE(AppLabels.CLASSES, SyncSlots.TIMETABLE), COURSEWORK(AppLabels.TASKS, SyncSlots.COURSEWORK), MESSAGES(AppLabels.MESSAGES, SyncSlots.MESSAGES, FeedKind.MESSAGES),
     LIBRARY(AppLabels.LIBRARY, SyncSlots.LIBRARY, FeedKind.LIBRARY), MODULES(AppLabels.MODULES, SyncSlots.MODULES, FeedKind.MODULES), ACCOUNT(AppLabels.ACCOUNT, SyncSlots.ACCOUNT);
     companion object { fun forFeed(kind: FeedKind) = entries.first { it.feed == kind } }
 }
-data class SyncNotice(val id: Long, val message: String, val action: RecoveryAction = RecoveryAction.RefreshAll)
+data class SyncNotice(val id: Long, val message: UiText, val action: RecoveryAction = RecoveryAction.RefreshAll)
 // Progress measures settled resource updates, with a half-step after account verification.
 // A settled failure is finished work, not a successful download; retries never add work units.
 data class SyncProgress(val id: Long, val total: Int, val completed: Int = 0,
     val operation: SyncOperation = SyncOperation.Refresh(SyncResource.TIMETABLE),
     val accountChecked: Boolean = false, val retry: Int = 0, val failures: Int = 0, val finished: Boolean = false) {
     val fraction: Float get() = ((completed + if (accountChecked) .5f else 0f) / total).coerceIn(0f, 1f)
-    val description: String get() = if (finished) "$completed of $total updates finished; $failures failed"
-        else if (retry > 0) "${AppActions.RETRY} $retry/2 · ${operation.label}"
-        else "Updating ${operation.label} · ${completed + 1}/$total"
+    val description: UiText get() = if (finished) text(R.string.progress_finished, completed, total, failures)
+        else if (retry > 0) text(R.string.progress_retry, text(AppActions.RETRY), retry, text(operation.labelRes))
+        else text(R.string.progress_updating, text(operation.labelRes), completed + 1, total)
 }
 data class TimetableState(
     val events: List<EventContentItem> = emptyList(), val name: String = "", val lastSynced: Long? = null,
     val busy: Boolean = false, val signedIn: Boolean = false, val needsLogin: Boolean = false,
-    val message: String? = null, val coursework: CourseworkState = CourseworkState(),
+    val message: UiText? = null, val coursework: CourseworkState = CourseworkState(),
     val feeds: Map<FeedKind, FeedState> = emptyMap(), val accountCode: String = "",
     val sessionCheckedAt: Long? = null, val signingOut: Boolean = false, val logoutFailed: Boolean = false,
     val notice: SyncNotice? = null, val syncProgress: SyncProgress? = null, val account: AccountState = AccountState(),
-    val globalMessage: String? = null,
+    val globalMessage: UiText? = null,
     internal val cacheRevision: Long = -1
 ) {
     fun feed(kind: FeedKind) = feeds[kind] ?: FeedState()
@@ -50,7 +52,7 @@ data class TimetableState(
         SyncResource.ACCOUNT -> account.lastSynced
         else -> feed(resource.feed!!).lastSynced
     }
-    fun issue(resource: SyncResource): String? = when (resource) {
+    fun issue(resource: SyncResource): UiText? = when (resource) {
         SyncResource.TIMETABLE -> message
         SyncResource.COURSEWORK -> coursework.message
         SyncResource.ACCOUNT -> account.message
@@ -86,7 +88,7 @@ internal fun TimetableState.withCache(cache: CachedTimetable): TimetableState {
 internal fun TimetableState.withFeed(kind: FeedKind, transform: (FeedState) -> FeedState) =
     copy(feeds = feeds + (kind to transform(feed(kind))))
 
-internal fun TimetableState.withIssue(resource: SyncResource, issue: String?, olderMessages: Boolean = false): TimetableState = when (resource) {
+internal fun TimetableState.withIssue(resource: SyncResource, issue: UiText?, olderMessages: Boolean = false): TimetableState = when (resource) {
     SyncResource.TIMETABLE -> copy(message = issue)
     SyncResource.COURSEWORK -> copy(coursework = coursework.copy(message = issue))
     SyncResource.ACCOUNT -> copy(account = account.copy(message = issue))
@@ -98,19 +100,19 @@ internal fun TimetableState.resourceFailed(resource: SyncResource, error: Except
         needsLogin = error is SignInRequiredException,
         signedIn = signedIn && error !is SignInRequiredException,
         message = when (error) {
-            is SignInRequiredException -> if (hasSavedData) "Your session has expired. Sign in to update your saved timetable." else "Sign in to load your timetable."
-            is IOException -> if (lastSynced != null) "Couldn't connect. Showing your saved timetable." else "Couldn't connect. Connect to the internet and try again."
-            is ServiceException -> "MyWarwick is unavailable (${error.status}). Try again later."
-            else -> if (lastSynced != null) "Couldn't read the timetable. Your saved data has been kept." else "Your timetable couldn't be loaded. Try refreshing."
+            is SignInRequiredException -> if (hasSavedData) text(R.string.session_expired_timetable) else text(R.string.sign_in_timetable)
+            is IOException -> if (lastSynced != null) text(R.string.connection_saved_timetable) else text(R.string.connection_failed)
+            is ServiceException -> text(R.string.service_unavailable, error.status)
+            else -> if (lastSynced != null) text(R.string.timetable_read_failed_saved) else text(R.string.timetable_load_failed)
         })
     val session = if (error is SignInRequiredException) copy(needsLogin = true, signedIn = false,
-        globalMessage = "Your session has expired. Sign in to update your saved data.") else this
-    val label = resource.label.lowercase(Locale.UK)
+        globalMessage = text(R.string.session_expired_data)) else this
+    val label = text(resource.labelRes)
     val issue = when (error) {
-        is SignInRequiredException -> "Sign in to update $label."
-        is IOException -> "Couldn't connect. Your saved data has been kept."
-        is ServiceException -> "Couldn't update $label (${error.status}). Your saved data has been kept."
-        else -> "Couldn't read $label. Your saved data has been kept."
+        is SignInRequiredException -> text(R.string.sign_in_update_resource, label)
+        is IOException -> text(R.string.connection_saved_data)
+        is ServiceException -> text(R.string.resource_update_failed, label, error.status)
+        else -> text(R.string.resource_read_failed, label)
     }
     return session.withIssue(resource, issue, olderMessages)
 }

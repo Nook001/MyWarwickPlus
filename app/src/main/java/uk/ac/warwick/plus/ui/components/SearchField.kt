@@ -1,5 +1,9 @@
 package uk.ac.warwick.plus.ui.components
 
+import uk.ac.warwick.plus.R
+
+import androidx.compose.ui.res.stringResource
+
 import androidx.compose.ui.text.input.ImeAction
 
 import androidx.compose.foundation.text.KeyboardActions
@@ -55,7 +59,7 @@ internal fun SearchField(query: String, onQueryChange: (String) -> Unit, placeho
                         input()
                     }
                     if (query.isNotEmpty()) IconButton(onClick = { onQueryChange("") }, modifier = Modifier.size(48.dp)) {
-                        Icon(ClearIcon, AppActions.CLEAR_SEARCH, Modifier.size(18.dp))
+                        Icon(ClearIcon, stringResource(AppActions.CLEAR_SEARCH), Modifier.size(18.dp))
                     }
                 }
             })

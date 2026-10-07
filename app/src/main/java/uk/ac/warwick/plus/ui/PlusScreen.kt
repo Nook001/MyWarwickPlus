@@ -1,5 +1,9 @@
 package uk.ac.warwick.plus.ui
 
+import uk.ac.warwick.plus.R
+
+import androidx.compose.ui.res.stringResource
+
 import uk.ac.warwick.plus.ui.components.*
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
@@ -49,11 +53,12 @@ internal fun PlusScreen(state: TimetableState, actions: PlusActions) {
     }
     val currentRecovery = rememberUpdatedState(dispatchRecovery)
     val consumeNotice = rememberUpdatedState(actions.consumeNotice)
+    val resources = androidx.compose.ui.platform.LocalResources.current
     LaunchedEffect(state.notice?.id) {
         state.notice?.let { notice ->
             try {
-                val result = snackbar.showSnackbar(notice.message,
-                    actionLabel = if (currentState.value.needsLogin) AppActions.SIGN_IN else AppActions.RETRY,
+                val result = snackbar.showSnackbar(notice.message.resolve(resources),
+                    actionLabel = resources.getString(if (currentState.value.needsLogin) AppActions.SIGN_IN else AppActions.RETRY),
                     duration = SnackbarDuration.Short)
                 if (result == SnackbarResult.ActionPerformed) {
                     currentRecovery.value(notice.action)
@@ -63,7 +68,7 @@ internal fun PlusScreen(state: TimetableState, actions: PlusActions) {
     }
     val launchBrowser = rememberBrowserOpener(actions.openExternal)
     val openLink: (String) -> Unit = { raw ->
-        if (!launchBrowser(raw)) scope.launch { snackbar.showSnackbar("Couldn't open this link. Try again.") }
+        if (!launchBrowser(raw)) scope.launch { snackbar.showSnackbar(resources.getString(R.string.link_open_failed)) }
     }
     var previousAccount by rememberSaveable { mutableStateOf(state.accountCode) }
     LaunchedEffect(state.accountCode, state.busy, state.signingOut) {
@@ -94,7 +99,7 @@ internal fun PlusScreen(state: TimetableState, actions: PlusActions) {
         state.schedulePage(conflicts)
     }
     val today = remember(now) { atWarwick(now).toLocalDate() }
-    val greeting = greeting(state.name, now)
+    val greeting = greeting(state.name, now).render()
     val scheduleListState = rememberLazyListState()
     val scheduleDate = remember(navigator.followToday, today, navigator.selectedDay) {
         if (navigator.followToday) today else LocalDate.ofEpochDay(navigator.selectedDay)
@@ -129,21 +134,21 @@ internal fun PlusScreen(state: TimetableState, actions: PlusActions) {
                     AppPageHeader(
                         title = when (navigator.tab) {
                             AppTab.HOME -> greeting
-                            AppTab.ME -> navigator.meRoute.title
-                            else -> navigator.tab.label
+                            AppTab.ME -> stringResource(navigator.meRoute.titleRes)
+                            else -> stringResource(navigator.tab.labelRes)
                         },
-                        subtitle = if (state.busy) state.syncProgress?.description ?: AppLabels.BRAND else AppLabels.BRAND,
+                        subtitle = if (state.busy) state.syncProgress?.description?.render() ?: stringResource(AppLabels.BRAND) else stringResource(AppLabels.BRAND),
                         titleTag = if (navigator.tab == AppTab.HOME) "home-greeting" else null) {
                         if (navigator.tab == AppTab.CLASSES) {
                             if (scheduleDate != today || scheduleScrolled) TextButton(onClick = { chooseScheduleDate(today) },
-                                modifier = Modifier.testTag("schedule-today")) { Text(AppLabels.TODAY) }
+                                modifier = Modifier.testTag("schedule-today")) { Text(stringResource(AppLabels.TODAY)) }
                             IconButton(onClick = { navigator.showDatePicker = true }, modifier = Modifier.testTag("schedule-date-picker")) {
-                                Icon(CalendarPickerIcon, contentDescription = "Choose date", modifier = Modifier.size(20.dp))
+                                Icon(CalendarPickerIcon, contentDescription = stringResource(R.string.choose_date), modifier = Modifier.size(20.dp))
                             }
                         }
                         if (navigator.tab == AppTab.ME && (route != null || showAppearance)) TextButton(onClick = {
                             navigator.meRoute = MeRoute.Overview; navigator.detail = DetailSelection.None
-                        }) { Text(AppActions.BACK) }
+                        }) { Text(stringResource(AppActions.BACK)) }
                     }
                     SyncProgressBar(state.syncProgress)
                     if (navigator.tab == AppTab.ME && showAppearance && !state.signingOut) AppearanceContent() else {
@@ -154,14 +159,14 @@ internal fun PlusScreen(state: TimetableState, actions: PlusActions) {
                                 }
                             }, indicator = {}, modifier = Modifier.fillMaxSize().testTag("refresh-container")) {
                             when {
-                                state.signingOut -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Signing out…") }
+                                state.signingOut -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(stringResource(R.string.signing_out)) }
                                 navigator.tab == AppTab.ME -> MeTab(state, navigator, actions, recoverResource, openLink)
                                 !state.hasSavedData && state.busy && !state.signedIn -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                    Text("Loading your saved data…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(stringResource(R.string.loading_saved_data), color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 !state.hasSavedData && state.logoutFailed -> Column(Modifier.padding(Spacing.page)) {
-                                    Text(state.globalMessage.orEmpty())
-                                    Button(onClick = actions.signOut) { Text(AppActions.RETRY_SIGN_OUT) }
+                                    Text(state.globalMessage?.render().orEmpty())
+                                    Button(onClick = actions.signOut) { Text(stringResource(AppActions.RETRY_SIGN_OUT)) }
                                 }
                                 !state.hasSavedData && state.needsLogin -> Welcome(actions.signIn)
                                 else -> {

@@ -1,5 +1,7 @@
 package uk.ac.warwick.plus.ui
 
+import uk.ac.warwick.plus.R
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
@@ -31,7 +33,7 @@ class TimetableViewModel(private val repository: TimetableStore,
             try { applyCache(repository.cached()) }
             catch (error: Exception) {
                 if (error is CancellationException) throw error
-                mutable.update { it.copy(globalMessage = "Couldn't open your saved data. Try refreshing.") }
+                mutable.update { it.copy(globalMessage = text(R.string.cache_open_failed)) }
             } finally { mutable.update { it.copy(busy = false) } }
             observeCache()
             refreshAfterCurrent = false
@@ -46,7 +48,7 @@ class TimetableViewModel(private val repository: TimetableStore,
             } } catch (error: Exception) {
                 if (error is CancellationException) throw error
                 reportFailure(error)
-                mutable.update { it.copy(globalMessage = "Couldn't open your saved data. Try refreshing.") }
+                mutable.update { it.copy(globalMessage = text(R.string.cache_open_failed)) }
             }
         }
     }
@@ -105,7 +107,7 @@ class TimetableViewModel(private val repository: TimetableStore,
             val outcome = syncResource(resource)
             if (mutable.value.needsLogin) {
                 mutable.update { state -> SyncResource.entries.dropWhile { it != resource }.drop(1).fold(state) { next, kind ->
-                    if (next.issue(kind) == null) next.withIssue(kind, "Sign in to update ${kind.label.lowercase()}.") else next
+                    if (next.issue(kind) == null) next.withIssue(kind, text(R.string.sign_in_update_resource, text(kind.labelRes))) else next
                 } }
                 break
             }
@@ -178,7 +180,7 @@ class TimetableViewModel(private val repository: TimetableStore,
                 if (error is CancellationException) throw error
                 reportFailure(error)
                 mutable.value = TimetableState(needsLogin = true, logoutFailed = true,
-                    globalMessage = "Couldn't finish signing out. Retry from ${AppLabels.ME} before signing in again.")
+                    globalMessage = text(R.string.logout_failed, text(AppLabels.ME)))
             }
         }
     }

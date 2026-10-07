@@ -1,5 +1,9 @@
 package uk.ac.warwick.plus.ui
 
+import uk.ac.warwick.plus.R
+
+import androidx.compose.ui.res.stringResource
+
 import uk.ac.warwick.plus.ui.components.*
 
 import android.content.ClipData
@@ -36,68 +40,69 @@ fun MoreContent(state: TimetableState, onLogin: () -> Unit, onSignOut: () -> Uni
             AccountCard(state, onLogin, { confirmSignOut = true }, onResourceRefresh)
         }
         item {
-            MeGrid("App", buildList {
-                add(MeAction(AppLabels.SETTINGS, MeIcons.settings, onSettings, tag = "appearance-settings"))
-                add(MeAction(AppLabels.DATA_STATUS, MeIcons.data, { showDataStatus = true }))
-                add(MeAction(AppLabels.MESSAGES, MeIcons.messages, { onFeed(FeedKind.MESSAGES) }))
-                add(MeAction(AppLabels.LIBRARY, ServiceIcons.library, { onFeed(FeedKind.LIBRARY) }))
-                add(MeAction(AppLabels.MODULES, ServiceIcons.moodle, { onFeed(FeedKind.MODULES) }))
-                if (onProbe != null) add(MeAction(AppLabels.DEVELOPER_TOOLS, MeIcons.developer, onProbe))
+            MeGrid(stringResource(R.string.app_section), buildList {
+                add(MeAction(stringResource(AppLabels.SETTINGS), MeIcons.settings, onSettings, tag = "appearance-settings"))
+                add(MeAction(stringResource(AppLabels.DATA_STATUS), MeIcons.data, { showDataStatus = true }))
+                add(MeAction(stringResource(AppLabels.MESSAGES), MeIcons.messages, { onFeed(FeedKind.MESSAGES) }))
+                add(MeAction(stringResource(AppLabels.LIBRARY), ServiceIcons.library, { onFeed(FeedKind.LIBRARY) }))
+                add(MeAction(stringResource(AppLabels.MODULES), ServiceIcons.moodle, { onFeed(FeedKind.MODULES) }))
+                if (onProbe != null) add(MeAction(stringResource(AppLabels.DEVELOPER_TOOLS), MeIcons.developer, onProbe))
             })
         }
         item {
-            MeGrid("Websites", WarwickService.entries.map { service ->
-                MeAction(service.shortLabel, service.icon, { onOpen(service.url) },
-                    external = true, actionLabel = "Open ${service.label} in browser")
+            MeGrid(stringResource(R.string.websites_section), WarwickService.entries.map { service ->
+                MeAction(stringResource(service.shortLabelRes), service.icon, { onOpen(service.url) },
+                    external = true, actionLabel = stringResource(R.string.open_in_browser, stringResource(service.labelRes)))
             })
         }
-        item { Text("MyWarwick+ ${BuildConfig.VERSION_NAME} · Independent student app", style = MaterialTheme.typography.labelSmall,
+        item { Text(stringResource(R.string.version_detail, BuildConfig.VERSION_NAME), style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant) }
     }
     if (showDataStatus) DataStatusSheet(state, onLogin, onResourceRefresh, { showDataStatus = false })
     if (confirmSignOut) AlertDialog(onDismissRequest = { confirmSignOut = false },
-        title = { Text("${AppActions.SIGN_OUT}?") },
-        text = { Text("This removes this app's sign-in session and saved data. Your system browser sessions are kept.") },
-        confirmButton = { TextButton(onClick = { confirmSignOut = false; onSignOut() }) { Text(AppActions.SIGN_OUT) } },
-        dismissButton = { TextButton(onClick = { confirmSignOut = false }) { Text(AppActions.CANCEL) } })
+        title = { Text(stringResource(R.string.sign_out_question, stringResource(AppActions.SIGN_OUT))) },
+        text = { Text(stringResource(R.string.sign_out_confirmation)) },
+        confirmButton = { TextButton(onClick = { confirmSignOut = false; onSignOut() }) { Text(stringResource(AppActions.SIGN_OUT)) } },
+        dismissButton = { TextButton(onClick = { confirmSignOut = false }) { Text(stringResource(AppActions.CANCEL)) } })
 }
 
 @Composable
 private fun AccountCard(state: TimetableState, onLogin: () -> Unit, onSignOut: () -> Unit,
     onResourceRefresh: ((SyncResource) -> Unit)?) {
     val context = LocalContext.current
+    val clipboardLabel = stringResource(R.string.warwick_email)
     var copied by remember(state.email) { mutableStateOf(false) }
     LaunchedEffect(copied) { if (copied) { delay(2_000); copied = false } }
     AppCard(Modifier.fillMaxWidth().testTag("me-account"), shape = AppShapes.tile) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-            if (state.logoutFailed) Text(state.globalMessage.orEmpty(), style = MaterialTheme.typography.bodySmall,
+            if (state.logoutFailed) Text(state.globalMessage?.render().orEmpty(), style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(state.name.ifBlank { "Your Warwick account" }, style = MaterialTheme.typography.titleMedium,
+                Text(state.name.ifBlank { stringResource(R.string.warwick_account) }, style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                 if (state.accountCode.isNotBlank()) Text(state.accountCode, style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(state.email.ifBlank { if (state.updating(SyncResource.ACCOUNT)) "Loading email…" else "Email not available" },
+                Text(state.email.ifBlank { if (state.updating(SyncResource.ACCOUNT)) stringResource(R.string.loading_email) else stringResource(R.string.email_not_available) },
                     style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f).testTag("me-email"))
                 IconButton(onClick = {
-                    context.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("Warwick email", state.email))
+                    context.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText(clipboardLabel, state.email))
                     copied = true
                 }, enabled = state.email.isNotBlank(), modifier = Modifier.testTag("copy-email")) {
-                    Icon(if (copied) MeIcons.check else MeIcons.copy, contentDescription = if (copied) "Email copied" else "Copy email",
+                    Icon(if (copied) MeIcons.check else MeIcons.copy, contentDescription = if (copied) stringResource(R.string.email_copied) else stringResource(R.string.copy_email),
                         modifier = Modifier.size(18.dp))
                 }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                if (state.needsLogin && !state.logoutFailed) Text("Sign in to update", style = MaterialTheme.typography.bodySmall,
+                if (state.needsLogin && !state.logoutFailed) Text(stringResource(R.string.sign_in_update), style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
                 if (!state.logoutFailed && (state.needsLogin || !state.signedIn && !state.hasSavedData && !state.busy))
-                    TextButton(onClick = onLogin, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)) { Text(AppActions.SIGN_IN) }
+                    TextButton(onClick = onLogin, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)) { Text(stringResource(AppActions.SIGN_IN)) }
                 if (state.hasSavedData || state.signedIn || state.logoutFailed)
                     TextButton(onClick = onSignOut, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)) {
-                        Text(if (state.logoutFailed) AppActions.RETRY_SIGN_OUT else AppActions.SIGN_OUT, style = MaterialTheme.typography.bodySmall)
+                        Text(if (state.logoutFailed) stringResource(AppActions.RETRY_SIGN_OUT) else stringResource(AppActions.SIGN_OUT), style = MaterialTheme.typography.bodySmall)
                     }
             }
             if (!state.needsLogin && state.account.message != null && onResourceRefresh != null)
@@ -107,7 +112,7 @@ private fun AccountCard(state: TimetableState, onLogin: () -> Unit, onSignOut: (
 }
 
 private data class MeAction(val label: String, val icon: ImageVector, val onClick: () -> Unit,
-    val external: Boolean = false, val tag: String = "", val actionLabel: String = "Open $label")
+    val external: Boolean = false, val tag: String = "", val actionLabel: String? = null)
 
 @Composable
 private fun MeGrid(title: String, actions: List<MeAction>) {
@@ -125,7 +130,7 @@ private fun MeGrid(title: String, actions: List<MeAction>) {
                             ActionTile(action.label, action.icon, action.onClick,
                                 layout = ActionTileLayout.Grid, modifier = Modifier.weight(1f).testTag(action.tag),
                                 minimumHeight = size, destination = if (action.external) ActionDestination.External else ActionDestination.Internal,
-                                actionLabel = action.actionLabel)
+                                actionLabel = action.actionLabel ?: stringResource(R.string.open_item, action.label))
                         }
                         repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
                     }
