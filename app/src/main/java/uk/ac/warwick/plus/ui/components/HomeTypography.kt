@@ -11,7 +11,7 @@ internal object HomeTypography {
         @Composable get() = MaterialTheme.typography.bodySmall
     val metric
         @Composable get() = MaterialTheme.typography.bodySmall.copy(
-            fontSize = 11.sp, fontWeight = FontWeight.Medium)
+            fontSize = 11.sp, fontWeight = FontWeight.Bold)
     val metricSecondary
         @Composable get() = metric.copy(fontWeight = FontWeight.Normal)
 }

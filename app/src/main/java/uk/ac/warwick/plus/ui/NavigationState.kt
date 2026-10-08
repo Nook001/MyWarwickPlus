@@ -5,10 +5,11 @@ import androidx.compose.runtime.saveable.listSaver
 import uk.ac.warwick.plus.config.AppLabels
 import uk.ac.warwick.plus.data.FeedKind
 
-enum class AppTab(val key: String, val labelRes: Int, val tag: String) {
+enum class AppTab(val key: String, val labelRes: Int, val tag: String, val titleRes: Int = labelRes) {
     HOME("home", AppLabels.HOME, "tab-home"),
     CLASSES("classes", AppLabels.CLASSES, "schedule-tab"),
     TASKS("tasks", AppLabels.TASKS, "tab-coursework"),
+    MESSAGES("messages", AppLabels.INBOX, "tab-messages", AppLabels.MESSAGES),
     ME("me", AppLabels.ME, "more-tab");
 
     companion object {
@@ -29,28 +30,24 @@ enum class CourseworkFilter(val key: String, val labelRes: Int) {
 sealed interface MeRoute {
     data object Overview : MeRoute
     data object Settings : MeRoute
-    data object DeveloperTools : MeRoute
     data class Feed(val kind: FeedKind) : MeRoute
 
     val titleRes: Int get() = when (this) {
         Overview -> AppLabels.ME
         Settings -> AppLabels.SETTINGS
-        DeveloperTools -> AppLabels.DEVELOPER_TOOLS
         is Feed -> kind.labelRes
     }
 
     fun savedValues(): List<String> = when (this) {
         Overview -> listOf("overview")
         Settings -> listOf("settings")
-        DeveloperTools -> listOf("developer")
         is Feed -> listOf("feed", kind.key.toString())
     }
 
     companion object {
         fun restore(values: List<String>): MeRoute = when (values.firstOrNull()) {
             "settings" -> Settings
-            "developer" -> DeveloperTools
-            "feed" -> savedFeed(values.getOrNull(1))?.let(::Feed) ?: Overview
+            "feed" -> savedFeed(values.getOrNull(1))?.takeUnless { it == FeedKind.MESSAGES }?.let(::Feed) ?: Overview
             else -> Overview
         }
         val saver = listSaver<MeRoute, String>(save = { it.savedValues() }, restore = { restore(it) })
@@ -89,7 +86,8 @@ private fun savedFeed(key: String?): FeedKind? = FeedKind.entries.firstOrNull { 
 
 // A process restart can briefly expose an empty, still-loading cache. Validate after it is known.
 internal fun DetailSelection.Feed.visibleOn(tab: AppTab, route: MeRoute): Boolean =
-    (tab == AppTab.HOME && kind == FeedKind.MESSAGES) || (tab == AppTab.ME && route == MeRoute.Feed(kind))
+    (kind == FeedKind.MESSAGES && (tab == AppTab.HOME || tab == AppTab.MESSAGES)) ||
+        (kind != FeedKind.MESSAGES && tab == AppTab.ME && route == MeRoute.Feed(kind))
 
 internal fun DetailSelection.validated(state: TimetableState, route: MeRoute, tab: AppTab): DetailSelection = when (this) {
     DetailSelection.None -> this

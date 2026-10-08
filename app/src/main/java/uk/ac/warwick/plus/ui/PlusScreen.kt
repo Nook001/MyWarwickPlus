@@ -30,7 +30,6 @@ import uk.ac.warwick.plus.data.*
 internal fun PlusScreen(state: TimetableState, actions: PlusActions) {
     val navigator = rememberPlusNavigator(atWarwick(System.currentTimeMillis()).toLocalDate())
     val route = (navigator.meRoute as? MeRoute.Feed)?.kind
-    val showProbe = navigator.meRoute == MeRoute.DeveloperTools
     val showAppearance = navigator.meRoute == MeRoute.Settings
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
@@ -112,10 +111,7 @@ internal fun PlusScreen(state: TimetableState, actions: PlusActions) {
     LaunchedEffect(state.events, state.coursework, state.feeds, state.busy, navigator.detail, navigator.meRoute, navigator.tab) {
         navigator.detail = navigator.detail.validated(state, navigator.meRoute, navigator.tab)
     }
-    LaunchedEffect(actions.probe, navigator.meRoute) {
-        if (actions.probe == null && navigator.meRoute == MeRoute.DeveloperTools) navigator.meRoute = MeRoute.Overview
-    }
-    BackHandler(navigator.tab != AppTab.HOME && navigator.detail == DetailSelection.None && !showProbe) {
+    BackHandler(navigator.tab != AppTab.HOME && navigator.detail == DetailSelection.None) {
         navigator.back()
     }
 
@@ -135,7 +131,7 @@ internal fun PlusScreen(state: TimetableState, actions: PlusActions) {
                         title = when (navigator.tab) {
                             AppTab.HOME -> greeting
                             AppTab.ME -> stringResource(navigator.meRoute.titleRes)
-                            else -> stringResource(navigator.tab.labelRes)
+                            else -> stringResource(navigator.tab.titleRes)
                         },
                         subtitle = if (state.busy) state.syncProgress?.description?.render() ?: stringResource(AppLabels.BRAND) else stringResource(AppLabels.BRAND),
                         titleTag = if (navigator.tab == AppTab.HOME) "home-greeting" else null) {
@@ -155,7 +151,11 @@ internal fun PlusScreen(state: TimetableState, actions: PlusActions) {
                         PullToRefreshBox(isRefreshing = state.busy && !state.signingOut,
                             onRefresh = {
                                 if (!state.signingOut && !state.logoutFailed) {
-                                    if (navigator.tab == AppTab.ME && route != null) actions.refreshResource(SyncResource.forFeed(route)) else actions.refresh()
+                                    when {
+                                        navigator.tab == AppTab.MESSAGES -> actions.refreshResource(SyncResource.MESSAGES)
+                                        navigator.tab == AppTab.ME && route != null -> actions.refreshResource(SyncResource.forFeed(route))
+                                        else -> actions.refresh()
+                                    }
                                 }
                             }, indicator = {}, modifier = Modifier.fillMaxSize().testTag("refresh-container")) {
                             when {
@@ -176,7 +176,10 @@ internal fun PlusScreen(state: TimetableState, actions: PlusActions) {
                                         { navigator.openTasks(CourseworkFilter.UPCOMING) },
                                         { navigator.openTasks(CourseworkFilter.PAST) }, actions.signIn, recoverResource, openLink,
                                         { navigator.detail = DetailSelection.Feed(FeedKind.MESSAGES, it.id) },
-                                        { navigator.select(AppTab.ME); navigator.meRoute = MeRoute.Feed(FeedKind.MESSAGES) })
+                                        { navigator.select(AppTab.MESSAGES) })
+                                    AppTab.MESSAGES -> FeedContent(FeedKind.MESSAGES, messages, state.busy, state.needsLogin,
+                                        { recoverResource(SyncResource.MESSAGES) }, actions.loadOlderMessages,
+                                        { navigator.detail = DetailSelection.Feed(FeedKind.MESSAGES, it.id) }, openLink, actions.signIn)
                                     AppTab.TASKS -> CourseworkContent(state.coursework, now, state.busy,
                                         feedback = { ResourceRecoveryRow(courseworkRecovery, actions.signIn) { recoverResource(SyncResource.COURSEWORK) } },
                                         showFeedback = state.needsLogin || state.coursework.message != null,
@@ -206,6 +209,5 @@ internal fun PlusScreen(state: TimetableState, actions: PlusActions) {
             }
             DetailSelection.None -> Unit
         }
-        if (showProbe && actions.probe != null && !state.signingOut) ApiProbeSheet(actions.probe, actions.signIn, { navigator.meRoute = MeRoute.Overview })
     }
 }

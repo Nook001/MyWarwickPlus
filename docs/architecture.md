@@ -1,6 +1,6 @@
 # 架构与组件规范
 
-更新：2026-10-08，适用代码 0.24.3。前文记录已落地的组件、共享函数、同步、数据反馈、课表和主题标准；末节保留评估基线并标注实施进度。接口证据见 [protocol.md](protocol.md)，覆盖表见 [api-progress.md](api-progress.md)，验证状态见 [validation.md](validation.md)。
+更新：2026-10-08，适用代码 0.25.0。前文记录已落地的组件、共享函数、同步、数据反馈、课表和主题标准；末节保留评估基线并标注实施进度。接口证据见 [protocol.md](protocol.md)，覆盖表见 [api-progress.md](api-progress.md)，验证状态见 [validation.md](validation.md)。
 
 ## 代码职责
 
@@ -83,9 +83,9 @@
 
 ## 页面命名、导航与恢复动作
 
-- 页面/入口/同步资源共享 `config/AppLabels.kt` 的名称：Home、Classes、Tasks、Me；Settings、Data status、Developer tools、Messages、Library、Modules。Tab与顶部直接解析同一个 labelRes；Home顶部继续显示个性化招呼语。Now/Next/Today/Deadlines区段与常用Sign in/Sign out/Retry/Back等动作也集中维护，主要说明/错误/进度也使用资源；保留英文与英国日期格式，未新增翻译。
-- 显示名与身份分开：AppTab/CourseworkFilter用显式key，MeRoute只允许Overview/Settings/DeveloperTools/Feed，DetailSelection只允许None/Class/Task/Feed。Saver仅保存key、Feed现有固定数据库key与内容ID，不保存实体、HTML或列表，不使用enum.ordinal。旧数字Tab/字符串筛选值有解码回退；这不是跨应用版本Compose存档位置的迁移保证。
-- Classes选日、followToday与列表状态仍保留；Tasks查询仍在本页，不改切页后的查询产品规则。恢复详情先等资源缓存可判定，再检查ID和Feed归属；初始空身份/空缓存不当成账户切换。真正退出或账户变化仍清理详情/Me子路由/筛选；Debug工具不可用时回退Me首页。
+- 页面/入口/同步资源共享 `config/AppLabels.kt` 的名称：Home、Classes、Tasks、Inbox、Me；Settings、Messages、Library、Modules。AppTab集中labelRes和titleRes，默认相同；Messages Tab短标签Inbox、顶部Messages，Home顶部个性化招呼语。Now/Next/Today/Deadlines区段与Sign in/Sign out/Retry/Back等动作也集中维护，说明/错误/进度使用资源；保留英文与英国日期格式，未新增翻译。
+- 显示名与身份分开：AppTab/CourseworkFilter用显式key，MeRoute为Overview/Settings/Feed（仅Library/Modules），DetailSelection为None/Class/Task/Feed。Saver仅保存当前key、Feed固定数据库key与内容ID，不保存实体/HTML/列表，不用enum.ordinal；不支持的键回退默认页面，不维护历史路由适配。Me调试路由与状态/探测面板UI已删除，普通同步/恢复保持原实现。
+- Classes选日、followToday与列表状态仍保留；Tasks查询仍在本页，不改切页后的查询产品规则。详情先等缓存可判定再检查ID和Feed归属，Messages仅可在Home/Inbox显示，切换Tab清理详情；详情关闭仍停留来源Tab，Inbox系统返回到Home。初始空身份/空缓存不当成账户切换；真正退出或账户变化清理详情/Me子路由/筛选。
 - SyncProgress只存SyncOperation（Refresh(resource)/OlderMessages），界面再生成文字。SyncNotice只存一个RecoveryAction（RefreshAll/Refresh(resource)/OlderMessages/SignIn），旧feed/resource/olderMessages兼容入口已删除，不另存重叠状态。
 - Snackbar按notice ID执行一次；动作及消费回调用rememberUpdatedState取得最新实现。点击时检查当前busy/退出/登录状态，过期会话转登录；旧更早消息提示仅在当前仍有失败标志与有效分页入口时沿用当前游标，否则刷新最新Messages。重试预算、顺序、缓存保留与notice消费ID规则不变。
 
@@ -100,7 +100,7 @@
 | 结束/提前停止 | 真实值变化以 200ms 平滑，结束最多停留 250ms 后隐藏；有失败用错误色与一次短 Snackbar。未执行项不补满，退出清除进度 |
 | 未加载 / 真空列表 / 筛选为空 | 分别提示；Clear search 只清 query、不请求网络，Tasks 保留分类 |
 | 请求失败 / 登录过期 | 缓存可读，内容附近按需 Retry / Sign in，Me 标记需要登录；不常驻顶部错误卡片或日志页脚 |
-| 按需状态 | Me → Data status 查看六类更新时间/状态并单项刷新；Developer tools 为独立调试流程，不计入同步进度 |
+| 单资源恢复 | 内容附近按需Retry/Sign in；Inbox下拉刷新Messages最新页、显式按钮读更早页；Me不再提供Data status或Developer tools |
 
 更早消息失败独立记忆，恢复操作沿用游标；下拉读取最新页，失去旧游标时回退普通刷新。设置、复制邮箱、日期选择与普通链接点击不触发业务刷新。
 
@@ -108,14 +108,15 @@
 
 | 页面 | 当前布局与行为 |
 | --- | --- |
-| Home | 16sp短招呼语；Now / Next唯一强调卡，时钟/标签/右对齐日期时间、16sp Medium名称/原代码、地点/右下箭头三行，整卡详情。四个网站在Next下12dp，Quiet入口最小48dp；课程与Deadlines普通单层分区，Messages使用Quiet底色；18dp标题图标共用紧凑标题留白，区块间14dp。Today仅保留Now，省略与强调卡重复的Next标记 |
+| Home | 16sp短招呼语；Now / Next唯一强调卡，时钟/标签/右对齐日期时间、16sp Medium名称/原代码、地点/右下箭头三行，整卡详情。当日/进行中只显示时间，明日加Tomorrow，之后加英国日期（不同年加年份），跨日结束日期保留。四个网站在Next下12dp，Quiet入口最小48dp；课程与Deadlines普通单层分区，Messages使用Quiet底色；18dp标题图标共用紧凑标题留白，区块间14dp。Today仅保留Now，省略与强调卡重复的Next标记 |
 | Today / Tomorrow / 周末 | homeAgenda按Europe/London日期与结束时间保留正在进行/未来课程，无剩余课程与今天本来无课共用Tomorrow切换。周末无剩余课程显示Enjoy your weekend；当天有已结束课程时加Well done，Next仍可展示未来课。Tomorrow没有记录时不显示空分区，不新增“明天没课”提示；未加载不判断无课。全日/跨日课程仍保留正确日界，稳定Lazy key避免后续分区错位 |
 | Deadlines | 最多三条未来记录，左列数字/days，右列原始标题及d MMM，下一年才加年份；当天未过期为0 days。All进Upcoming，Recently passed统计近七天缓存内过去条目并进Past，不推断是否提交 |
-| Home Messages | 最近两条按日期降序、position/id稳定排序；标题最多两行、摘要一行、来源/简短日期。仅转换两条HTML，共用按账户隔离的FeedTextCache；无记录时省略分区，不把未加载当成无消息。点击复用详情，关闭保留Home；All进入Me→Messages。只读，不改变网站已读/新增角标或后台请求 |
+| Home Messages | 最近两条按日期降序、position/id稳定排序；标题最多两行、摘要一行、来源/简短日期。仅转换两条HTML，共用按账户隔离的FeedTextCache；无记录时省略分区，不把未加载当成无消息。点击复用详情，关闭保留Home；All进入Inbox。只读，不改变网站已读/新增角标或后台请求 |
 | Classes / Schedule | 从今天开始的连续日期分组；日期只在小标题出现，未来空日跳过，起点空日保留标题/一行说明。同日共用底色与浅分隔线，左侧起止时间、右侧名称及代码/地点、整行详情；保留 Now/Next、冲突、全日和跨日提示 |
 | 日期选择与跨日 | 日期按钮默认 dd/MM/yyyy 输入，可切日历；只筛缓存，离开今天显示 Today。选择日与滚动位置在切页/刷新/Activity 保存状态恢复时保留，正常冷启动回今天。UTC 日期组件值先转日历日期；跨日条目按每日范围裁为 00:00–24:00，午夜结束不插空日，详情保留完整范围 |
 | Tasks / Coursework | 紧凑搜索 + Upcoming / Past；未来升序、过去降序。连续列表左列数字/days、Today 或 Passed；标题最多两行，d MMM · HH:mm，不同年加年份。无匹配可清搜索，完整信息/来源说明留详情 |
-| Me | 紧凑姓名/usercode 与真实邮箱，显式复制后短暂勾选；不拼邮箱、不读取剪贴板。Sign out 保留确认。App / Websites 分组圆角网格，默认三列，fontScale >1.3 或可用宽度 <280dp 改两列；网站有外部角标 |
+| Inbox / Messages | 独立底部Tab，复用FeedContent的搜索/缓存/详情/显式更早分页；下拉只刷新Messages最新页，无新增API或网站已读写入。全局无缓存/登录状态与原有页面共用 |
+| Me | 紧凑姓名/usercode 与真实邮箱，显式复制后短暂勾选；不拼邮箱、不读取剪贴板。App网格仅Settings/Library/Modules，无Data status、Developer tools或重复Messages入口；Websites八项。默认三列，fontScale >1.3 或可用宽度 <280dp 改两列；网站有外部角标。版本号后为Sign out末尾按钮，保留确认与失败重试，登录按钮仍在账户卡片 |
 | Feed / 详情 | Messages 纯文本搜索/详情与手动分页；Modules 显示已知字段及数组数量；Library 使用学校摘要与原站入口。详情可滚动读完整长内容；只有显式点击才打开来源网站 |
 
 ## 可复用组件标准
@@ -138,10 +139,10 @@
 | 圆角 AppShapes | 分区/列表/紧凑入口 14dp；账户/网格 16dp；强调/设置/Tab 18dp；Feed 内容 20dp；搜索 24dp |
 | Spacing | Home/Classes/Me 左右16、顶部4、底部16dp；Tasks/Feed/Appearance 保留20dp。首页区块14、Me区块16、列表12、网格8dp；父组件拥有间距 |
 | 标题 / 页眉 | 分区内行最小20dp，外部左右12/上8/下2dp，共用sectionHeader/sectionHeadingHeight；All视觉高度同标题行，labelMedium/Medium/onSurfaceVariant。日期小标题labelLarge。AppPageHeader最小48dp、上下2dp，动作不改变品牌文字位置 |
-| 信息行 | 左列48sp转dp，随字缩放，两行居中、间距2dp；左右列间距10dp。MetricListRow默认Standard：正文bodyMedium/SemiBold、最小64dp/上下10dp，Classes/Tasks保持此标准。首页显式Compact：HomeTypography.content为bodySmall（12sp Regular/16sp行高），课程/Deadline/消息标题与空状态共用；metric为11sp Medium/16sp行高，时间结束值/days共用metricSecondary（11sp Regular）。分区标题12sp Medium，Next课程名16sp Medium保持主要层级。行最小54dp/上下6dp；分区首行48dp/上0/下8dp。Messages首行48dp/上0/下6dp，后续54dp/上下6dp；空行上0。次要信息bodySmall/onSurfaceVariant；长内容/大字体自然增长，不以固定高度裁切 |
+| 信息行 | 左列48sp转dp，随字缩放，两行居中、间距2dp；左右列间距10dp。MetricListRow默认Standard：正文bodyMedium/SemiBold、最小64dp/上下10dp，Classes/Tasks保持此标准。首页显式Compact：HomeTypography.content为bodySmall（12sp Regular/16sp行高），课程/Deadline/消息标题与空状态共用；metric为11sp Bold/16sp行高，时间结束值/days共用metricSecondary（11sp Regular）。分区标题12sp Medium，Next课程名16sp Medium保持主要层级。行最小54dp/上下6dp；分区首行48dp/上0/下8dp。Messages首行48dp/上0/下6dp，后续54dp/上下6dp；空行上0。次要信息bodySmall/onSurfaceVariant；长内容/大字体自然增长，不以固定高度裁切 |
 | 搜索 / 箭头 | 搜索最小48dp、图标20dp、清除操作区48dp；普通详情箭头16dp，Next地点行20dp，网格角标12dp；装饰图标的动作语义在点击容器 |
 | 空状态 | SectionEmptyRow 分区内直接一行；DataEmptyState 用于独立未加载/空/无匹配，可带恢复动作，不嵌套空卡 |
-| Tab | Home / Classes / Tasks / Me；12sp常规字重，轮廓/实心两态，图标和文字共用高亮。selectable + Role.Tab，indication=null，直接最终色；最小64dp，两侧20dp，安全区一次 |
+| Tab | Home / Classes / Tasks / Inbox / Me；12sp常规字重，轮廓/实心两态，图标和文字共用高亮。Inbox复用消息轮廓并增加同形实心态，标签与页标题独立集中配置。selectable + Role.Tab，indication=null，直接最终色；最小64dp，两侧20dp，安全区一次 |
 
 不为每个 Text 建包装组件；变体需有实际复用需求。更改标准先改公共实现与此表，再复核受影响页面；保持 query、筛选、列表位置与 rememberSaveable 状态归属。
 

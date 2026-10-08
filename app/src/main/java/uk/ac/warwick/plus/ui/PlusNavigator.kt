@@ -22,6 +22,7 @@ internal class PlusNavigator(today: LocalDate) {
     var showDatePicker by mutableStateOf(false)
 
     fun select(next: AppTab) {
+        if (next != tab) detail = DetailSelection.None
         tab = next
         if (next == AppTab.ME) {
             meRoute = MeRoute.Overview

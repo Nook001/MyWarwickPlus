@@ -81,7 +81,7 @@ internal fun ScheduleClassRow(event: EventContentItem, date: LocalDate, status: 
         compactTop = compactTop, density = density, metric = {
             Text(if (event.allDay) stringResource(R.string.all_day) else time.start,
                 style = if (compact) HomeTypography.metric else if (event.allDay) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
-                fontWeight = if (compact) FontWeight.Medium else FontWeight.SemiBold,
+                fontWeight = if (compact) FontWeight.Bold else FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary, maxLines = 1, softWrap = false)
             if (!event.allDay) Text(time.end, style = if (compact) HomeTypography.metricSecondary else MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

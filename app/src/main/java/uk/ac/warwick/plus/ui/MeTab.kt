@@ -11,7 +11,6 @@ internal fun MeTab(state: TimetableState, navigator: PlusNavigator, actions: Plu
             { navigator.detail = DetailSelection.Feed(route.kind, it.id) }, open, actions.signIn)
         else -> MoreContent(state, actions.signIn, actions.signOut,
             { navigator.meRoute = MeRoute.Feed(it) }, open,
-            if (actions.probe != null && !state.logoutFailed) ({ navigator.meRoute = MeRoute.DeveloperTools }) else null,
             onSettings = { navigator.meRoute = MeRoute.Settings }, onResourceRefresh = recover)
     }
 }

@@ -15,11 +15,6 @@ internal object MeIcons {
         moveTo(8f, 3f); lineTo(8f, 9f); moveTo(16f, 9f); lineTo(16f, 15f)
         moveTo(10f, 15f); lineTo(10f, 21f)
     }
-    val data = serviceIcon("DataStatus") {
-        moveTo(3f, 3f); lineTo(3f, 21f); lineTo(21f, 21f)
-        moveTo(7f, 16f); lineTo(7f, 12f); moveTo(12f, 16f); lineTo(12f, 7f)
-        moveTo(17f, 16f); lineTo(17f, 10f)
-    }
     val messages = serviceIcon("Messages") {
         moveTo(5f, 3f); lineTo(19f, 3f); quadTo(21f, 3f, 21f, 5f)
         lineTo(21f, 16f); quadTo(21f, 18f, 19f, 18f); lineTo(9f, 18f)
@@ -43,10 +38,5 @@ internal object MeIcons {
         curveTo(17.5f, 2f, 22f, 6.5f, 22f, 12f); close()
         moveTo(9f, 8f); curveTo(9f, 4f, 17f, 5f, 15f, 10f)
         lineTo(12f, 13f); lineTo(12f, 14f); moveTo(12f, 17f); lineTo(12f, 18f)
-    }
-    val developer = serviceIcon("DeveloperTools") {
-        moveTo(8f, 5f); lineTo(2f, 12f); lineTo(8f, 19f)
-        moveTo(16f, 5f); lineTo(22f, 12f); lineTo(16f, 19f)
-        moveTo(14f, 3f); lineTo(10f, 21f)
     }
 }

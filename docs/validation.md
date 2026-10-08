@@ -8,7 +8,21 @@
 
 仅更新三个现有文档，不改源码/测试/依赖/schema/版本；不构建、不运行JVM/UI/设备测试、不部署或请求学校接口。核对本地引用、表格/代码块结构、评估中的源码符号及git diff --check；查阅Compose/Kotlin官方技术说明，不访问用户会话。之前0.18.0手机安装被拒和待验收状态保留。
 
-## 最新代码：0.24.3 / versionCode 36
+## 最新代码：0.25.0 / versionCode 37
+
+2026-10-08：Today起始时间及Deadline数字改为11sp Bold，结束时间/days保持Regular；Next当日只显示时间，未来显示Tomorrow或日期。Messages独立为Inbox Tab（页标题Messages），Home摘要保留、All到Inbox；Me删除Data status/Developer tools/重复Messages入口，Sign out到版本号后的页面末尾，保留确认与退出失败重试。无API/权限/认证/依赖/Room schema5变更。
+
+| 检查 | 本次结果 / 边界 |
+| --- | --- |
+| 构建 / Lint | 首轮assembleDebug/lintDebug成功；删除面板后清理8条UnusedResources文案，最终assembleDebug/lintDebug成功（19s），Lint报告No issues found；日志work/025-build.log、work/025-final-build.log。未运行Release构建 |
+| 既有导航检查 | NavigationStateTest三项通过（0失败/错误），仅适配Messages当前归属，不新增测试或UI Test；未运行全量JVM检查 |
+| 数据 / 文档 | API/账户隔离/认证/权限/依赖/schema5不变；单资源刷新与消息分页沿用原实现，架构/API进度已同步 |
+| 物理部署 | 指定10AG4S2KQJ0066R执行install -r成功，dumpsys确认0.25.0 / versionCode37；启动Status:ok / COLD / TotalTime413ms，单次Debug值不作性能基准。未卸载/清数据或安装到模拟器 |
+| 视觉核对 | 只读首页截图work/home025.png（不跟踪）：Next当日仅时间、Today起始时间/Deadline数字加粗、days常规字重；Home/Classes/Tasks/Inbox/Me五标签完整，无可见重叠。未自动点击/滑动或退出账户 |
+
+手动重点：Inbox搜索/详情关闭仍在Inbox/All跳转、下拉只更新Messages/更早分页；Me无状态/调试按钮，页面末尾Sign out弹窗可取消；Today起始时间和数字突出但days不变。不同主题/字体缩放、Tomorrow/未来日期及上述交互仍需用户手动验收。
+
+## 上一版：0.24.3 / versionCode 36
 
 2026-10-08：首页课程/作业/消息标题和空状态14→12sp，与分区标题同字号；Today起止时间与Deadline数字/days统一11sp，保留数字Medium、次要值Regular。HomeTypography集中此规则，沿用Material字体族与系统字体缩放；Next课程名仍16sp，Classes/Tasks及现有间距、卡片颜色、数据逻辑不变。
 

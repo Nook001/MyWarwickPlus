@@ -102,6 +102,13 @@ internal fun HomeContent(state: HomePageState, today: LocalDate, now: Long, onSe
 private fun NextClassCard(event: EventContentItem, now: Long, onSelect: () -> Unit) {
     val identity = classIdentity(event)
     val time = classTimeRange(event, includeWeekday = true)
+    val date = atWarwick(event.startMillis).toLocalDate()
+    val today = atWarwick(now).toLocalDate()
+    val whenLabel = when {
+        date <= today -> time
+        date == today.plusDays(1) -> "${stringResource(R.string.tomorrow)} · $time"
+        else -> "${weekdayDateLabel(date, includeYear = date.year != today.year)} · $time"
+    }
     val colours = appCardColours(CardTone.Featured)
     AppCard(onClick = onSelect, tone = CardTone.Featured, shape = AppShapes.featured,
         modifier = Modifier.fillMaxWidth().testTag("next-class-card"), actionLabel = stringResource(R.string.view_class_details)) {
@@ -112,7 +119,7 @@ private fun NextClassCard(event: EventContentItem, now: Long, onSelect: () -> Un
                 Icon(ContentIcons.clock, contentDescription = null, modifier = Modifier.size(18.dp))
                 Text(if (isClassNow(event, now)) stringResource(AppLabels.NOW) else stringResource(AppLabels.NEXT), style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Medium)
-                Text(if (event.startMillis <= now) time else "${nextClassLabel(event, now).render()} · $time",
+                Text(whenLabel,
                     style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Normal,
                     textAlign = TextAlign.End,
                     modifier = Modifier.weight(1f).testTag("next-when"))

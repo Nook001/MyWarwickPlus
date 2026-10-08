@@ -37,8 +37,7 @@ class MainActivity : ComponentActivity() {
                     signOut = model::signOut,
                     refreshResource = model::refreshResource,
                     loadOlderMessages = model::loadMoreMessages,
-                    consumeNotice = model::consumeNotice,
-                    probe = if (BuildConfig.DEBUG) app.api::probe else null
+                    consumeNotice = model::consumeNotice
                 ))
             }
         }

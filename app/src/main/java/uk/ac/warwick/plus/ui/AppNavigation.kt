@@ -59,6 +59,7 @@ internal fun AppNavigation(tab: AppTab, needsSignIn: Boolean, logoutFailed: Bool
                             AppTab.HOME -> if (selected) NavigationIcons.homeFilled else NavigationIcons.homeOutline
                             AppTab.CLASSES -> if (selected) NavigationIcons.scheduleFilled else NavigationIcons.scheduleOutline
                             AppTab.TASKS -> if (selected) NavigationIcons.courseworkFilled else NavigationIcons.courseworkOutline
+                            AppTab.MESSAGES -> if (selected) NavigationIcons.messagesFilled else NavigationIcons.messagesOutline
                             AppTab.ME -> if (selected) NavigationIcons.meFilled else NavigationIcons.meOutline
                         }
                         Icon(icon, null, Modifier.size(24.dp))

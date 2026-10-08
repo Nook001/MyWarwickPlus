@@ -13,15 +13,14 @@ class NavigationStateTest {
         val navigator = PlusNavigator(today)
         navigator.chooseDate(today.plusDays(2), today)
         navigator.openTasks(CourseworkFilter.PAST)
-        navigator.select(AppTab.ME)
-        navigator.meRoute = MeRoute.Feed(FeedKind.MESSAGES)
+        navigator.select(AppTab.MESSAGES)
         navigator.detail = DetailSelection.Feed(FeedKind.MESSAGES, "id:with\nseparator")
         val restored = PlusNavigator.restore(navigator.savedValues())
         assertEquals(navigator.detail, restored.detail)
         assertEquals(today.plusDays(2).toEpochDay(), restored.selectedDay)
         assertFalse(restored.followToday)
         restored.back()
-        assertEquals(AppTab.ME, restored.tab)
+        assertEquals(AppTab.HOME, restored.tab)
         assertEquals(MeRoute.Overview, restored.meRoute)
         restored.meRoute = MeRoute.Settings
         restored.detail = DetailSelection.Task("private-task")
@@ -32,18 +31,18 @@ class NavigationStateTest {
     }
     @Test fun restoredDetailWaitsForCacheAndCannotCrossFeedRoutes() {
         val id = "message:with/separators\nand more"
-        val route = MeRoute.Feed(FeedKind.MESSAGES)
+        val route = MeRoute.Overview
         val detail = DetailSelection.Feed(FeedKind.MESSAGES, id)
         val restoredRoute = MeRoute.restore(route.savedValues())
         val restoredDetail = DetailSelection.restore(detail.savedValues())
         assertEquals(route, restoredRoute)
         assertEquals(detail, restoredDetail)
-        assertEquals(detail, restoredDetail.validated(TimetableState(busy = true), restoredRoute, AppTab.ME))
+        assertEquals(detail, restoredDetail.validated(TimetableState(busy = true), restoredRoute, AppTab.MESSAGES))
         val loaded = TimetableState(feeds = mapOf(FeedKind.MESSAGES to FeedState(
             entries = listOf(FeedEntry().apply { this.id = id }), lastSynced = 1)))
-        assertEquals(detail, restoredDetail.validated(loaded, restoredRoute, AppTab.ME))
+        assertEquals(detail, restoredDetail.validated(loaded, restoredRoute, AppTab.MESSAGES))
         assertEquals(DetailSelection.None, restoredDetail.validated(loaded, MeRoute.Feed(FeedKind.MODULES), AppTab.ME))
-        assertEquals(DetailSelection.None, restoredDetail.validated(loaded.copy(feeds = emptyMap()), restoredRoute, AppTab.ME))
+        assertEquals(DetailSelection.None, restoredDetail.validated(loaded.copy(feeds = emptyMap()), restoredRoute, AppTab.MESSAGES))
     }
 
     @Test fun currentSavedKeysRestoreAndUnsupportedValuesUseSafeDefaults() {

@@ -26,7 +26,7 @@ internal fun DeadlineRow(entry: CourseworkContentItem, now: Long, presentation: 
             color = if (timing.passed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary)
         else {
             Text(timing.days.toString(), style = if (home) HomeTypography.metric else MaterialTheme.typography.bodyMedium,
-                fontWeight = if (home) FontWeight.Medium else FontWeight.SemiBold,
+                fontWeight = if (home) FontWeight.Bold else FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
             Text(stringResource(R.string.unit_days), style = if (home) HomeTypography.metricSecondary else MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

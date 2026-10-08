@@ -26,24 +26,20 @@ import uk.ac.warwick.plus.data.FeedKind
 
 @Composable
 fun MoreContent(state: TimetableState, onLogin: () -> Unit, onSignOut: () -> Unit,
-    onFeed: (FeedKind) -> Unit, onOpen: (String) -> Unit, onProbe: (() -> Unit)?, onSettings: () -> Unit = {},
+    onFeed: (FeedKind) -> Unit, onOpen: (String) -> Unit, onSettings: () -> Unit = {},
     onResourceRefresh: ((SyncResource) -> Unit)? = null) {
     var confirmSignOut by remember { mutableStateOf(false) }
-    var showDataStatus by remember { mutableStateOf(false) }
     LazyColumn(Modifier.fillMaxSize().testTag("more-list"),
         contentPadding = Spacing.compactPage,
         verticalArrangement = Arrangement.spacedBy(16.dp)) {
         item {
-            AccountCard(state, onLogin, { confirmSignOut = true }, onResourceRefresh)
+            AccountCard(state, onLogin, onResourceRefresh)
         }
         item {
             MeGrid(stringResource(R.string.app_section), buildList {
                 add(MeAction(stringResource(AppLabels.SETTINGS), MeIcons.settings, onSettings, tag = "appearance-settings"))
-                add(MeAction(stringResource(AppLabels.DATA_STATUS), MeIcons.data, { showDataStatus = true }))
-                add(MeAction(stringResource(AppLabels.MESSAGES), MeIcons.messages, { onFeed(FeedKind.MESSAGES) }))
                 add(MeAction(stringResource(AppLabels.LIBRARY), ServiceIcons.library, { onFeed(FeedKind.LIBRARY) }))
                 add(MeAction(stringResource(AppLabels.MODULES), ServiceIcons.moodle, { onFeed(FeedKind.MODULES) }))
-                if (onProbe != null) add(MeAction(stringResource(AppLabels.DEVELOPER_TOOLS), MeIcons.developer, onProbe))
             })
         }
         item {
@@ -54,8 +50,13 @@ fun MoreContent(state: TimetableState, onLogin: () -> Unit, onSignOut: () -> Uni
         }
         item { Text(stringResource(R.string.version_detail, BuildConfig.VERSION_NAME), style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        if (state.hasSavedData || state.signedIn || state.logoutFailed) item(key = "sign-out") {
+            TextButton(onClick = { confirmSignOut = true }, modifier = Modifier.fillMaxWidth().testTag("sign-out"),
+                enabled = !state.signingOut) {
+                Text(if (state.logoutFailed) stringResource(AppActions.RETRY_SIGN_OUT) else stringResource(AppActions.SIGN_OUT))
+            }
+        }
     }
-    if (showDataStatus) DataStatusSheet(state, onLogin, onResourceRefresh, { showDataStatus = false })
     if (confirmSignOut) AlertDialog(onDismissRequest = { confirmSignOut = false },
         title = { Text(stringResource(R.string.sign_out_question, stringResource(AppActions.SIGN_OUT))) },
         text = { Text(stringResource(R.string.sign_out_confirmation)) },
@@ -64,11 +65,12 @@ fun MoreContent(state: TimetableState, onLogin: () -> Unit, onSignOut: () -> Uni
 }
 
 @Composable
-private fun AccountCard(state: TimetableState, onLogin: () -> Unit, onSignOut: () -> Unit,
+private fun AccountCard(state: TimetableState, onLogin: () -> Unit,
     onResourceRefresh: ((SyncResource) -> Unit)?) {
     val context = LocalContext.current
     val clipboardLabel = stringResource(R.string.warwick_email)
     var copied by remember(state.email) { mutableStateOf(false) }
+    val showSignIn = !state.logoutFailed && (state.needsLogin || !state.signedIn && !state.hasSavedData && !state.busy)
     LaunchedEffect(copied) { if (copied) { delay(2_000); copied = false } }
     AppCard(Modifier.fillMaxWidth().testTag("me-account"), shape = AppShapes.tile) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
@@ -92,15 +94,12 @@ private fun AccountCard(state: TimetableState, onLogin: () -> Unit, onSignOut: (
                         modifier = Modifier.size(18.dp))
                 }
             }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                if (state.needsLogin && !state.logoutFailed) Text(stringResource(R.string.sign_in_update), style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-                if (!state.logoutFailed && (state.needsLogin || !state.signedIn && !state.hasSavedData && !state.busy))
+            if (showSignIn) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                    if (state.needsLogin) Text(stringResource(R.string.sign_in_update), style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
                     TextButton(onClick = onLogin, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)) { Text(stringResource(AppActions.SIGN_IN)) }
-                if (state.hasSavedData || state.signedIn || state.logoutFailed)
-                    TextButton(onClick = onSignOut, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)) {
-                        Text(if (state.logoutFailed) stringResource(AppActions.RETRY_SIGN_OUT) else stringResource(AppActions.SIGN_OUT), style = MaterialTheme.typography.bodySmall)
-                    }
+                }
             }
             if (!state.needsLogin && state.account.message != null && onResourceRefresh != null)
                 ResourceRecoveryRow(state.recovery(SyncResource.ACCOUNT), onLogin) { onResourceRefresh(SyncResource.ACCOUNT) }

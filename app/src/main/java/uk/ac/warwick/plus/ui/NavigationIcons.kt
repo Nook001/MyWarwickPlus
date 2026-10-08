@@ -19,6 +19,15 @@ private fun navigationIcon(name: String, filled: Boolean, draw: PathBuilder.() -
     }.build()
 
 internal object NavigationIcons {
+    val messagesOutline = MeIcons.messages
+    val messagesFilled = navigationIcon("MessagesFilled", true) {
+        moveTo(5f, 3f); lineTo(19f, 3f); quadTo(21f, 3f, 21f, 5f)
+        lineTo(21f, 16f); quadTo(21f, 18f, 19f, 18f); lineTo(9f, 18f)
+        lineTo(3f, 22f); lineTo(3f, 5f); quadTo(3f, 3f, 5f, 3f); close()
+        moveTo(7f, 7f); lineTo(17f, 7f); lineTo(17f, 9f); lineTo(7f, 9f); close()
+        moveTo(7f, 12f); lineTo(14f, 12f); lineTo(14f, 14f); lineTo(7f, 14f); close()
+    }
+
     val homeOutline = navigationIcon("HomeOutline", false) {
         moveTo(3f, 10f); lineTo(12f, 3f); lineTo(21f, 10f)
         moveTo(5f, 8.5f); lineTo(5f, 21f); lineTo(10f, 21f); lineTo(10f, 14f)

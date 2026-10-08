@@ -9,9 +9,8 @@ object AppLabels {
     val TASKS = R.string.label_tasks
     val ME = R.string.label_me
     val SETTINGS = R.string.label_settings
-    val DATA_STATUS = R.string.label_data_status
-    val DEVELOPER_TOOLS = R.string.label_developer_tools
     val MESSAGES = R.string.label_messages
+    val INBOX = R.string.label_inbox
     val LIBRARY = R.string.label_library
     val MODULES = R.string.label_modules
     val ACCOUNT = R.string.label_account
