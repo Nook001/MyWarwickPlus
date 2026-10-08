@@ -8,7 +8,22 @@
 
 仅更新三个现有文档，不改源码/测试/依赖/schema/版本；不构建、不运行JVM/UI/设备测试、不部署或请求学校接口。核对本地引用、表格/代码块结构、评估中的源码符号及git diff --check；查阅Compose/Kotlin官方技术说明，不访问用户会话。之前0.18.0手机安装被拒和待验收状态保留。
 
-## 最新代码：0.25.1 / versionCode 38
+## 最新候选：0.26.0-beta.1 / versionCode 39
+
+2026-10-08：首次公开候选准备。公开包io.github.nook001.mywarwickplus，Debug/Profile独立后缀与启动器名，原namespace不变；旧内部包数据不迁移、不清理。Release仓库外PKCS12签名，DPAPI本地加密凭据、发布构建禁用configuration cache；脚本检查签名身份/版本/非Debug/源码提交并生成分离的public附件/private记录。MIT已由用户确认，APK内生成assets/legal许可证/隐私文件，Me增加Privacy/Licenses链接；schema5为后续公开迁移基线。
+
+| 检查 | 本次结果 / 边界 |
+| --- | --- |
+| 构建 | 签名Release、Debug、Profile与既有JVM入口通过（2m17s）；补齐APK法律文件后三个变体及两项Lint再通过（39s）。日志work/release-preparation.log、work/release-final-assets.log |
+| Lint | Debug无问题；Release为0 errors / 1 warning，仅Gradle 9.8.1可用提示，保持当前9.8.0工具链；无UI Test或新增测试 |
+| 既有JVM | 76项，0失败/错误/跳过；未写新断言或适配UI Test |
+| APK | release为0.26.0-beta.1/code39/Android9+，apksigner校验通过，v2签名/RSA3072；非debuggable，PERFORMANCE_TRACING=false。Debug/Profile实际包名及后缀核对；APK含MIT/Apache/第三方声明/隐私四文件 |
+| 私人数据 / 文档 | 已跟踪文件高置信token/private-key扫描无匹配，未跟踪APK/keystore/HAR/local.properties/work/dist；不是完整历史秘密审计。隐私/发布分工/脱敏反馈/签名备份与手机清单已补齐；未访问学校数据 |
+| 待验收 / 发布 | 新Release包首次登录/MFA、各页面、离线/重启/覆盖安装、退出重登待用户手动验收；独立备份密钥/密码、学校第三方发行允许范围待用户确认。构建成功不代表正式公开发布 |
+
+最终打包产物、SHA256与源码提交以dist/v0.26.0-beta.1/public/release-manifest.json为准；不把本地旧unsigned或Debug APK当作发行包。签名脚本不自动安装/发布；操作方法见[release.md](release.md)。
+
+## 上一版：0.25.1 / versionCode 38
 
 2026-10-08：首页Today/Deadlines采用Compact左列40sp（原48sp），随系统字体缩放，默认正文左移8dp。Inbox标题14sp Medium、摘要/搜索12sp、来源日期11sp Regular；移除顶部说明、来源与英文短日期同行，标题/摘要各最多两行，卡片内边距12dp/内容间距4dp/卡片间距8dp。消息详情标题18sp/正文14sp，完整文本/日期保留；Tab图标24→22dp，原24dp布局槽/点击区不变。Library/Modules与Classes/Tasks保留标准布局；无API/认证/权限/依赖/schema5变更。
 

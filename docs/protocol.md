@@ -1,6 +1,6 @@
 # 协议证据与边界
 
-文档整理：2026-10-06，适用代码 0.18.0；**本次未重新请求学校接口**。证据来自 2026-10-03/04 登录态浏览器 CDP 网络观察、部署前端资源、原生手机结果，以及 2026-10-06 账户组件/缓存检查。数量和资源 hash 仅代表观察时的样本；接入状态见 [api-progress.md](api-progress.md)，验证范围见 [validation.md](validation.md)。不保存原始 cookie/token/HAR、私人正文或账户值。
+文档整理：2026-10-08，适用代码 0.26.0-beta.1；**本次未重新请求学校接口**。证据来自 2026-10-03/04 登录态浏览器 CDP 网络观察、部署前端资源、原生手机结果，以及 2026-10-06 账户组件/缓存检查。数量和资源 hash 仅代表观察时的样本；接入状态见 [api-progress.md](api-progress.md)，验证范围见 [validation.md](validation.md)。不保存原始 cookie/token/HAR、私人正文或账户值。
 
 ## 认证与请求
 
@@ -43,14 +43,14 @@
 
 公开 Android 仓库参考 commit：cb105bf13a3eb579d268163ff54a8418e43b8767。早期前端证据包括 /assets/js/0b7e644fedf7b0fc1482-bundle.js 与 /assets/js/e322fe41339e34bebbd1-main-import.js；0.15.0另检查公开 vendor/main-import。hash、代码与内部协议可能随部署改变；不能把历史样本写成当前实时验证。
 
-调试包 Me → Developer tools → API explorer 只允许五个固定 GET（Timetable/Coursework/Messages/Modules/Library），手动 Run request；Account 不在此白名单。只显示HTTP状态、总耗时（含验证）、envelope结果、数量与字段名，不显示原始响应或私人值；发布版不提供入口，probe方法也禁止执行。
+0.25.0已删除Me中的Developer tools/API explorer入口；保留的协议probe辅助方法无生产UI入口，Release仍禁止调用。历史debug探测只限五个固定GET且只显示结构摘要，未输出私人响应。
 
 ## 登录、安全与本地退出
 
 - CookieManager 是唯一cookie存储来源，仅向 MyWarwick HTTPS/443 发 cookie，不导出到电脑、偏好、日志或 Git。CSRF 只驻留请求过程。
 - 登录 WebView 无 JavaScript bridge，禁文件访问/明文/混合内容，证书错误取消，不自动授予网页权限。学校网页仍负责SSO/MFA，不由客户端模拟表单。
 - 原站跳转共用 HTTPS/default-or-443、无userinfo 校验；作业/模块额外限 Warwick 域，普通外部消息/地点允许其他合法HTTPS。Custom Tabs 使用自己的浏览器会话，不附原生认证header。
-- Room 保存页面所需字段、账户归属、同步时间与本人邮箱；不额外保存教师邮箱，系统备份关闭。schema5迁移与账户隔离见 [architecture.md](architecture.md)。
+- Room 保存页面所需字段、账户归属、同步时间与本人邮箱；不额外保存教师邮箱，系统备份关闭。公开schema5升级基线与账户隔离见 [architecture.md](architecture.md)。
 - Me 的 Sign out 只退出本应用：先取消/等待同步，再清cookie、WebStorage、WebView缓存与六类Room数据；不调用学校links.logout，不影响系统浏览器会话。失败要求重试后再登录。更新安装保留数据，注销/换账户才主动清理业务缓存。
 
 ## 候选与专用移动接口

@@ -4,19 +4,49 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
+// Supply only to the local release process; never put passwords in tracked properties.
+val releaseStore = providers.environmentVariable("MWP_RELEASE_STORE_FILE").orNull
+val releaseAlias = providers.environmentVariable("MWP_RELEASE_KEY_ALIAS").orNull
+val releaseStorePassword = providers.environmentVariable("MWP_RELEASE_STORE_PASSWORD").orNull
+val releaseKeyPassword = providers.environmentVariable("MWP_RELEASE_KEY_PASSWORD").orNull
+val hasReleaseSigning = listOf(releaseStore, releaseAlias, releaseStorePassword, releaseKeyPassword)
+    .all { !it.isNullOrBlank() }
+
+abstract class CopyLegalAssets : DefaultTask() {
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val sourceFiles: ConfigurableFileCollection
+    @get:OutputDirectory
+    abstract val outputDirectory: DirectoryProperty
+    @get:javax.inject.Inject
+    abstract val fileSystemOperations: FileSystemOperations
+
+    @TaskAction
+    fun copyFiles() {
+        fileSystemOperations.copy {
+            from(sourceFiles)
+            into(outputDirectory.dir("legal"))
+        }
+    }
+}
+val copyLegalAssets = tasks.register<CopyLegalAssets>("copyLegalAssets") {
+    sourceFiles.from(rootProject.files("LICENSE", "LICENSE-APACHE-2.0.txt", "THIRD_PARTY_NOTICES.md", "PRIVACY.md"))
+    outputDirectory.set(layout.buildDirectory.dir("generated/legalAssets"))
+}
+
 android {
     namespace = "uk.ac.warwick.plus"
     compileSdk { version = release(37) { minorApiLevel = 0 } }
     defaultConfig {
-        applicationId = "uk.ac.warwick.plus"
+        applicationId = "io.github.nook001.mywarwickplus"
         minSdk = 28
         targetSdk = 37
-        versionCode = 38
-        versionName = "0.25.1"
+        versionCode = 39
+        versionName = "0.26.0-beta.1"
         buildConfigField("boolean", "PERFORMANCE_TRACING", "false")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
-    buildFeatures { compose = true; buildConfig = true }
+    buildFeatures { compose = true; buildConfig = true; resValues = true }
     androidResources { localeFilters += "en" }
     packaging {
         resources.excludes += setOf("**/*.kotlin_builtins", "DebugProbesKt.bin")
@@ -25,8 +55,22 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+    signingConfigs {
+        if (hasReleaseSigning) create("release") {
+            storeFile = file(requireNotNull(releaseStore))
+            keyAlias = releaseAlias
+            storePassword = releaseStorePassword
+            keyPassword = releaseKeyPassword
+        }
+    }
     buildTypes {
+        debug {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+            resValue("string", "app_name", "MyWarwick+ Debug")
+        }
         release {
+            if (hasReleaseSigning) signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
@@ -34,10 +78,24 @@ android {
         create("profile") {
             initWith(getByName("release"))
             signingConfig = signingConfigs.getByName("debug")
+            applicationIdSuffix = ".profile"
+            versionNameSuffix = "-profile"
+            resValue("string", "app_name", "MyWarwick+ Profile")
             isDebuggable = false
             matchingFallbacks += "release"
             buildConfigField("boolean", "PERFORMANCE_TRACING", "true")
         }
+    }
+}
+androidComponents.onVariants { variant ->
+    variant.sources.assets?.addGeneratedSourceDirectory(copyLegalAssets, CopyLegalAssets::outputDirectory)
+}
+
+// Unsigned builds remain useful for source contributors. Distribution requires this check.
+tasks.register("checkReleaseSigning") {
+    doLast {
+        check(hasReleaseSigning) { "Release signing is missing. Use tools/release/package.ps1." }
+        check(file(requireNotNull(releaseStore)).isFile) { "Release keystore was not found." }
     }
 }
 kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }

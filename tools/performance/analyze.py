@@ -3,12 +3,10 @@ import argparse
 import csv
 import io
 import json
+import re
 import statistics
 import subprocess
 from pathlib import Path
-
-PACKAGE = 'uk.ac.warwick.plus'
-
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -16,6 +14,9 @@ def main():
     parser.add_argument('--processor', required=True, type=Path)
     args = parser.parse_args()
     metadata = json.loads((args.capture / 'capture.json').read_text(encoding='utf-8'))
+    package = metadata['package']
+    if not re.fullmatch(r'[A-Za-z][A-Za-z0-9_.]+', package):
+        raise RuntimeError('Invalid captured package name')
     if not metadata.get('complete'):
         raise RuntimeError('Capture is incomplete')
 
@@ -27,7 +28,7 @@ def main():
         return list(csv.DictReader(io.StringIO(result.stdout)))
 
     samples = []
-    app_process_filter = f"""(p.name = '{PACKAGE}' OR p.upid IN (
+    app_process_filter = f"""(p.name = '{package}' OR p.upid IN (
         SELECT DISTINCT t.upid FROM slice m JOIN thread_track tr ON tr.id = m.track_id
         JOIN thread t USING(utid) WHERE m.name GLOB 'MWP.*'))"""
     for sample in metadata['samples']:
@@ -59,7 +60,7 @@ def main():
               FROM android_startups s JOIN android_frames f
                 ON f.upid IN (SELECT upid FROM app_processes) AND f.ts >= s.ts
               JOIN slice d ON d.id = f.draw_frame_id
-              WHERE s.package = '{PACKAGE}' AND d.dur >= 0
+              WHERE s.package = '{package}' AND d.dur >= 0
             )
             SELECT s.startup_type, ROUND(s.dur / 1e6, 3) AS startup_ms,
               ROUND(COALESCE(t.time_to_initial_display, f.ttid) / 1e6, 3) AS ttid_ms,
@@ -67,7 +68,7 @@ def main():
                 ELSE 'perfetto_startup_module' END AS ttid_source
             FROM android_startups s LEFT JOIN android_startup_time_to_display t USING(startup_id)
             LEFT JOIN first_frames f ON f.startup_id = s.startup_id AND f.n = 1
-            WHERE s.package = '{PACKAGE}'""")
+            WHERE s.package = '{package}'""")
         if metadata['mode'] == 'startup' and (len(startup) != 1 or
                 startup[0]['startup_type'] != 'cold' or startup[0]['ttid_ms'] in ('[NULL]', '')):
             raise RuntimeError(f'Rejected {trace.name}: missing cold-start TTID')

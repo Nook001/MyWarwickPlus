@@ -9,7 +9,7 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-PACKAGE = 'uk.ac.warwick.plus'
+PACKAGE = 'io.github.nook001.mywarwickplus.profile'
 
 
 def main():
@@ -103,7 +103,7 @@ data_sources {{ config {{ name: "android.surfaceflinger.frametimeline" }} }}
                 print(f'Capture {sample}/{args.samples}: {args.mode} ({args.duration}s)', flush=True)
                 launch = ''
                 if args.mode == 'startup':
-                    launch = adb('shell', 'am', 'start', '-W', '-n', PACKAGE + '/.MainActivity')
+                    launch = adb('shell', 'am', 'start', '-W', '-n', PACKAGE + '/uk.ac.warwick.plus.MainActivity')
                     if 'Status: ok' not in launch:
                         raise RuntimeError('Cold launch failed')
                 else:

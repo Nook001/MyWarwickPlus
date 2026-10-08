@@ -1,6 +1,6 @@
 # 架构与组件规范
 
-更新：2026-10-08，适用代码 0.25.1。前文记录已落地的组件、共享函数、同步、数据反馈、课表和主题标准；末节保留评估基线并标注实施进度。接口证据见 [protocol.md](protocol.md)，覆盖表见 [api-progress.md](api-progress.md)，验证状态见 [validation.md](validation.md)。
+更新：2026-10-08，适用代码 0.26.0-beta.1。前文记录已落地的组件、共享函数、同步、数据反馈、课表和主题标准；末节保留评估基线并标注实施进度。接口证据见 [protocol.md](protocol.md)，覆盖表见 [api-progress.md](api-progress.md)，验证状态见 [validation.md](validation.md)。
 
 ## 代码职责
 
@@ -46,7 +46,7 @@
 
 ## 0.23.0：性能采集与启动初始化
 
-- `profile`变体继承Release的R8/资源收缩，非debuggable，以本地debug签名保留同包名数据；仅此变体启用`profileable android:shell=true`及`PERFORMANCE_TRACING`。Debug/Release的固定标记通过常量关闭，不引入自动UI测试/benchmark模块或新依赖。
+- `profile`变体继承Release的R8/资源收缩，非debuggable，以本地debug签名安装到独立.profile包，需自行登录初始化数据；仅此变体启用`profileable android:shell=true`及`PERFORMANCE_TRACING`。Debug/Release的固定标记通过常量关闭，不引入自动UI测试/benchmark模块或新依赖。
 - `traceWork`仅包同步区域，用try/finally在同一线程配对；标记固定为MWP.CookieManager.init、Session/Api/Repository.create、Appearance.load、Cache.snapshot、Background.render、Feed.html，不含姓名、响应或认证值。挂起/网络等待不使用同步trace跨线程配对。
 - CookieManager从Application主线程提前初始化改为AuthSession线程安全lazy；原生CookieJar首次访问发生在请求IO线程。缓存离线阅读无需加载WebView provider；显式Sign out仍在Main清会话，LoginActivity仍设置SSO第三方Cookie策略。Cookie默认接受，无需重复setAcceptCookie(true)，未改变Cookie来源、host白名单、flush与取消规则。
 - [capture.py](../tools/performance/capture.py)明确要求物理序列号，拒绝模拟器和debuggable测量；配置从stdin传入，避免OEM对配置目录的SELinux限制。冷启动模式只force-stop/start本应用；manual模式只录制，由用户操作手机。64MiB缓冲、固定有界时长，记录安装APK/hash、设备/版本、原始trace及am辅助值；不修改编译模式/电源/网络/登录，不收集logcat、截图或网络内容，不上传。
@@ -54,6 +54,13 @@
 - 原始trace只保留在不跟踪的work/performance，汇总与局限写入[validation.md](validation.md)。Baseline Profile和Classes/Messages手动滚动、主题切换内存仍需独立证据，不能从启动样本推出收益。
 
 工具依据：[profileable](https://developer.android.com/guide/topics/manifest/profileable-element)、[Perfetto采集](https://perfetto.dev/docs/getting-started/system-tracing)、[Trace Processor](https://perfetto.dev/docs/reference/trace-processor-cli)、[官方工具下载脚本](https://raw.githubusercontent.com/google/perfetto/main/tools/trace_processor)、[CookieManager默认行为](https://developer.android.com/reference/android/webkit/CookieManager#setAcceptCookie(boolean))。本机使用官方Windows Trace Processor v58.2并核对其发布脚本内SHA-256；启动采集包含既有联网刷新和正常系统调度，不宣称实验室级稳定基准。
+
+## 首次公开版本准备
+
+- applicationId为`io.github.nook001.mywarwickplus`，namespace保持`uk.ac.warwick.plus`；Debug/Profile分别增加.debug/.profile及启动器名称，不卸载旧内部包、不迁移认证。公开schema5为后续迁移基线。
+- Release采用仓库外PKCS12密钥，密码由Windows用户DPAPI本地保存，四个环境变量仅提供给本地构建进程；正式打包禁用configuration cache。无凭据可构建unsigned，但打包流程拒绝unsigned。
+- tools/release脚本验证签名/非Debug/版本与源码提交一致，记录APK SHA-256及证书指纹，将public附件和private mapping/构建记录分开归档；不安装或自动发布。
+- MIT、第三方声明与隐私信息见仓库根文件，Me提供Privacy/Licenses链接；不新增数据接口、权限或分析SDK。用户负责密钥独立备份、实际Release手测与发行允许范围确认，见[release.md](release.md)。
 
 ## 同步、缓存与恢复
 
@@ -66,7 +73,7 @@
 
 - 完整刷新顺序：Timetable → Coursework → Messages → Library → Modules → Account；每次资源尝试仍先验证账户。验证成功后的课表解析失败可继续其他资源；未确认账户或登录失效则停止后续任务；传输异常耗尽当前资源预算后同样停止，不把 IOException 一律认定为离线。
 - Repository 的 inStore 统一 IO 与 Mutex；authenticatedSync 统一验证、网络读取、同步状态创建与持久化；同步方法只返回 Unit。DAO snapshot 在单个 Room 读事务读取六类数据；网络请求在数据库事务外。各数据源保留独立写事务和同步时间。
-- Room 当前 schema 5，仅保留当前导出 schema；数据库名称、字段与 identity hash 不变，现有 schema5 覆盖安装继续读取缓存。无迁移链或破坏性重建回退，schema1–4 不再支持直接升级；安装包不会自动清除数据库、Cookie 或主题偏好。
+- Room 当前 schema 5，仅保留当前导出 schema；数据库名称、字段与 identity hash 不变，同包名/同签名的schema5覆盖安装继续读取缓存；公开包与内部/Debug/Profile包隔离。无迁移链或破坏性重建回退，schema1–4 不再支持直接升级；安装包不会自动清除数据库、Cookie 或主题偏好。
 - 每份同步状态记录账户归属；发现账户变化后，在下载前清空旧数据，再一次应用新身份和快照。withCache 只替换持久字段，保留其他资源的错误、加载和进度。
 - 同步中重复刷新受 busy guard 限制。成功登录在 busy 时排队，当前任务结束后合并为一次完整刷新；退出时清除待刷新。单项刷新只处理自己的问题和进度，成功不重报另一资源的旧失败；失败保留现有展示；无有效新写入时 Flow 不替换内容，不以坏响应覆盖缓存。
 - IOException、HTTP 408 / 5xx 最多额外重试两次，延迟 2 秒、5 秒；无活动网络不进入请求和重试；有网络时预算不变。认证、解析异常及其他 HTTP 错误（含 429）不自动重试。CancellationException 继续传播。

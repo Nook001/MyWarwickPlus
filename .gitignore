@@ -8,3 +8,8 @@ work/
 *.iml
 *.jks
 *.keystore
+*.p12
+*.pfx
+release-signing.properties
+credentials.xml
+dist/

@@ -1,8 +1,8 @@
 # API 接入进度
 
-更新：2026-10-08；代码 0.25.1 / versionCode38。首页Today/Deadlines左列48→40sp转dp，正文左移8dp（默认字体缩放）；Inbox标题14sp Medium、摘要/搜索12sp、来源/日期11sp，来源与日期同行，消息详情标题18sp/正文14sp；Tab图标24→22dp，点击区域不变。接口、认证、只读边界及schema5不变；公交与非空Library结构仍未验证。下表为历史证据，不代表当前账户实时数量。协议见 [protocol.md](protocol.md)，架构见 [architecture.md](architecture.md)，交付状态见 [validation.md](validation.md)。
+更新：2026-10-08；代码 0.26.0-beta.1 / versionCode39。首次公开候选增加正式签名/打包验证、独立公开/Debug/Profile包名、MIT/隐私与Me入口；已有首页/Inbox排版保留。接口、认证、只读边界及schema5不变；公交与非空Library结构仍未验证。下表为历史证据，不代表当前账户实时数量。协议见 [protocol.md](protocol.md)，架构见 [architecture.md](architecture.md)，交付状态见 [validation.md](validation.md)。
 
-0.25.1已覆盖安装到物理手机，构建/Lint通过；Inbox来源日期同行与缩小图标经只读截图核对，搜索/详情、大字体与首页左列仍需用户手动验收。详细证据见validation.md。
+首次公开候选尚未公开发布；正式Release验证/手机验收见validation.md，发布与分工见release.md。0.25.1内部包的历史部署记录不等于新包验收。
 
 
 ## 已接入

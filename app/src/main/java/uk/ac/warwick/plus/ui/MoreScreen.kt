@@ -48,8 +48,20 @@ fun MoreContent(state: TimetableState, onLogin: () -> Unit, onSignOut: () -> Uni
                     external = true, actionLabel = stringResource(R.string.open_in_browser, stringResource(service.labelRes)))
             })
         }
-        item { Text(stringResource(R.string.version_detail, BuildConfig.VERSION_NAME), style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        item {
+            Column {
+                Text(stringResource(R.string.version_detail, BuildConfig.VERSION_NAME), style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = { onOpen("https://github.com/Nook001/MyWarwickPlus/blob/master/PRIVACY.md") }) {
+                        Text(stringResource(R.string.privacy_information), style = MaterialTheme.typography.bodySmall)
+                    }
+                    TextButton(onClick = { onOpen("https://github.com/Nook001/MyWarwickPlus/blob/master/THIRD_PARTY_NOTICES.md") }) {
+                        Text(stringResource(R.string.open_source_licenses), style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
         if (state.hasSavedData || state.signedIn || state.logoutFailed) item(key = "sign-out") {
             TextButton(onClick = { confirmSignOut = true }, modifier = Modifier.fillMaxWidth().testTag("sign-out"),
                 enabled = !state.signingOut) {
