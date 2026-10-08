@@ -49,23 +49,23 @@ Modules 仅存公告/评估数组数量；Library 未知字段不推断借阅状
 
 | GET 路径 | 已确认结构 | 首轮用途与边界 |
 | --- | --- | --- |
-| `/api/tiles/content/bus` | content.items；item: id/callout/text，全为字符串；本次 18 条 | Me → Buses，显示服务给出的时刻和线路文字；没有结构化实时标志，不标注“实时”，旧缓存要注明过期，不先猜路线/站点字段 |
-| `/api/tiles/content/print` | content.href/items；item: id/callout/text；本次 1 条，原站 printercredits.warwick.ac.uk | Me → Print，余额摘要和官方入口；不充值、不提交打印任务，不解析成未确认的账户/配额结构 |
-| `/api/tiles/content/uni-events` | content.defaultText/currentWeek/items；item: id/source/start/end/isAllDay/title/location[]/href/extraInfo/academicWeek；本次 100 条，location item 已见 name，时间 offset 同 Coursework | Me → Events，未来活动/来源筛选、完整详情及报名原站；source 已见 insite/student-events/library。与个人汇总日程 eventsmerge 分开，不直接影响课程 Now/Next |
+| `/api/tiles/content/bus` | content.items；item: id/callout/text，全为字符串；本次 18 条 | Home 半宽公交摘要，按原始顺序显示少量时刻和线路文字；没有结构化实时标志，不标注“实时”，旧缓存要注明过期，不先猜路线/站点字段 |
+| `/api/tiles/content/print` | content.href/items；item: id/callout/text；本次 1 条，原站 printercredits.warwick.ac.uk | Home 半宽打印余额摘要和官方入口；不充值、不提交打印任务，不解析成未确认的账户/配额结构 |
+| `/api/tiles/content/uni-events` | content.defaultText/currentWeek/items；item: id/source/start/end/isAllDay/title/location[]/href/extraInfo/academicWeek；本次 100 条，location item 已见 name，时间 offset 同 Coursework | Home 最底部少量未来/进行中的公开活动，详情及报名原站；source 已见 insite/student-events/library。与个人汇总日程 eventsmerge 分开，不直接影响课程 Now/Next |
 
 ### 原生接入实施计划
 
-沿用当前 Me 的紧凑应用列表，增加 Buses、Print、Events 三个内部入口，不增加底部 Tab。先交付完整服务页，首页摘要待手机验证后再决定。以下均为待实施计划，不代表已接入。
+保持现有个人日程和 Deadlines 的优先级，其后增加一行 Buses/Print 两个半宽摘要卡，Messages 之后在首页最底部展示 Events。不增加底部 Tab 或独立服务页。以下均为待实施计划，不代表已接入。
 
 | 批次 | 交付内容 | 验收重点 |
 | --- | --- | --- |
-| 1：按需基础 + Buses | 区分默认六项刷新与按需资源，修正任务分母；进入 Buses 请求一次，下拉刷新；紧凑显示 callout 时刻和原始线路文字 | 启动/Home 刷新不请求新服务；已有刷新期间进入页面，合并一次待执行请求，不丢失加载；缓存与在线数据明确区分 |
-| 2：Print | 独立余额摘要、接口给出的说明和官方网页入口；保留余额字符串，不自行推断币种、配额或可打印页数 | 空余额、账户变化、断网与重新登录；外链不携带客户端 cookie；不充值或提交打印 |
-| 3：Events | 按日期分组的未来/正在进行活动列表，来源筛选、详情、官方活动链接；初版只展示接口返回的集合 | 全日/跨日、英国时区、空列表、重复 ID 与坏日期；保留未知来源；不虚构分页或完整历史，不混入课程 Now/Next |
+| 1：缓存/刷新基础 + 两个半宽卡 | Buses 最多两条时刻与线路文字，Print 原始余额与说明、官方网页入口；普通单层卡、紧凑标题，窄屏/大字体可改上下排列 | 左右各占可用宽度的一半；公交不猜发车日期或实时性，余额不猜币种/配额；未加载、真空列表、缓存和失败明确区分 |
+| 2：首页底部 Events | 最多三条未来/正在进行活动，日期时间、标题、可选地点；长说明放复用详情，报名跳学校给出的活动链接；初版不加搜索或来源筛选 | 全日/跨日、英国时区、重复 ID 与坏日期；空集合简短反馈，不虚构分页或完整历史，不混入课程 Now/Next |
+| 3：手机验收与收尾 | 校验真实公交、余额、活动及覆盖升级；按反馈控制高度和文字截断，更新实际 API 状态 | 半宽长线路与大字体；失效会话、断网旧数据、账户切换；原站跳转与返回，首页刷新完成时间 |
 
-**数据与同步：** 复用现有认证、有限重试、请求取消、账户隔离和事务缓存。新增资源使用稳定 slot/key；不能继续用 `SyncResource.entries` 隐式决定默认刷新范围。新增内容进入 Room 快照和变更观察，退出/换账户同时清理。Buses/Print 可共用已确认的 id/callout/text 结构解析，业务展示保持独立；Events 使用独立活动模型，复用日期、地点和详情组件，不塞入课程或通知模型。缓存变更须提供从公开 schema 5 开始的非破坏迁移；后续批次递增并保留迁移链。
+**数据与同步：** 复用现有认证、有限重试、请求取消、账户隔离和事务缓存。新增资源使用稳定 slot/key；不能继续用 `SyncResource.entries` 隐式决定刷新范围。首页加载先完成核心六项，再刷新到期的服务摘要；Home 下拉包含三个新资源，其余页面只沿用原刷新范围。任务分母由本次实际执行列表决定；繁忙期间合并待执行请求，切页与重组不重复启动。新增内容进入 Room 快照和变更观察，退出/换账户同时清理。Buses/Print 可共用已确认的 id/callout/text 结构解析，业务展示保持独立；Events 使用独立活动模型，复用日期、地点和详情组件，不塞入课程或通知模型。缓存变更须提供从公开 schema 5 开始的非破坏迁移；后续批次递增并保留迁移链。
 
-**新鲜度：** Buses 每次进入尝试刷新，不后台轮询；读取旧缓存、离线或刷新失败时，在内容附近显示“上次更新”及非实时提示。这是时效数据的必要说明，不恢复各页面日志页脚。服务只有 HH:mm，首版保留原始顺序，不据此猜测日期、过滤已发车或计算倒计时。Print/Events 首次进入加载，后续进入分别以 10/30 分钟为初始刷新间隔，下拉始终可刷新；间隔是客户端策略，不是后端有效期保证。缺少日期字段及余额/extraInfo 的实际格式在实现前做针对性的只读复核。
+**新鲜度：** 首次首页加载三个资源；再次进入首页，公交缓存超过 1 分钟才尝试刷新，Print/Events 分别以 10/30 分钟为初始间隔，不后台轮询。Home 下拉始终刷新。间隔是客户端策略，不是后端有效期保证。公交读取旧缓存、离线或刷新失败时，在卡片内显示简短的更新时间及非实时提示，不恢复各页面日志页脚。服务只有 HH:mm，首版保留原始顺序，不据此猜测日期、过滤已发车或计算倒计时。缺少日期字段及余额/extraInfo 的实际格式在实现前做针对性的只读复核。
 
 **检查：** 构建、Lint 与相关既有检查；只为时间边界、缓存隔离、迁移等复杂逻辑补必要的精简检查，不新增 UI Test。物理手机确认三类真实数据与 schema 升级保留旧缓存；构建或空响应不能代替非空内容验收。每批更新本表的“已确认且待接入”状态，不把浏览器证据改写成原生验证。
 
