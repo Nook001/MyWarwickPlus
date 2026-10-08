@@ -2,6 +2,8 @@
 
 更新：2026-10-08；代码 0.24.3 / versionCode36。首页课程、Deadline、消息标题和空状态统一12sp常规字重，与12sp分区标题同字号；Today时间与Deadline数字/days统一11sp，集中于HomeTypography。Next课程名保留16sp强调，Classes/Tasks布局不变。Today/Tomorrow、周末祝语和两条Messages摘要数据规则不变。接口、认证、只读边界及schema5不变；公交与非空Library结构仍未验证。下表为历史证据，不代表当前账户实时数量。协议见 [protocol.md](protocol.md)，架构见 [architecture.md](architecture.md)，交付状态见 [validation.md](validation.md)。
 
+0.24.3已覆盖安装到物理手机并启动，字号与交互待用户手动验收；本次部署不新增API或学校端写操作。
+
 ## 已接入
 
 | API / 方法 | 接入情况 | 使用与展示 | 验证 / 限制 |

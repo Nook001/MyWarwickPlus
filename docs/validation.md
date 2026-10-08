@@ -12,7 +12,9 @@
 
 2026-10-08：首页课程/作业/消息标题和空状态14→12sp，与分区标题同字号；Today起止时间与Deadline数字/days统一11sp，保留数字Medium、次要值Regular。HomeTypography集中此规则，沿用Material字体族与系统字体缩放；Next课程名仍16sp，Classes/Tasks及现有间距、卡片颜色、数据逻辑不变。
 
-assembleDebug、lintDebug成功（26s，日志work/0243-build.log），Lint报告No issues found；未新增测试，未运行JVM/UI Test或Release构建。按用户要求配置origin为https://github.com/Nook001/MyWarwickPlus.git；本次交付远程源码，不安装到手机，物理手机仍是上一版0.24.2。未进行新版真机截图或手动验收；手动重点：时间/倒计时可读性、长标题省略减少、字体缩放与详情/All/刷新，构建不能替代手动验收。
+assembleDebug、lintDebug成功（26s，日志work/0243-build.log），Lint报告No issues found；未新增测试，未运行JVM/UI Test或Release构建。origin为https://github.com/Nook001/MyWarwickPlus.git，源码提交c075cc4已推送master并核对远程HEAD一致。
+
+2026-10-08：按用户要求部署到物理手机。首次USB安装被拒（INSTALL_FAILED_ABORTED / User rejected permissions）；用户回复重试后指定10AG4S2KQJ0066R执行install -r成功，dumpsys确认0.24.3 / versionCode36。启动Status:ok / COLD / TotalTime570ms，单次Debug值不作性能基准；未卸载/清数据或安装到模拟器。未进行新版真机截图或手动验收；手动重点：时间/倒计时可读性、长标题省略减少、字体缩放与详情/All/刷新，安装与启动不能替代手动验收。
 
 ## 上一版：0.24.2 / versionCode 35
 
