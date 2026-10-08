@@ -4,7 +4,7 @@
 公开包名 `io.github.nook001.mywarwickplus`；Debug 为 `.debug`、Profile 为 `.profile`。
 namespace/Activity 类名仍为 `uk.ac.warwick.plus`。旧内部包保留，不复制其认证或私人数据。
 
-2026-10-08：已生成签名发布包与[GitHub Draft](https://github.com/Nook001/MyWarwickPlus/releases/tag/untagged-1393494daccac4fa32f6)。源码提交/签名指纹/APK校验值在本地dist的manifest中；八个public附件已上传，尚未公开发布。物理手机USB安装被拒，需重试或手动安装后验收。
+2026-10-08：已生成签名发布包与[GitHub Draft](https://github.com/Nook001/MyWarwickPlus/releases/tag/untagged-1393494daccac4fa32f6)。源码提交/签名指纹/APK校验值在本地dist的manifest中；八个public附件已上传，尚未公开发布。首次USB安装被拒，用户解锁后重试成功，新Release已在物理手机启动、安装APK校验值一致；需独立登录并按下表验收，旧内部包保留。
 
 ## 工作分工
 

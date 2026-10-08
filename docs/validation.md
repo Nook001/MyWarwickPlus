@@ -21,7 +21,7 @@
 | 私人数据 / 文档 | 已跟踪文件高置信token/private-key扫描无匹配，未跟踪APK/keystore/HAR/local.properties/work/dist；不是完整历史秘密审计。隐私/发布分工/脱敏反馈/签名备份与手机清单已补齐；未访问学校数据 |
 | 待验收 / 发布 | 新Release包首次登录/MFA、各页面、离线/重启/覆盖安装、退出重登待用户手动验收；独立备份密钥/密码、学校第三方发行允许范围待用户确认。构建成功不代表正式公开发布 |
 | 最终打包 / Draft | package.ps1实际成功，产物源码提交5494241；签名指纹与固定文件一致，生成APK/SHA256SUMS/release-manifest及分离的private记录。源码已推送，GitHub Draft为v0.26.0-beta.1，isDraft=true/isPrerelease=true，8附件齐备；未公开发布 |
-| 新包安装 | 指定物理手机10AG4S2KQJ0066R执行签名APK install -r被拒：INSTALL_FAILED_ABORTED / User rejected permissions，新Release尚未装上。未卸载/清理旧uk.ac.warwick.plus包，用户选择重试或自行安装；不以旧Debug的验收代替新Release |
+| 新包安装 | 首次USB安装被拒；用户解锁授权重试后，指定10AG4S2KQJ0066R执行install -r成功。dumpsys确认新包0.26.0-beta.1/code39，无DEBUGGABLE；启动Status:ok/COLD/168ms（单次辅助值，非基准）。只读pull实际安装APK，SHA-256与候选一致；旧uk.ac.warwick.plus仍0.25.1/code38，未卸载/清数据。新包登录与交互仍待用户手测 |
 
 最终打包产物、SHA256与源码提交以dist/v0.26.0-beta.1/public/release-manifest.json为准；不把本地旧unsigned或Debug APK当作发行包。签名脚本不自动安装/发布；操作方法见[release.md](release.md)。
 
