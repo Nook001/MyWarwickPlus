@@ -41,7 +41,7 @@ $env:JAVA_HOME = 'D:/Dev/JDK21.0.8'
 
 ## 开发候选
 
-0.26.0-beta.2 / versionCode 40：Inbox 本地来源筛选、Home 正方形入口、紧凑 Me 网格。Debug 构建和 Lint 通过；同签名 Release 打包待完成。ADB 未检测到手机，尚未安装或取得新 UI 手测反馈。没有新增单元测试或 UI Test。
+0.26.0-beta.2 / versionCode 40：Inbox 本地来源筛选、Home 正方形入口、紧凑 Me 网格。源码提交 `fdb359d`；Debug/签名 Release 构建通过，76 项既有 JVM 检查通过，Debug Lint 无问题，Release 0 errors/1 warning（Gradle 补丁提示）。同签名 APK 与校验文件在 `dist/v0.26.0-beta.2/public/`，尚未发布 GitHub。ADB 未检测到手机，尚未安装或取得新 UI 手测反馈。没有新增单元测试或 UI Test。
 
 新增服务的浏览器只读证据及原生接入边界统一记录在 API 表，当前仍只同步六类业务数据、使用 schema 5。
 

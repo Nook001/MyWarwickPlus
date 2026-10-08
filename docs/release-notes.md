@@ -17,6 +17,9 @@ University of Warwick application; a Warwick account is required.
 Buses, Print Balance and Events APIs have been verified in an authenticated
 browser. Their native pages and cache are still planned and are not included.
 
+Debug and signed Release builds, existing JVM checks and signature verification
+passed. Physical-device acceptance of these changes is still pending.
+
 ## Install
 
 Use the signed `MyWarwickPlus-0.26.0-beta.2.apk`. It updates the public package
