@@ -2,9 +2,9 @@
 
 独立的 Android 学生客户端，Kotlin + Jetpack Compose。通过官方 WebView SSO 登录，复用 MyWarwick session 与只读聚合接口，不申请新的 OAuth application；不是 Warwick 官方应用，也不代表已获得学校发行授权。
 
-当前候选：**0.26.0-beta.1 / versionCode 39**。Android 9+，需要Warwick账号；构建、物理安装、手动验收与公开发布是不同状态，见 [验收记录](docs/validation.md)。
+当前发行：**0.26.0-beta.1 / versionCode 39**。Android 9+，需要Warwick账号；构建、物理安装、手动验收与公开发布是不同状态，见 [验收记录](docs/validation.md)。
 
-首次发布准备见 [发布流程](docs/release.md) 与 [发布说明](docs/release-notes.md)。公开Beta附件尚未发布，请不要把Debug/unsigned包作为正式发行包。
+从 [GitHub Release](https://github.com/Nook001/MyWarwickPlus/releases/tag/v0.26.0-beta.1) 下载签名APK；当前为Pre-release。详见 [发布流程](docs/release.md) 与 [发布说明](docs/release-notes.md)，不要把Debug/unsigned包作为正式发行包。
 
 ## 当前功能
 

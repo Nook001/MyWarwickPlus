@@ -47,9 +47,14 @@ Feedback: https://github.com/Nook001/MyWarwickPlus/issues
 Please include the app/Android version and reproduction steps. Remove names,
 emails, student IDs, private messages, cookies and tokens from public reports.
 
-## Candidate status
+## Validation
 
-This file prepares a release candidate, not evidence of public availability or
-university authorization. Before publishing, finish the manual acceptance in
-`docs/release.md`, back up signing material, and resolve the permitted scope
-of third-party distribution. Publish as a GitHub **Pre-release** initially.
+The signed Release APK was installed on a physical Android device, and the
+maintainer reported successful manual sign-in testing. Release/Debug/Profile
+builds and 76 existing unit checks passed. Release Lint has no errors and one
+informational warning about an available Gradle patch update. APK signature and
+SHA-256 were verified; no new UI tests were added or run. Broader device,
+offline, upgrade and account-flow coverage remains limited.
+
+This is a GitHub **Pre-release**, intended for early feedback. It does not
+indicate university endorsement or authorization of this independent project.

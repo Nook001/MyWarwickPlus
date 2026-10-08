@@ -1,10 +1,10 @@
 # 首次发布与后续交付
 
-候选：`v0.26.0-beta.1`，versionCode39，Android 9+，Room schema5。
+首个公开Beta：`v0.26.0-beta.1`，versionCode39，Android 9+，Room schema5。
 公开包名 `io.github.nook001.mywarwickplus`；Debug 为 `.debug`、Profile 为 `.profile`。
 namespace/Activity 类名仍为 `uk.ac.warwick.plus`。旧内部包保留，不复制其认证或私人数据。
 
-2026-10-08：已生成签名发布包与[GitHub Draft](https://github.com/Nook001/MyWarwickPlus/releases/tag/untagged-1393494daccac4fa32f6)。源码提交/签名指纹/APK校验值在本地dist的manifest中；八个public附件已上传，尚未公开发布。首次USB安装被拒，用户解锁后重试成功，新Release已在物理手机启动、安装APK校验值一致；需独立登录并按下表验收，旧内部包保留。
+2026-10-08：用户反馈新Release手动登录测试正常，并明确要求公开发布；[GitHub Release](https://github.com/Nook001/MyWarwickPlus/releases/tag/v0.26.0-beta.1)已发布，isDraft=false/isPrerelease=true，八个public附件齐备。源码提交5494241/签名指纹/APK校验值在dist的manifest中；物理安装APK及GitHub附件哈希一致，旧内部包保留。用户只反馈登录测试，其他清单不推定全部通过；异机签名备份与学校允许范围仍未在本会话核实。
 
 ## 工作分工
 
@@ -16,7 +16,7 @@ namespace/Activity 类名仍为 `uk.ac.warwick.plus`。旧内部包保留，不�
 | 密钥与密码独立备份 | 用户；验证在另一安全位置可恢复，不能只有本机加密凭据 |
 | 登录/MFA、退出和各页面验收 | 用户；只在明确的 Release 应用内操作，不清旧内部包数据 |
 | 学校允许的第三方客户端发行范围 | 用户确认；Codex可整理咨询要点，不自行发消息 |
-| Draft / Pre-release 附件与最后发布 | 先核对源码/附件/许可/验收，再执行；本轮不自动公开发布 |
+| Draft / Pre-release 附件与最后发布 | 本次按用户明确要求完成公开Pre-release；后续按新版本重复核对源码/附件/验收，不覆盖已发布APK |
 
 ## 签名与打包
 
@@ -100,7 +100,7 @@ MIT仅覆盖本项目代码；依赖保留自身许可，学校内容/品牌不�
 对应 tag 指向该提交，在 GitHub创建 Draft，添加 public 附件，再标为 Pre-release。
 不要沿用旧的 `app-release-unsigned.apk`、Debug包或profile包。
 
-第一次使用CLI时可手动核对：
+下列保留首次发布命令示例；本次tag已发布，不重复执行create/upload，后续须改为新版本tag：
 
 ```powershell
 $manifest = Get-Content dist/v0.26.0-beta.1/public/release-manifest.json -Raw | ConvertFrom-Json
