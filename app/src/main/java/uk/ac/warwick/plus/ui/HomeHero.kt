@@ -13,6 +13,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -36,8 +37,9 @@ internal fun moduleColourIndex(events: List<EventContentItem>): Map<String, Int>
     events.map(::moduleKey).distinct().sorted().withIndex().associate { (index, key) -> key to index }
 
 @Composable
-internal fun rememberModuleColours(events: List<EventContentItem>, onLight: Boolean): (EventContentItem) -> Color {
+internal fun rememberModuleColours(events: List<EventContentItem>, surface: Color): (EventContentItem) -> Color {
     val indices = remember(events) { moduleColourIndex(events) }
+    val onLight = surface.luminance() > .5f
     return remember(indices, onLight) { { event -> moduleColour(indices[moduleKey(event)] ?: 0, onLight) } }
 }
 

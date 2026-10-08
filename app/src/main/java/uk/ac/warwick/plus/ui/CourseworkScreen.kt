@@ -8,10 +8,12 @@ import uk.ac.warwick.plus.ui.components.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import uk.ac.warwick.plus.config.AppActions
@@ -36,15 +38,22 @@ fun CourseworkContent(state: CourseworkState, now: Long, busy: Boolean,
             CourseworkFilter.UPCOMING -> matching.sortedBy { it.dueMillis }
         }
     }
-    LazyColumn(Modifier.fillMaxSize().testTag("coursework-list"), contentPadding = PaddingValues(Spacing.page)) {
+    val groups = remember(ordered, filter, now) {
+        if (filter == CourseworkFilter.PAST) listOf(null to ordered)
+        else ordered.partition { deadlineTiming(it.dueMillis, now).days <= 7 }.let { (soon, later) ->
+            listOf(R.string.next_seven_days to soon, R.string.later to later).filter { it.second.isNotEmpty() }
+        }
+    }
+    val listState = rememberLazyListState()
+    LazyColumn(Modifier.fillMaxSize().fadingTopEdge(listState).testTag("coursework-list"), state = listState,
+        contentPadding = Spacing.compactPage) {
         item(contentType = "task-controls") {
-            Column(Modifier.padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SearchField(query, { query = it }, stringResource(R.string.search_items, stringResource(AppLabels.TASKS))) { focus.clearFocus() }
-                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                    val options = CourseworkFilter.entries
-                    options.forEachIndexed { index, option ->
-                        SegmentedButton(selected = filter == option, onClick = { chooseFilter(option); focus.clearFocus() },
-                            shape = SegmentedButtonDefaults.itemShape(index, options.size)) { Text(stringResource(option.labelRes)) }
+            Column(Modifier.padding(bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SearchField(query, { query = it }, stringResource(R.string.search_items, stringResource(AppLabels.TASKS)), compact = true) { focus.clearFocus() }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    CourseworkFilter.entries.forEach { option ->
+                        FilterChip(selected = filter == option, onClick = { chooseFilter(option); focus.clearFocus() },
+                            label = { Text(stringResource(option.labelRes), style = InboxTypography.preview) })
                     }
                 }
             }
@@ -59,9 +68,15 @@ fun CourseworkContent(state: CourseworkState, now: Long, busy: Boolean,
                 DataEmptyState(if (hasQuery) stringResource(R.string.no_matching_deadlines) else if (filter == CourseworkFilter.PAST) stringResource(R.string.no_past_deadlines) else stringResource(R.string.no_upcoming_deadlines),
                     action = if (hasQuery) stringResource(AppActions.CLEAR_SEARCH) else null, onAction = { query = ""; focus.clearFocus() })
             }
-            else -> itemsIndexed(ordered, key = { _, entry -> entry.id }, contentType = { _, _ -> "task" }) { index, entry ->
-                GroupedListItem(first = index == 0, last = index == ordered.lastIndex) {
-                    DeadlineRow(entry, now, DeadlinePresentation.List) { focus.clearFocus(); onSelect(entry) }
+            else -> groups.forEachIndexed { groupIndex, (label, group) ->
+                if (label != null) item(key = "group-$label", contentType = "task-group") {
+                    Box(Modifier.padding(top = if (groupIndex == 0) 4.dp else 16.dp, bottom = 6.dp)) { SectionLabel(stringResource(label)) }
+                }
+                itemsIndexed(group, key = { _, entry -> entry.id }, contentType = { _, _ -> "task" }) { index, entry ->
+                    GroupedListItem(first = index == 0, last = index == group.lastIndex) {
+                        DeadlineRow(entry, now, DeadlinePresentation.List,
+                            modifier = Modifier.alpha(if (filter == CourseworkFilter.PAST) .6f else 1f)) { focus.clearFocus(); onSelect(entry) }
+                    }
                 }
             }
         }

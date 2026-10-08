@@ -179,7 +179,7 @@ internal fun PlusScreen(state: TimetableState, actions: PlusActions) {
                                         { navigator.select(AppTab.MESSAGES) })
                                     AppTab.MESSAGES -> FeedContent(FeedKind.MESSAGES, messages, state.busy, state.needsLogin,
                                         { recoverResource(SyncResource.MESSAGES) }, actions.loadOlderMessages,
-                                        { navigator.detail = DetailSelection.Feed(FeedKind.MESSAGES, it.id) }, openLink, actions.signIn)
+                                        { navigator.detail = DetailSelection.Feed(FeedKind.MESSAGES, it.id) }, openLink, actions.signIn, today)
                                     AppTab.TASKS -> CourseworkContent(state.coursework, now, state.busy,
                                         feedback = { ResourceRecoveryRow(courseworkRecovery, actions.signIn) { recoverResource(SyncResource.COURSEWORK) } },
                                         showFeedback = state.needsLogin || state.coursework.message != null,

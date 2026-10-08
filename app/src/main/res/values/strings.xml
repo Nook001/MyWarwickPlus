@@ -120,7 +120,12 @@
     <string name="minutes_left">%1$d min left</string>
     <string name="hours_left">%1$dh %2$02dm left</string>
     <string name="in_minutes">In %1$d min</string>
-    <string name="in_hours">In %1$dh %2$02dm</string>    <string name="later_today">Later today</string>
+    <string name="in_hours">In %1$dh %2$02dm</string>
+    <string name="week_number">Week %1$d</string>
+    <string name="last_seven_days">Last 7 days</string>
+    <string name="next_seven_days">Next 7 days</string>
+    <string name="earlier">Earlier</string>
+    <string name="later">Later</string>    <string name="later_today">Later today</string>
     <string name="good_morning">Good morning</string>
     <string name="good_afternoon">Good afternoon</string>
     <string name="good_evening">Good evening</string>

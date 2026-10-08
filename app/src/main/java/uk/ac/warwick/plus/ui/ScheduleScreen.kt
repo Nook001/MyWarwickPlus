@@ -17,6 +17,7 @@ import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -49,7 +50,8 @@ internal fun ScheduleContent(state: SchedulePageState, today: LocalDate, now: Lo
     val nextId = remember(state.events, now) {
         nextTimedClass(state.events, now)?.id
     }
-    LazyColumn(Modifier.fillMaxSize().testTag("schedule-list"), state = listState,
+    val colourOf = rememberModuleColours(state.events, appCardColours(CardTone.Normal).background)
+    LazyColumn(Modifier.fillMaxSize().fadingTopEdge(listState).testTag("schedule-list"), state = listState,
         contentPadding = Spacing.compactPage,
         verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (state.showFeedback) item { feedback() }
@@ -57,7 +59,10 @@ internal fun ScheduleContent(state: SchedulePageState, today: LocalDate, now: Lo
             DataEmptyState(if (state.busy) stringResource(R.string.loading_timetable) else stringResource(R.string.timetable_not_loaded))
         } else items(days, key = { it.date.toEpochDay() }, contentType = { "schedule-day" }) { day ->
             Column(Modifier.fillMaxWidth().testTag("schedule-day-${day.date}"), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                SectionLabel(scheduleDateLabel(day.date, today).render())
+                val week = day.events.firstOrNull { it.academicWeek > 0 }?.academicWeek
+                SectionLabel(listOfNotNull(scheduleDateLabel(day.date, today).render(),
+                    week?.let { stringResource(R.string.week_number, it) }).joinToString(" · "),
+                    trailing = day.events.size.takeIf { it > 0 }?.let { classCountLabel(it) })
                 AppCard(Modifier.fillMaxWidth()) {
                     if (day.events.isEmpty()) Text(if (day.date == today) stringResource(R.string.no_classes_today) else stringResource(R.string.no_classes_on_day),
                         style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp))
@@ -65,7 +70,8 @@ internal fun ScheduleContent(state: SchedulePageState, today: LocalDate, now: Lo
                         day.events.forEachIndexed { index, event ->
                             if (index > 0) ListDivider(inset = 0.dp)
                             val status = classStatus(event, now, nextId, day.date)?.let { stringResource(it) }
-                            ScheduleClassRow(event, day.date, status, event.id in conflicts) { onSelect(event) }
+                            ScheduleClassRow(event, day.date, status, event.id in conflicts, accent = colourOf(event),
+                                finished = day.date == today && event.endMillis <= now) { onSelect(event) }
                         }
                     }
                 }
@@ -77,11 +83,12 @@ internal fun ScheduleContent(state: SchedulePageState, today: LocalDate, now: Lo
 @Composable
 internal fun ScheduleClassRow(event: EventContentItem, date: LocalDate, status: String?, conflict: Boolean,
     compactTop: Boolean = false, density: ListRowDensity = ListRowDensity.Standard, accent: Color? = null,
-    onSelect: () -> Unit) {
+    finished: Boolean = false, onSelect: () -> Unit) {
     val identity = classIdentity(event)
     val time = scheduleTime(event, date)
     val compact = density == ListRowDensity.Compact
-    MetricListRow(onSelect, stringResource(R.string.view_class_details), Modifier.testTag("schedule-class-${date}-${event.id}"),
+    MetricListRow(onSelect, stringResource(R.string.view_class_details),
+        Modifier.testTag("schedule-class-${date}-${event.id}").alpha(if (finished) .5f else 1f),
         compactTop = compactTop, density = density, metric = {
             Text(if (event.allDay) stringResource(R.string.all_day) else time.start,
                 style = if (compact) HomeTypography.metric else if (event.allDay) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,

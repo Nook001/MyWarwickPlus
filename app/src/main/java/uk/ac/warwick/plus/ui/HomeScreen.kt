@@ -5,10 +5,10 @@ import androidx.compose.ui.res.stringResource
 import uk.ac.warwick.plus.ui.components.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import java.time.LocalDate
@@ -26,8 +26,8 @@ internal fun HomeContent(state: HomePageState, today: LocalDate, now: Long, onSe
     val heroDate = next?.let { atWarwick(it.startMillis).toLocalDate() }
     val timeline = remember(state.events, heroDate, now) { heroDate?.let { dayTimeline(state.events, it, now) } }
     val agendaEvents = remember(agenda, next) { agenda.day.events.filter { it.id != next?.id } }
-    val featuredColourOf = rememberModuleColours(state.events, appCardColours(CardTone.Featured).background.luminance() > .5f)
-    val colourOf = rememberModuleColours(state.events, appCardColours(CardTone.Normal).background.luminance() > .5f)
+    val featuredColourOf = rememberModuleColours(state.events, appCardColours(CardTone.Featured).background)
+    val colourOf = rememberModuleColours(state.events, appCardColours(CardTone.Normal).background)
     val conflicts = state.conflicts
     val upcoming = remember(state.coursework.entries, now) {
         state.coursework.entries.filter { it.dueMillis >= now }.sortedBy { it.dueMillis }.take(3)
@@ -36,7 +36,8 @@ internal fun HomeContent(state: HomePageState, today: LocalDate, now: Long, onSe
         val recentStart = atWarwick(now).minusDays(7).toInstant().toEpochMilli()
         state.coursework.entries.count { it.dueMillis in recentStart until now }
     }
-    LazyColumn(Modifier.fillMaxSize().testTag("home-list"),
+    val listState = rememberLazyListState()
+    LazyColumn(Modifier.fillMaxSize().fadingTopEdge(listState).testTag("home-list"), state = listState,
         contentPadding = Spacing.compactPage,
         verticalArrangement = Arrangement.spacedBy(Spacing.homeSection)) {
         item(key = "next") {
