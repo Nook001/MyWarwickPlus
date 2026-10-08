@@ -1,257 +1,100 @@
 # 架构与组件规范
 
-更新：2026-10-08，适用代码 0.26.0-beta.1。前文记录已落地的组件、共享函数、同步、数据反馈、课表和主题标准；末节保留评估基线并标注实施进度。接口证据见 [protocol.md](protocol.md)，覆盖表见 [api-progress.md](api-progress.md)，验证状态见 [validation.md](validation.md)。
+MyWarwick+ 使用单个 Android app module，保持 UI、同步编排、接口与缓存的职责边界。本文只维护当前约定；接口见 [API 接入与协议](api-progress.md)，检查与待办见 [开发与验证](development.md)。
 
 ## 代码职责
 
-单个 app module，Kotlin 业务/Compose UI，Room DAO/实体使用 Kotlin + KSP 2.3.12，无 kapt；数据库类保留原身份与 schema。源码根目录为 `app/src/main/java/uk/ac/warwick/plus/`。
+源码根目录为 `app/src/main/java/uk/ac/warwick/plus/`。
 
-| 来源 | 职责 |
+| 位置 | 职责 |
 | --- | --- |
-| auth/ | 官方 WebView SSO、CookieManager、限定 MyWarwick origin 的 CookieJar |
-| data/MyWarwickApi、各 Parser | 只读 GET、响应大小/结构校验、整批解析，不负责 UI |
-| data/TimetableRepository、StudentCache、TimetableDao、TimetableDatabase | 仓库只依赖原子缓存接口；账户隔离、串行读写/退出、事务快照；SyncSlots 集中持久 ID |
-| ui/TimetableViewModel | 单份同步任务、完整/单项/分页执行、缓存 Flow 观察、阶段进度及通知 |
-| ui/TimetableState、SyncRetry | 状态类型与 withCache/withIssue/resourceFailed；独立重试策略 |
-| config/AppLabels | 页面、分类、区段及动作的资源 ID；文字在 strings.xml，不作为存储/接口key |
-| ui/NavigationState、SyncOperation | 类型化Tab/筛选/Me子页/详情、轻量Saver、同步操作和当前状态恢复动作 |
-| ui/PlusNavigator、PlusActions、PlusScreen | 导航/选日与轻量 Saver、动作集合；根页面连接投影与当前状态恢复 |
-| ui/*Screen、业务详情 | 组合页面、业务展示及按需详情；不直接读写数据库 |
-| ui/components/ | 基础容器、列表、操作、输入、标题及详情骨架；package 与目录一致 |
-| ui/UiText、res/values/strings.xml | 延迟解析的消息/进度描述、格式化参数、数量与静态文案 |
+| `auth/` | 官方 WebView SSO、CookieManager、限定 origin 的 CookieJar |
+| `data/MyWarwickApi`、Parser、`JsonFields` | 只读请求、响应限制、实际 JSON 类型与整批结构校验 |
+| `data/TimetableRepository`、`StudentCache`、DAO | 账户隔离、串行读写、原子缓存与事务快照 |
+| `ui/TimetableViewModel`、`SyncRetry` | 单份同步任务、登录后待刷新、重试、阶段进度和恢复通知 |
+| `ui/TimetableState`、`data/StudentContent` | 持久数据的只读展示快照，独立资源错误与全局会话问题 |
+| `ui/PlusNavigator`、`NavigationState`、`PlusActions` | 类型化路由、轻量状态保存、当前状态下的动作分派 |
+| `ui/*Screen`、详情、Presentation | 页面组合、纯展示计算、局部搜索/筛选和详情 |
+| `ui/components/` | 卡片、列表、输入、标题、操作与详情骨架 |
+| `config/AppLabels`、`UiText`、`strings.xml` | 集中显示名称、参数化文案和数量资源 |
 
-组件只接受展示内容与动作，不持有 ViewModel、不发网络请求、不修改账户。暂不引入多模块、资源插件或并发同步；抽象由实际复用场景推动。
+组件接收展示值与动作，不持有 ViewModel、不请求网络、不修改账户。暂不增加多模块、DI 框架或每页 ViewModel；共享抽象以实际复用为依据。
 
-## 0.21.0 质量收敛
-
-- `JsonFields` 共用 envelope/对象数组/唯一 ID 校验和实际类型读取；可选字符串 null/异型值视为空，必需字段拒绝整批，Modules 保持已确认的数字 ID 支持。
-- 全局会话/缓存/退出问题使用 globalMessage；message 只代表课表问题，其他资源保留独立问题。成功的课表不会因 Tasks 登录失效被改成失败；未执行资源的登录提示一致。
-- 每资源仍验证账户。账户未变只回调身份与进度；发现归属变化，先原子清理并立即投影空快照。正常内容由 Room Flow 驱动，不保留同步后手工全量重读或失败恢复路径。
-- Feed 文本使用 Default 线程和按账户创建的容量缓存，切换账户/退出后旧缓存不再被根页面持有；内容刷新按源列表校验，避免同 ID 显示旧正文。转换完成前不显示原始 HTML，搜索结果会随正文转换完成更新。
-- 时钟仍只在 STARTED 运行，延迟对齐 :00/:30；冲突集合共用；详情关闭按钮先 hide 后移除，账号切换仍立即清理详情。日期选择保存有效日期、月份与模式，保留 Locale.UK；未完成/无效输入不承诺保存。
-- Android 12+ 明确排除云备份与 D2D 全部存储域，低版本保留 allowBackup=false/fullBackupContent=false；未实测 OEM 迁移。
-
-采用项和未采用理由按原报告编号记录在 [quality-review.md](quality-review.md)。不引入多模块、全量状态表、格式工具或新 UI Test；19–21 的升级见下节；尚未进行帧时间/启动成本测量。
-
-## 0.22.0：19–21 改造
-
-- 构建：AGP 9.4.1、Gradle 9.8.0（官方 SHA-256）、内置 Kotlin/Compose compiler 2.2.10、KSP 2.3.12；configuration cache 默认启用。Room 2.8.5、Browser 1.10.0、OkHttp 5.5.0、协程运行/测试 1.11.0；compile/target SDK 37，min SDK 28/JVM 17。
-- StudentCache 增加变更观察；DAO RawQuery 显式跟踪 events/coursework/sync_state/feed_entries/feed_meta，信号触发 snapshot 单事务读取，避免 combine 独立查询形成混合快照。Kotlin 实体按值比较，Flow distinctUntilChanged；UI 仍接收不可修改的字段快照。
-- 同步是命令，不返回/重读整份缓存。只有冷启动、Flow 或账户归属变化时读取快照；失败保留内容。内存 revision 在串行锁内更新，UI 拒绝较旧快照；退出取消观察，成功清理后重建观察。错误/加载/重试/进度不持久化。
-- AppLabels/AppActions、导航、主题/网站目录保存资源 ID。UiText.Resource/Quantity/Literal 在 UI 解析，嵌套消息参数仍由资源格式化，ViewModel 不持有 Context。布局、API key/路径、存储身份不从显示文字派生。
-- 尚无正式 release，移除 LegacyUiAdapters；旧设备测试非空假设和旧签名已过时，不为其保留生产适配。0.22.1 进一步删除 schema1–4 迁移及导出文件、旧数字 Tab/页面别名与文案筛选键适配，只使用当前存储键；缺失或无效状态仍回退默认值。未修改/执行 UI Test。
-- Android 17 行为按官方文档审阅；使用 Network Security Config 禁止明文，不绕过 TLS/CT。没有 LAN/OTP/后台音频/RemoteViews 功能，不增加无关权限。现有手机 API36，API37 系统运行验证仍待对应设备；构建通过不能替代运行验证。
-
-依据：[AGP 9.4](https://developer.android.com/build/releases/agp-9-4-0-release-notes)、[内置 Kotlin](https://developer.android.com/build/migrate-to-built-in-kotlin)、[Gradle 9.8](https://docs.gradle.org/9.8.0/release-notes.html)、[Android 17 目标行为](https://developer.android.com/about/versions/17/behavior-changes-17)。检查与交付见 [validation.md](validation.md)。工具链尚有 Configuration.setVisible 的 Gradle 11 弃用提示，不宣称兼容未来 Gradle。
-
-## 0.23.0：性能采集与启动初始化
-
-- `profile`变体继承Release的R8/资源收缩，非debuggable，以本地debug签名安装到独立.profile包，需自行登录初始化数据；仅此变体启用`profileable android:shell=true`及`PERFORMANCE_TRACING`。Debug/Release的固定标记通过常量关闭，不引入自动UI测试/benchmark模块或新依赖。
-- `traceWork`仅包同步区域，用try/finally在同一线程配对；标记固定为MWP.CookieManager.init、Session/Api/Repository.create、Appearance.load、Cache.snapshot、Background.render、Feed.html，不含姓名、响应或认证值。挂起/网络等待不使用同步trace跨线程配对。
-- CookieManager从Application主线程提前初始化改为AuthSession线程安全lazy；原生CookieJar首次访问发生在请求IO线程。缓存离线阅读无需加载WebView provider；显式Sign out仍在Main清会话，LoginActivity仍设置SSO第三方Cookie策略。Cookie默认接受，无需重复setAcceptCookie(true)，未改变Cookie来源、host白名单、flush与取消规则。
-- [capture.py](../tools/performance/capture.py)明确要求物理序列号，拒绝模拟器和debuggable测量；配置从stdin传入，避免OEM对配置目录的SELinux限制。冷启动模式只force-stop/start本应用；manual模式只录制，由用户操作手机。64MiB缓冲、固定有界时长，记录安装APK/hash、设备/版本、原始trace及am辅助值；不修改编译模式/电源/网络/登录，不收集logcat、截图或网络内容，不上传。
-- [analyze.py](../tools/performance/analyze.py)按Perfetto启动/帧数据与固定应用标记统计多样本。拒绝缺失冷启动/关键标记或本次buffer丢包/解析错误；服务跨会话累计丢弃计数单独记录。OEM有时把新进程标成pre-initialized，此时由固定MWP标记定位upid，再按首个Choreographer/DrawFrame终点计算TTID，并明确标记来源。首帧可见不等于缓存、网络或背景全部就绪；启动帧计数不作为滚动基准。
-- 原始trace只保留在不跟踪的work/performance，汇总与局限写入[validation.md](validation.md)。Baseline Profile和Classes/Messages手动滚动、主题切换内存仍需独立证据，不能从启动样本推出收益。
-
-工具依据：[profileable](https://developer.android.com/guide/topics/manifest/profileable-element)、[Perfetto采集](https://perfetto.dev/docs/getting-started/system-tracing)、[Trace Processor](https://perfetto.dev/docs/reference/trace-processor-cli)、[官方工具下载脚本](https://raw.githubusercontent.com/google/perfetto/main/tools/trace_processor)、[CookieManager默认行为](https://developer.android.com/reference/android/webkit/CookieManager#setAcceptCookie(boolean))。本机使用官方Windows Trace Processor v58.2并核对其发布脚本内SHA-256；启动采集包含既有联网刷新和正常系统调度，不宣称实验室级稳定基准。
-
-## 首次公开版本准备
-
-- applicationId为`io.github.nook001.mywarwickplus`，namespace保持`uk.ac.warwick.plus`；Debug/Profile分别增加.debug/.profile及启动器名称，不卸载旧内部包、不迁移认证。公开schema5为后续迁移基线。
-- Release采用仓库外PKCS12密钥，密码由Windows用户DPAPI本地保存，四个环境变量仅提供给本地构建进程；正式打包禁用configuration cache。无凭据可构建unsigned，但打包流程拒绝unsigned。
-- tools/release脚本验证签名/非Debug/版本与源码提交一致，记录APK SHA-256及证书指纹，将public附件和private mapping/构建记录分开归档；不安装或自动发布。
-- MIT、第三方声明与隐私信息见仓库根文件，Me提供Privacy/Licenses链接；不新增数据接口、权限或分析SDK。用户负责密钥独立备份、实际Release手测与发行允许范围确认，见[release.md](release.md)。
-
-## 同步、缓存与恢复
+## 同步与缓存
 
 ```text
-冷启动：Room snapshot → StateFlow → 页面 → 前台刷新
-刷新：ViewModel → SyncRetry → Repository 串行锁
-     → user/info 验证/账户隔离 → GET/解析 → 独立写事务
-缓存：Room 表 invalidation Flow → 串行锁 + 单次事务快照 → 值去重 → StateFlow
+启动：Room 快照 → StateFlow → 页面 → 前台刷新
+同步：ViewModel → SyncRetry → Repository → 验证账户 → GET/解析 → 写事务
+观察：Room invalidation Flow → 串行锁内事务快照 → 值去重 → StateFlow
 ```
 
-- 完整刷新顺序：Timetable → Coursework → Messages → Library → Modules → Account；每次资源尝试仍先验证账户。验证成功后的课表解析失败可继续其他资源；未确认账户或登录失效则停止后续任务；传输异常耗尽当前资源预算后同样停止，不把 IOException 一律认定为离线。
-- Repository 的 inStore 统一 IO 与 Mutex；authenticatedSync 统一验证、网络读取、同步状态创建与持久化；同步方法只返回 Unit。DAO snapshot 在单个 Room 读事务读取六类数据；网络请求在数据库事务外。各数据源保留独立写事务和同步时间。
-- Room 当前 schema 5，仅保留当前导出 schema；数据库名称、字段与 identity hash 不变，同包名/同签名的schema5覆盖安装继续读取缓存；公开包与内部/Debug/Profile包隔离。无迁移链或破坏性重建回退，schema1–4 不再支持直接升级；安装包不会自动清除数据库、Cookie 或主题偏好。
-- 每份同步状态记录账户归属；发现账户变化后，在下载前清空旧数据，再一次应用新身份和快照。withCache 只替换持久字段，保留其他资源的错误、加载和进度。
-- 同步中重复刷新受 busy guard 限制。成功登录在 busy 时排队，当前任务结束后合并为一次完整刷新；退出时清除待刷新。单项刷新只处理自己的问题和进度，成功不重报另一资源的旧失败；失败保留现有展示；无有效新写入时 Flow 不替换内容，不以坏响应覆盖缓存。
-- IOException、HTTP 408 / 5xx 最多额外重试两次，延迟 2 秒、5 秒；无活动网络不进入请求和重试；有网络时预算不变。认证、解析异常及其他 HTTP 错误（含 429）不自动重试。CancellationException 继续传播。
-- Messages 最新页 limit=100；只有用户要求才用缓存最旧 id 作 before 游标。先验证/清理账户，再检查游标。分页合并按日期倒序/id 排序、去重、最多 500 条；非空且无新增 ID 的页拒绝。最新页刷新重置旧分页，失败重试保留原游标。
-- 同步调用通过 StudentApi.request → CancellableRequests 绑定协程取消与当前 OkHttp Call.cancel；注册前即建立线程安全取消作用域，取消不能漏掉随后注册的请求。网络读取/解析在 IO 线程执行，响应由 use 关闭，取消后的结果不交回持久化流程；退出前以 NonCancellable 等待该 IO 工作完成，避免迟到 CookieJar 回调恢复旧会话。Sign out 的 cancelAndJoin 会立即取消同步请求，再经 Repository 清理会话/数据库；验证后及写前 ensureActive、Mutex 均保留；退出先取消并等待同步与缓存观察。登录/Developer probe 的同步入口保持原行为；不在等待前清 cookie。
+- 完整刷新依次执行 Timetable、Coursework、Messages、Library、Modules、Account。每次资源尝试先验证账户；账户变更先清旧内容再下载。各资源独立保存和记录同步时间，失败保留缓存。
+- Repository 在 IO 线程通过 Mutex 串行操作；网络请求在数据库事务外。DAO 观察全部缓存表的变更，在一次读事务内取得完整快照；revision 防止旧快照覆盖新状态。同步命令不另行返回整份缓存。
+- 无活动网络直接结束。IOException、HTTP 408/5xx 最多额外重试两次，延迟 2 秒和 5 秒；认证、解析、429 等其他错误不重试。认证失效或传输异常耗尽预算停止后续资源，其他资源错误按各自结果处理。取消异常继续传播。
+- busy guard 防止重复刷新并发。同步期间登录成功会合并为一次待刷新，退出丢弃待刷新。单项恢复只处理对应资源。
+- 退出先取消并等待同步与观察，再清理本应用会话和缓存。`CancellableRequests` 将协程取消绑定到实际 OkHttp Call，并等待 IO 结束，避免迟到写入或 CookieJar 回调恢复旧账户。不得将其简化为只等待响应头的取消。
+- Messages 分页与响应规则集中在 [API 文档](api-progress.md)。错误、加载、进度与重试状态不持久化。
 
-## 展示快照与计算边界
+## 展示与状态
 
-- withCache 将 Room Entity 转为私有 Kotlin 值快照（所有字段 val）；页面消费 EventContentItem / CourseworkContentItem / FeedContentItem 只读契约，保留 ID、完整详情、链接与排序信息。Entity 为 Kotlin 可变 data class，仅用于解析/Room；UI 不持有持久化对象。schema 未变，旧 UI 适配已删除。
-- 新列表按字段值相等复用原列表，否则包装为不可修改列表；进度 copy 不重新投影数据。每次真实缓存投影仍读取全资源，并逐资源比对，不把同步时间当内容相等的依据。不向 Entity / 任意 List 添加 @Immutable。
-- Home / Classes 使用只包含本页数据及恢复状态的投影，进度由顶部读取；恢复回调保持引用并在点击时取最新状态。首页 next/today/deadlines、Tasks 搜索分类/排序、详情冲突集合按各自数据/时间依赖 remember；查询仍留页面本地。
-- 时钟在 Lifecycle.STARTED 期间每30秒更新，回前台立即校准，继续按 Europe/London 计算午夜与 DST；不截断原始 deadline 时间。冲突匹配仍为 O(n²)，内层索引循环避免反复 drop 临时列表。
-- 可用 `:app:compileDebugKotlin -PcomposeReports=true --rerun-tasks` 输出完整编译器报告到 app/build/reports/compose；普通构建不开启报告。报告表示可跳过性/稳定性，不是实际重组次数或帧率；本批不新增性能插件或 UI Test。[编译器 DSL](https://kotlinlang.org/docs/compose-compiler-options.html)、[取消语义](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/suspend-cancellable-coroutine.html)。
+持久 Entity 只用于解析和 Room；UI 使用字段为 `val` 的展示快照及不可修改列表。内容相等时复用原列表，进度变化不重新投影全部数据；不为任意集合或可变 Entity 标注 `@Immutable`。
 
-## 页面命名、导航与恢复动作
+Home/Classes 输入限于本页数据，顶部单独读取进度。首页日程/截止日期、Tasks 筛选排序、冲突集合按实际数据和时间依赖缓存。Feed HTML 在 Default 线程转换成纯文本，列表、搜索与详情共用按账户创建的约 2 MiB 文本缓存，不显示未转换的原始 HTML。
 
-- 页面/入口/同步资源共享 `config/AppLabels.kt` 的名称：Home、Classes、Tasks、Inbox、Me；Settings、Messages、Library、Modules。AppTab集中labelRes和titleRes，默认相同；Messages Tab短标签Inbox、顶部Messages，Home顶部个性化招呼语。Now/Next/Today/Deadlines区段与Sign in/Sign out/Retry/Back等动作也集中维护，说明/错误/进度使用资源；保留英文与英国日期格式，未新增翻译。
-- 显示名与身份分开：AppTab/CourseworkFilter用显式key，MeRoute为Overview/Settings/Feed（仅Library/Modules），DetailSelection为None/Class/Task/Feed。Saver仅保存当前key、Feed固定数据库key与内容ID，不保存实体/HTML/列表，不用enum.ordinal；不支持的键回退默认页面，不维护历史路由适配。Me调试路由与状态/探测面板UI已删除，普通同步/恢复保持原实现。
-- Classes选日、followToday与列表状态仍保留；Tasks查询仍在本页，不改切页后的查询产品规则。详情先等缓存可判定再检查ID和Feed归属，Messages仅可在Home/Inbox显示，切换Tab清理详情；详情关闭仍停留来源Tab，Inbox系统返回到Home。初始空身份/空缓存不当成账户切换；真正退出或账户变化清理详情/Me子路由/筛选。
-- SyncProgress只存SyncOperation（Refresh(resource)/OlderMessages），界面再生成文字。SyncNotice只存一个RecoveryAction（RefreshAll/Refresh(resource)/OlderMessages/SignIn），旧feed/resource/olderMessages兼容入口已删除，不另存重叠状态。
-- Snackbar按notice ID执行一次；动作及消费回调用rememberUpdatedState取得最新实现。点击时检查当前busy/退出/登录状态，过期会话转登录；旧更早消息提示仅在当前仍有失败标志与有效分页入口时沿用当前游标，否则刷新最新Messages。重试预算、顺序、缓存保留与notice消费ID规则不变。
+时钟仅在 Lifecycle.STARTED 运行，对齐每分钟的 :00/:30，回前台立即校准。日期统一使用 `StudentDates` 的 Europe/London 和 Locale.UK；精确截止时间用于判断过期，自然日用于计算 days。冲突检查保留 O(n²)，不在缺少热点证据时增加复杂算法。
+
+Tab/Filter/Me 子页/详情使用类型化身份，Saver 保存稳定 key、日期和内容 ID，不保存实体或 enum.ordinal。无效状态回退默认页面；账户变化清理旧详情和选择。`AppLabels` 管理名称资源，显示文字不作为接口、路由或存储键。Snackbar 只消费一次，恢复点击读取最新状态和回调。
 
 ## 数据反馈
 
-| 状态 | 呈现与规则 |
+| 状态 | 反馈方式 |
 | --- | --- |
-| 初始缓存读取 | 简短加载文字，不伪装成网络进度；已有内容优先显示 |
-| 正常更新 | 顶部确定进度条替代下拉旋转圈；全量六项，单资源/更早消息一项 |
-| 阶段进度 | 账户验证完成半项；成功写入或最终失败处理完成整项。等权计量任务处理，不是字节、耗时或成功率 |
-| 等待/重试 | 停留在真实进度；重复认证不重复计数，分母不变。原品牌小字位置显示资源/序号或 Retry 1/2 |
-| 结束/提前停止 | 真实值变化以 200ms 平滑，结束最多停留 250ms 后隐藏；有失败用错误色与一次短 Snackbar。未执行项不补满，退出清除进度 |
-| 未加载 / 真空列表 / 筛选为空 | 分别提示；Clear search 只清 query、不请求网络，Tasks 保留分类 |
-| 请求失败 / 登录过期 | 缓存可读，内容附近按需 Retry / Sign in，Me 标记需要登录；不常驻顶部错误卡片或日志页脚 |
-| 单资源恢复 | 内容附近按需Retry/Sign in；Inbox下拉刷新Messages最新页、显式按钮读更早页；Me不再提供Data status或Developer tools |
+| 读取缓存 | 简短文字，不伪装成网络进度；已有内容优先显示 |
+| 请求进行中 | 顶部确定进度条替代旋转圈；全量六项、单资源或更早消息一项。账户验证完成半项，保存或最终失败处理完成整项 |
+| 等待与结束 | 重试时不虚增进度，分母不变；进度变化平滑过渡，结束短暂停留后隐藏，提前停止不补满 |
+| 错误与空列表 | 失败保留缓存，一次短 Snackbar 和内容附近的 Retry/Sign in；区分未加载、真空列表和筛选为空，不常驻顶部错误卡片或保存时间页脚 |
 
-更早消息失败独立记忆，恢复操作沿用游标；下拉读取最新页，失去旧游标时回退普通刷新。设置、复制邮箱、日期选择与普通链接点击不触发业务刷新。
+进度表示处理阶段，不是字节、耗时或成功率。更早消息失败保留游标，失去有效游标时恢复动作回到最新页刷新。普通复制、设置和外链操作不触发业务刷新。
 
-## 页面与内容分层
+## 页面行为
 
-| 页面 | 当前布局与行为 |
+| 页面 | 布局与信息规则 |
 | --- | --- |
-| Home | 16sp短招呼语；Now / Next唯一强调卡，时钟/标签/右对齐日期时间、16sp Medium名称/原代码、地点/右下箭头三行，整卡详情。当日/进行中只显示时间，明日加Tomorrow，之后加英国日期（不同年加年份），跨日结束日期保留。四个网站在Next下12dp，Quiet入口最小48dp；课程与Deadlines普通单层分区，Messages使用Quiet底色；18dp标题图标共用紧凑标题留白，区块间14dp。Today仅保留Now，省略与强调卡重复的Next标记 |
-| Today / Tomorrow / 周末 | homeAgenda按Europe/London日期与结束时间保留正在进行/未来课程，无剩余课程与今天本来无课共用Tomorrow切换。周末无剩余课程显示Enjoy your weekend；当天有已结束课程时加Well done，Next仍可展示未来课。Tomorrow没有记录时不显示空分区，不新增“明天没课”提示；未加载不判断无课。全日/跨日课程仍保留正确日界，稳定Lazy key避免后续分区错位 |
-| Deadlines | 最多三条未来记录，左列数字/days，右列原始标题及d MMM，下一年才加年份；当天未过期为0 days。All进Upcoming，Recently passed统计近七天缓存内过去条目并进Past，不推断是否提交 |
-| Home Messages | 最近两条按日期降序、position/id稳定排序；标题最多两行、摘要一行、来源/简短日期。仅转换两条HTML，共用按账户隔离的FeedTextCache；无记录时省略分区，不把未加载当成无消息。点击复用详情，关闭保留Home；All进入Inbox。只读，不改变网站已读/新增角标或后台请求 |
-| Classes / Schedule | 从今天开始的连续日期分组；日期只在小标题出现，未来空日跳过，起点空日保留标题/一行说明。同日共用底色与浅分隔线，左侧起止时间、右侧名称及代码/地点、整行详情；保留 Now/Next、冲突、全日和跨日提示 |
-| 日期选择与跨日 | 日期按钮默认 dd/MM/yyyy 输入，可切日历；只筛缓存，离开今天显示 Today。选择日与滚动位置在切页/刷新/Activity 保存状态恢复时保留，正常冷启动回今天。UTC 日期组件值先转日历日期；跨日条目按每日范围裁为 00:00–24:00，午夜结束不插空日，详情保留完整范围 |
-| Tasks / Coursework | 紧凑搜索 + Upcoming / Past；未来升序、过去降序。连续列表左列数字/days、Today 或 Passed；标题最多两行，d MMM · HH:mm，不同年加年份。无匹配可清搜索，完整信息/来源说明留详情 |
-| Inbox / Messages | 独立底部Tab，复用FeedContent的搜索/缓存/详情/显式更早分页；消息使用compactPage、卡片12dp内边距/4dp内容间距/8dp卡片间距，移除说明段。InboxTypography集中标题14sp Medium/摘要12sp/来源日期11sp Regular，来源与英文短日期（含年份）同行，标题及摘要各最多两行。详情标题18sp Medium/正文14sp，16dp留白/12dp内容间距，完整日期时间与正文保留；搜索12sp，最小48dp点击区不变。Library/Modules沿用标准Feed布局。下拉只刷新Messages最新页，无新增API或网站已读写入 |
-| Me | 紧凑姓名/usercode 与真实邮箱，显式复制后短暂勾选；不拼邮箱、不读取剪贴板。App网格仅Settings/Library/Modules，无Data status、Developer tools或重复Messages入口；Websites八项。默认三列，fontScale >1.3 或可用宽度 <280dp 改两列；网站有外部角标。版本号后为Sign out末尾按钮，保留确认与失败重试，登录按钮仍在账户卡片 |
-| Feed / 详情 | Messages 纯文本搜索/详情与手动分页；Modules 显示已知字段及数组数量；Library 使用学校摘要与原站入口。详情可滚动读完整长内容；只有显式点击才打开来源网站 |
+| Home | 短问候语、唯一强调的 Now/Next、四个网站入口、日程、最近三条未来 Deadlines、最近两条 Messages；普通内容使用单层分区容器 |
+| Now/Next | 日期时间右对齐，当天只显示时间，明天显示 Tomorrow，之后显示日期；课程名与代码同行，地点与右下箭头同行，整卡进详情 |
+| Today/Tomorrow | 展示当日正在进行或未结束课程；无剩余课程时预览 Tomorrow，无明日记录则省略。周末无剩余课程显示祝语，当天有已结束课程时加 Well done；未加载不判断无课 |
+| Deadlines | 左侧数字/days，右侧原标题及 `d MMM`，下一年才加年份；当天未过期为 0 days。Recently passed 是近七天缓存记录，不代表提交状态 |
+| Classes | 连续日期分组，跳过未来空日；选定起点空日保留简短说明。保留全日、跨日、冲突与详情；日期只在组标题出现，选日与滚动位置可恢复 |
+| Tasks | 紧凑搜索、Upcoming/Past，未来升序/过去降序；两行标题、英文短日期和准确时间，完整说明及原站链接放详情 |
+| Inbox | Tab 短标签 Inbox，页标题 Messages；紧凑搜索与卡片、来源/日期同行、两行标题和摘要、完整详情、显式更早分页 |
+| Me | 姓名/usercode/真实邮箱和显式复制；Settings/Library/Modules 网格、八个网站入口、隐私/许可、版本号，Sign out 在最后；不显示日志或开发者面板 |
 
-## 可复用组件标准
+Classes 的跨日列表按单日裁剪至 00:00–24:00，午夜结束不插空日，详情保留完整范围。Me 默认三列，在大字体或窄屏时改两列。网站与详情来源仅在用户点击后打开浏览器。
 
-| 组件 | 责任 / 约束 |
+## 组件标准
+
+| 组件或配置 | 统一规则 |
 | --- | --- |
-| AppCard | Normal / Quiet / Featured / Selected 四种颜色角色、形状与整卡点击；不隐式加内外边距、边框或阴影。非点击分区无按钮语义；点击重载要求 actionLabel，单动作只有一个处理器 |
-| SectionCard / SectionAllAction / GroupedListItem / ListDivider | 单层分区标题/可选18dp图标与颜色角色、共享All点击语义、连续列表首尾圆角和分隔线；不为标题再套卡片。LazyColumn稳定key和列表状态属于页面 |
-| MetricListRow | 左信息列、居中、行高/留白与箭头；不接受领域 Entity，业务含义留在插槽 |
-| ScheduleClassRow / DeadlineRow | 全日/跨日/冲突/Now-Next；deadline 的 Home/List 两个明确变体，保留日期与标题差异 |
-| ContentIcons / LocationLabel | 统一线条风格；课程地点用14dp定位针+文字，Home/Classes/详情共用。缺少地点时仅显示文案；图标不请求GPS、不创建独立导航，已知地点链接仍由详情打开 |
-| ActionTile | Compact 首页：Quiet底色、最小48dp、20dp图标/常规标签、上下4dp/内容间2dp；Grid Me保留Normal底色、24dp图标与原有尺寸。内外目的地角标与完整点击区共用 |
-| SearchField | 图标、单行输入、清除与键盘 Search；筛选/query 归页面 |
-| DetailsSheet / DetailHeader / DetailField / DetailClose | 面板、滚动、标题/字段/关闭骨架；业务使用 LazyListScope 组合字段，类详情保留 24/16dp，其余 24dp 留白 |
-| AppPageHeader / AppNavigation / SyncProgressBar | 顶部几何、Tab 语义与状态、实际任务进度；由 PlusScreen 提供状态/动作 |
+| `AppCard` | Normal/Quiet/Featured/Selected 颜色角色；基础卡不隐式添加间距、边框或阴影。可点击卡要求动作语义，非交互分区无按钮语义 |
+| `SectionCard`、`GroupedListItem` | 标题与内容共享一层容器；稳定 Lazy key 和列表状态归页面，组内用浅分隔线 |
+| `MetricListRow`、`ScheduleClassRow`、`DeadlineRow` | 基础行负责左列、对齐和点击；业务变体负责时间、期限、冲突及文字含义 |
+| `ActionTile` | Home 紧凑入口、Me 网格入口共用目的地/点击语义；外部跳转有角标 |
+| `LocationLabel` | 统一定位针和文字；装饰图标不请求 GPS，地点链接由详情打开 |
+| `SearchField`、`DetailsSheet` | 输入/清除/键盘动作和可滚动详情骨架；搜索状态归页面，关闭先 hide 再移除 |
+| `PageHeader`、`AppNavigation` | 页眉统一几何；Tab 图标和文字共同高亮、轮廓/实心两态，无按压灰底，安全区仅应用一次 |
+| `UiTokens` | 圆角与间距的事实源；父组件拥有组件间距，避免标题和首行留白叠加 |
+| `HomeTypography`、`InboxTypography` | Home 内容 bodySmall，数字/起始时间 11sp Bold，days/结束时间 Regular；Next 名称 16sp Medium。Inbox 标题 14sp、摘要 12sp、元信息 11sp；详情保留完整可读正文 |
 
-| 几何 / 颜色 | 标准（最小值允许长内容/大字体增长） |
-| --- | --- |
-| 颜色角色 | Normal=surfaceContainerLow/onSurface；Quiet=surfaceContainer/onSurface；Selected=primaryContainer/onPrimaryContainer；Featured=emphasisColours，由主题决定，页面不判断主题名 |
-| 圆角 AppShapes | 分区/列表/紧凑入口 14dp；账户/网格 16dp；强调/设置/Tab 18dp；Feed 内容 20dp；搜索 24dp |
-| Spacing | Home/Classes/Me 左右16、顶部4、底部16dp；Tasks/Feed/Appearance 保留20dp。首页区块14、Me区块16、列表12、网格8dp；父组件拥有间距 |
-| 标题 / 页眉 | 分区内行最小20dp，外部左右12/上8/下2dp，共用sectionHeader/sectionHeadingHeight；All视觉高度同标题行，labelMedium/Medium/onSurfaceVariant。日期小标题labelLarge。AppPageHeader最小48dp、上下2dp，动作不改变品牌文字位置 |
-| 信息行 | 左列Standard为48sp、首页Compact为40sp，转dp后随字缩放，两行居中、间距2dp；左右列间距10dp。MetricListRow默认Standard：正文bodyMedium/SemiBold、最小64dp/上下10dp，Classes/Tasks保持此标准。首页显式Compact：HomeTypography.content为bodySmall（12sp Regular/16sp行高），课程/Deadline/消息标题与空状态共用；metric为11sp Bold/16sp行高，时间结束值/days共用metricSecondary（11sp Regular）。分区标题12sp Medium，Next课程名16sp Medium保持主要层级。行最小54dp/上下6dp；分区首行48dp/上0/下8dp。Messages首行48dp/上0/下6dp，后续54dp/上下6dp；空行上0。次要信息bodySmall/onSurfaceVariant；长内容/大字体自然增长，不以固定高度裁切 |
-| 搜索 / 箭头 | 搜索最小48dp、图标20dp、清除操作区48dp；普通详情箭头16dp，Next地点行20dp，网格角标12dp；装饰图标的动作语义在点击容器 |
-| 空状态 | SectionEmptyRow 分区内直接一行；DataEmptyState 用于独立未加载/空/无匹配，可带恢复动作，不嵌套空卡 |
-| Tab | Home / Classes / Tasks / Inbox / Me；12sp常规字重，22dp图标保留24dp布局槽、轮廓/实心两态，图标和文字共用高亮。Inbox复用消息轮廓并增加同形实心态，标签与页标题独立集中配置。selectable + Role.Tab，indication=null，直接最终色；最小64dp，两侧20dp，安全区一次 |
+搜索和快捷操作保留至少 48dp 点击区；Tab 至少 64dp，图标 22dp/布局槽 24dp，文字 12sp Regular。Home 的左信息列使用 Compact，Classes/Tasks 使用 Standard。尺寸细节以组件源码为准，正文随系统字缩放，不用固定高度裁切长内容。不为每个 Text 添加包装组件。
 
-不为每个 Text 建包装组件；变体需有实际复用需求。更改标准先改公共实现与此表，再复核受影响页面；保持 query、筛选、列表位置与 rememberSaveable 状态归属。
+## 主题与共享工具
 
-## 主题与背景
+Forest、Lake、Heather、Sand、Rosewood 是五套固定颜色主题，`Theme.kt` 管理完整 palette 和系统栏图标。页面使用颜色角色，不判断主题名；Featured 的 Lake 使用较浅强调色。普通卡以底色区分，不加边框；错误/冲突同时有文字或图标。
 
-Me → Settings → Appearance 选择 Forest（默认）、Lake、Heather、Sand、Rosewood，Fine texture 默认关闭。固定 palette 决定明暗与系统栏图标，共用布局，不提供浅/深/系统模式或动态颜色。SharedPreferences 只保存主题 ID/纹理开关，StateFlow 即时应用，未知 ID 回退 Forest。
+`ThemeBackground` 在 Default 线程生成三层非线性径向渐变，细纹理默认关闭，是静态材质而非实时模糊。位图长边上限 1024px、短边量化；进程内 LRU 最多两张，键为主题/纹理/尺寸，重组和滚动复用，重启重建，不缓存到磁盘。主题 ID 和纹理偏好由 `AppearancePreferences` 保存。
 
-下表是 **Home Now / Next 实际 Featured 色**，不是 palette.next 字段的同名推断；Lake 使用 primaryContainer，其他使用 primary。普通卡片不透明，边界通过颜色区分，不添加边框。
+`StudentDates`、`ClassPresentation`、`CourseworkPresentation`、`FeedPresentation` 提供纯展示转换；`NetworkDates` 处理已确认的服务端时间格式，缺时区拒绝。`ServiceCatalog` 管理网站地址/标签/图标；`BrowserLinks` 统一 HTTPS、端口和域校验，`BrowserActions` 统一 Custom Tabs 与失败反馈。普通页面使用 Snackbar，详情内显示链接失败，取消异常继续传播。
 
-| 主题 | 背景基底 | Featured / 文字 | 普通卡片 / 正文 |
-| --- | --- | --- | --- |
-| Forest | #111B17 | #BFE2CA / #111B17 | #465F4E / #E5ECE7 |
-| Lake | #F0F6FA | #D6E8F1 / #183743 | #FBFDFE / #1D303C |
-| Heather | #F5F1FA | #523367 / #F5F1FA | #FDFCFE / #2F2A3A |
-| Sand | #F8F3EA | #5D3D23 / #F8F3EA | #FFFCF6 / #342B23 |
-| Rosewood | #21181D | #F0C2D1 / #21181D | #674D5B / #F0E5E9 |
+## 维护方式
 
-- Theme.kt 是完整配色唯一来源；错误/冲突仍用文字或图标表达，不只靠颜色。
-- ThemeBackground 绘制三层非线性椭圆径向渐变：中心 (8%,2%)、(105%,48%)、(8%,104%)；宽/高半径 (85%,62%)、(90%,65%)、(95%,65%)；停点 0/.2/.5/.8/1，对应 alpha .78/.702/.351/.0624/0。光晕颜色取 palette.spots，不在文档再复制整套颜色。
-- 纹理为固定种子73219、128×128灰度块、alpha 6/255，是静态材质，不是实时背景模糊。
-- Dispatchers.Default 生成 ARGB 位图；长边1024px、短边按16px量化，ThemeBackgroundCache 的进程内 LRU 最多两张，键为主题/纹理/量化尺寸。准备时显示基底，普通重组/滚动复用；重启重建，无磁盘缓存，不 recycle 仍可能显示的旧位图。
-- 1080×2400比例生成464×1024，单张约1.81MiB，两张约3.63MiB；方形两张像素上限8MiB，纹理约64KiB。数字不含淘汰后仍显示的位图及GPU纹理；帧时间、生成耗时与GPU总内存尚未测量。
-
-## 共享函数与外部链接
-
-| 来源 | 规则 |
-| --- | --- |
-| StudentDates | Europe/London、Locale.UK 不可变格式器；按英国自然日算days、按精确时间判断passed；首页仅未来年份加年，Tasks不同年加年并显示时间 |
-| ClassPresentation | 名称/原代码选择、跨日范围、短问候语；缺失可读名称和原标题时回退 Class，完整字段留详情 |
-| CourseworkPresentation / FeedPresentation | 纯筛选；query只trim一次，FeedContent每个条目快照转换一次HTML纯文本，搜索/列表复用；快照/账号变化重建 |
-| NetworkDates | Coursework/Feed共用 +01、Z、区域后缀兼容；Timetable保留ISO_ZONED_DATE_TIME。无时区拒绝整批 |
-| BrowserLinks / BrowserActions | HTTPS、默认或443端口、无userinfo；作业/模块额外限制Warwick域。地点支持MyWarwick相对地址；无效地址无按钮。唯一Custom Tabs入口不导出cookie/header |
-| ServiceCatalog | 八个网站地址/短标签/图标集中维护，Home取四项；Library/Moodle回退也共用配置，不能匹配label选择目的地 |
-
-普通页面 rememberBrowserOpener 失败用 Snackbar；详情 ExternalLinkButton 在面板内显示失败并可重试，避免提示被遮罩覆盖。保留作业链接注入回调优先级，协程取消继续传播，不记录失败URL。
-
-## 维护约定
-
-当前标准只在此文档维护；API 状态、协议证据和验证结果分别更新各自文档。已完成阶段计划不再另存，细节/备选设计从 Git 历史查阅。构建缓存、工作日志/截图不当作当前标准；work/ 的一次性重构脚本可在落地后移除。测试与物理部署按 [AGENTS.md](../AGENTS.md) 执行。
-
-## 架构评估基线与实施进度
-
-2026-10-07 静态评估基线：应用代码提交 c8a2724 / 0.18.0。审阅同步/状态/DAO、网络与登录、页面路由/展示计算、基础组件/主题缓存和相关既有检查；未运行编译器重组报告、手机测量或新学校请求。P1 表示下一轮优先处理，P2 表示随后改善；不是宣称已发生崩溃或数据泄漏。下方问题表描述0.18.0评估时的事实，不代表0.19.0仍有同样实现；现行行为以上文标准和下表状态为准。
-
-| 范围 | 0.20.0 进度 |
-| --- | --- |
-| A1 | 已实现每次同步请求取消连接；真实本地阻塞响应与注册竞态检查通过，退出手动体验待验收 |
-| A2 | 已建立生产展示值快照、不可修改列表和内容相等复用；schema 5 不变，快照隔离检查通过 |
-| A3 | 已缓存 Home / Tasks 计算、缩小 Home / Classes 输入并隔离进度；完整编译器报告核对，真机性能未测 |
-| A5 | 前台生命周期时钟已实施；进一步按页面需求暂停及耗电测量未做 |
-| A4 / A6 | 已实施类型化导航/筛选/操作身份、统一页面命名与最新notice动作分派；存档/延迟恢复的聚焦检查通过，手机交互待手动验收 |
-| A7 | 编译器报告入口已建立；真机帧时间/内存、SQLite基线仍待做 |
-
-### 评分与已有优势
-
-按小规模 Android 学生客户端的维护目标，综合 **7.5/10**；分项加权得到 7.475 后取一位小数。10 分代表职责明确、关键边界可验证且有持续测量，5 分代表具备基础但主要依赖人工判断；不是性能跑分或生产安全认证。
-
-| 维度 | 分数 / 权重 | 依据与主要扣分 |
-| --- | --- | --- |
-| 职责分层 | 8 / 20% | UI、同步编排、API、DAO 已分离；PlusScreen 仍同时管理多个路由/详情状态 |
-| 账户与缓存可靠性 | 8 / 25% | origin 限制、账户隔离、原子替换、读事务与失败保留已实现；阻塞 HTTP 取消/退出时序仍可改进，0.18.0 真机待验收 |
-| 状态与类型边界 | 7 / 20% | StateFlow 与统一状态转换已建立；UI 仍拿可变 Entity、导航/筛选/进度身份部分依赖数字或文字 |
-| 展示与组件复用 | 8.5 / 15% | 单层容器、行几何/业务变体、日期/链接配置集中；首页与 Tasks 计算失效范围仍可收紧 |
-| 性能可观测性 | 5 / 10% | 已有懒列表 key、部分 remember、生命周期订阅、背景缓存；缺重组/帧时间/发布配置基线，不代表当前必然卡顿 |
-| 交付与验证 | 7 / 10% | schema 历史、聚焦业务检查、API 证据和物理交付记录齐全；最新真实 SQLite/手机反馈尚未补齐 |
-
-保留单 app module、一个共享同步 ViewModel、串行资源更新和现有组件层级。MainActivity 的 collectAsStateWithLifecycle、FeedContent 的纯文本/搜索缓存、Schedule 的分组/冲突缓存与背景 LRU 已是合理实践，不为评分增加多模块、DI 框架或每页 ViewModel。
-
-### 架构问题清单
-
-| 编号 / 优先级 | 源码依据与判定 | 建议与验收条件 |
-| --- | --- | --- |
-| A1 / P1：退出取消 HTTP 太晚 | [TimetableViewModel](../app/src/main/java/uk/ac/warwick/plus/ui/TimetableViewModel.kt) signOut 先 cancelAndJoin；[PlusApplication](../app/src/main/java/uk/ac/warwick/plus/PlusApplication.kt) 的 cancelRequests 直到 endSession 才调用。[MyWarwickApi](../app/src/main/java/uk/ac/warwick/plus/data/MyWarwickApi.kt) 使用同步 execute，callTimeout=35秒。**时序已确认**，阻塞时可能等读取结束/剩余超时；未量手机延迟 | 将“取消当前网络”与“清会话”拆开：先标记退出/取消任务、取消请求，再等待结束和清理；可通过单 Call 的协程取消连接保证更强时序，避免只 cancelAll 留竞态。保留写入前取消检查、Repository 锁、失败恢复，不在等待前清 cookie。用一个聚焦阻塞/取消编排检查验证及时完成及无晚写，真实退出由用户自愿手测 |
-| A2 / P1：展示模型直接使用可变持久对象 | [TimetableState](../app/src/main/java/uk/ac/warwick/plus/ui/TimetableState.kt) 的 events/entries 是 Entity 列表，Entity 为公开可写 Java 字段；withCache 每次投影全部资源。[Repository](../app/src/main/java/uk/ac/warwick/plus/data/TimetableRepository.kt) 验证后及写后都读全快照，可能使未变内容拿到新对象。**耦合已确认**，重组代价未测 | 在持久化→展示边界建立字段为 val 的 Kotlin 快照，保留 ID/完整详情/来源；不改 Room/schema。按资源内容变化复用未变展示快照，新增投影不能在仅进度更新时重建全量数据（当前进度 copy 本身是浅拷贝）。List 只读不等于深不可变，不给 Entity 或任意集合批量加 @Immutable；账户变化仍立即清空全部展示数据 |
-| A3 / P1：页面重复计算与状态范围 | [HomeScreen](../app/src/main/java/uk/ac/warwick/plus/ui/HomeScreen.kt) 在组合体内取 next/today/deadlines；[CourseworkScreen](../app/src/main/java/uk/ac/warwick/plus/ui/CourseworkScreen.kt) 每次筛选/排序，PlusScreen 接受整份状态。**计算路径已确认**，进度重组时可重新执行，但未证明用户可感知卡顿 | 先以 events、entries、query/filter、London 日期与必要时钟为依赖缓存纯结果；缩小内容组件输入，让进度单独消费。不要把页面 query 强搬到全局。编译器报告/手机跟踪验证失效范围，核对 midnight、正在上课、准确 deadline 边界与切页后位置 |
-| A4 / P2：路由与筛选缺类型约束 | [PlusScreen](../app/src/main/java/uk/ac/warwick/plus/ui/PlusScreen.kt) 使用 tab=0..3、Feed key、多个详情 ID/show 布尔值；Tasks 使用 Upcoming/Past 字符串。**维护风险**，未记录非法状态导致的实际故障 | 少量 enum 表示 Tab/Filter，有限类型表示 Me 子页与当前详情；按稳定 ID/name 用 Saver 保存，兼容旧筛选值回退 Upcoming，不使用 enum.ordinal 替代数据库 Feed key。保持返回、选日/列表位置、账户切换清选择；搜索词是否切页保留按现行为，不顺带改产品规则 |
-| A5 / P2：顶层时钟未绑定前台 | PlusScreen 的 LaunchedEffect(Unit) 每30秒更新 now；MainActivity 的生命周期订阅只控制 Flow 采集，不直接暂停这个循环。**未显式暂停已确认**，实际后台调度/耗电未测 | 时钟只在至少 STARTED 且对应内容需要时工作，回前台立即更新；保留30秒精度，跨英国午夜与 DST 正确。不以截断到分钟破坏 deadline 精确过期判断，不额外启动后台任务 |
-| A6 / P2：操作身份与提示文案混合 | TimetableState.updating 对非 Feed 比较 SyncProgress.resource 与 label；SyncNotice 同时有 feed/resource/olderMessages；PlusScreen 在 notice.id Effect 内捕获 state 与动作。**演进风险**，未复现错误恢复 | 为进度保存资源/操作身份，文字仅生成描述；恢复动作明确为整轮/单资源/更早页/登录，并在点击时采用当前状态或更新后的回调，保留旧游标与 notice 消费 ID。不把普通状态布尔值全部一次改成复杂状态机 |
-| A7 / P2：性能基线与数据库真机缺口 | [validation.md](validation.md) 记录0.18.0尚未安装；现有 Repository fixture 替代不了真实Room。release有R8，但当前无重组报告、滚动帧数据或可测发布配置 | 先完成已有 APK 的用户手机验收；随后用一致数据/设备/构建记录启动、Classes/Tasks/Messages滚动、刷新中重组和主题切换内存。记录前后差值；不拿单次 am start 时间当稳定基准，不未经要求新增 UI Test 或自动退出 |
-
-0.18.0冲突检查的内层 drop 和详情重复计算已在0.19.0改为索引循环/remember；仍为 O(n²)，普通规模未证明是瓶颈，暂不引入区间树。Feed搜索每条创建短 listOf 后 any 可改直接 OR，属于低风险少量分配优化，不承诺可感知提速。
-
-### Kotlin 写法与语法糖评估
-
-“语法糖”分为类型安全、表达清晰和微小分配三类；新语言版本不是这些改动的前提。本批未升级 Kotlin、Gradle 或依赖，也不把代码缩短视为性能证据。
-
-| 项目 | 评估 / 优先级 | 具体范围与保持规则 |
-| --- | --- | --- |
-| enum + 穷尽 when | 值得做，P2；主要是类型安全 | A4 的 Tab/Filter 及 A6 操作身份。界面仍显示原标签，保存状态有兼容回退；不把持久ID换成ordinal |
-| 嵌套 let/Elvis、长位置参数 | 顺手整理，P2；主要是可读性 | PlusScreen 的刷新回退、ViewModel 的 notice 构造、MainActivity 的 PlusScreen 调用用命名参数/局部变量/明确 when 或 if。先保存 singleOrNull 结果，删 startSync 中 resource→target 的无意义别名；保留回调缺失时的降级与单次调用，不能删“看似重复”的账户验证 |
-| 非空断言 | 小范围整理，P2 | ApiProbeSheet 的 problem!! 可用局部非空值/let 捕获；TimetableState 的 resource.feed!! 与 requireNotNull 承担当前 enum 不变量，优先随类型映射收敛，不能改为 ?: return 静默漏资源。未发现已复现空指针 |
-| apply/also/use | 当前用途合理，保留 | Parser 的 apply 构造Java实体、also校验、HTTP use关闭响应；不批量互换作用域函数。require失败仍拒整批，不能改 mapNotNull 跳过坏条目以缩短代码 |
-| runCatching / Result / fold | 不全局改写 | 同步URI等失败转空值可保留；ViewModel/SyncRetry 的显式catch继续传播CancellationException。登录检查目前runCatching只包同步user()，withContext在外，不能据此声称它已经吞协程取消；以后接入挂起网络须重新核对取消传播，避免无条件getOrNull/fold |
-| Sequence / 集合链 | 按测量选用，低优先级 | 三个首页deadline、最多500条消息不值得全部转Sequence；保留稳定排序/重复ID拒绝。先缓存和减少重复计算，再考虑热点分配，不仅替换语法 |
-| import / 多语句单行 | 顺手整理，低优先级 | 受影响文件显式必要import、展开有副作用/错误路径的分号串联；单行纯getter可保留。不做全仓格式重写或为了命名重建Room/KSP配置 |
-
-建议最终约定：纯值转换可用简短表达式；多步副作用/失败处理展开；作用域函数只用于清楚的对象构造/非空捕获；字符串用于文案，类型用于状态；取消继续传播。上述写法变化不要求新增简单样式或镜像实现的单元测试。
-
-### 后续实施边界
-
-1. A1/A2/A3代码与必要检查已完成；优先手动验收刷新、搜索、后台返回及缓存恢复，不自动退出真实账号。视觉、协议、schema、重试预算及串行顺序保持原约定。
-2. A4/A6代码已在0.20.0完成，保留返回/选日和账户隔离语义；先手动验收，再转回功能开发。A5剩余按页调度只在有收益时再做；工具链/依赖升级另外分批。
-3. A7 的测量入口已在0.23.0建立，完成同设备/同profile配置5+5次启动及一次用户手动Classes录制。CookieManager已确认移出主线程，首帧小样本变化见validation；尚无所有设备的收益结论。Messages/主题切换内存和可重复滚动对比继续补证据；Baseline Profile与自动化benchmark留到测量确有需要的专项，不默认加入UI测试。
-
-依据：[Compose计算与状态读取](https://developer.android.com/develop/ui/compose/performance/bestpractices)、[Compose稳定性契约](https://developer.android.com/develop/ui/compose/performance/stability/fix)、[Kotlin作用域函数](https://kotlinlang.org/docs/scope-functions.html)、[runCatching捕获范围](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/run-catching.html)。它们用于判断优化方法；具体待办来自本地源码，不代表官方对本项目的评分。
+行为和组件规范只在本文维护，API 状态只在 API 表维护，验证结果只在开发文档维护，签名和发行约束只在发布文档维护。版本/依赖以 Gradle 为准，尺寸/颜色以源码为准。历史评估、评分、备选方案与逐版日志通过 Git 查询，不作为当前标准重复保存。

@@ -61,7 +61,6 @@ try {
     Copy-Item -LiteralPath $apk -Destination (Join-Path $public $name)
     $hash = (Get-FileHash -LiteralPath (Join-Path $public $name) -Algorithm SHA256).Hash.ToLowerInvariant()
     "$hash  $name" | Set-Content -LiteralPath (Join-Path $public 'SHA256SUMS.txt') -Encoding ascii
-    Copy-Item -LiteralPath 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'LICENSE-APACHE-2.0.txt', 'PRIVACY.md' -Destination $public
     Copy-Item -LiteralPath 'app\build\outputs\mapping\release\mapping.txt' -Destination $private
     Copy-Item -LiteralPath 'work\release\build.log' -Destination $private
     $verification | Set-Content -LiteralPath (Join-Path $private 'signature-verification.txt') -Encoding utf8
@@ -71,8 +70,8 @@ try {
         versionName = $element[0].versionName; versionCode = $element[0].versionCode
         minimumAndroid = '9'; roomSchema = 5; apk = $name
         apkSha256 = $hash; signingCertificateSha256 = $certificate
-    } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $public 'release-manifest.json') -Encoding utf8
-    Copy-Item -LiteralPath 'docs\release-notes.md' -Destination (Join-Path $public 'RELEASE_NOTES.md')
+    } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $private 'release-manifest.json') -Encoding utf8
+    Copy-Item -LiteralPath 'docs\release-notes.md' -Destination (Join-Path $private 'RELEASE_NOTES.md')
     Write-Output "Verified release bundle: $([IO.Path]::GetFullPath($destination))"
     Write-Output "Signing certificate SHA-256: $certificate"
     Write-Output 'Publish public/ only. Keep private/ locally; manual acceptance and distribution permission remain separate.'

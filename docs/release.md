@@ -1,118 +1,76 @@
-# 首次发布与后续交付
+# 签名与发布
 
-首个公开Beta：`v0.26.0-beta.1`，versionCode39，Android 9+，Room schema5。
-公开包名 `io.github.nook001.mywarwickplus`；Debug 为 `.debug`、Profile 为 `.profile`。
-namespace/Activity 类名仍为 `uk.ac.warwick.plus`。旧内部包保留，不复制其认证或私人数据。
+本流程用于生成和分发正式签名 APK。当前发行和验证结果见 [开发与验证](development.md)，用户说明由 [release-notes.md](release-notes.md)维护。
 
-2026-10-08：用户反馈新Release手动登录测试正常，并明确要求公开发布；[GitHub Release](https://github.com/Nook001/MyWarwickPlus/releases/tag/v0.26.0-beta.1)已发布，isDraft=false/isPrerelease=true，八个public附件齐备。源码提交5494241/签名指纹/APK校验值在dist的manifest中；物理安装APK及GitHub附件哈希一致，旧内部包保留。用户只反馈登录测试，其他清单不推定全部通过；异机签名备份与学校允许范围仍未在本会话核实。
+## 密钥与备份
 
-## 工作分工
+当前签名密钥在 `%LOCALAPPDATA%/MyWarwickPlus/signing/release.p12`，alias 为 `mywarwickplus-release`；同目录 `credentials.xml` 由当前 Windows 用户的 DPAPI 加密，不能作为跨电脑或重装后的密码备份。
 
-| 工作 | 执行与完成标准 |
-| --- | --- |
-| 签名、打包、签名/Manifest 核对、校验值 | Codex/本地脚本；检查实际 Release APK，不以 Debug 结果替代 |
-| 既有 JVM 检查、Lint、Release R8 构建 | Codex；无需新增/运行 UI Test |
-| README、MIT、隐私、依赖说明、发布说明 | Codex；隐私描述实际行为，不宣称端到端加密或学校授权 |
-| 密钥与密码独立备份 | 用户；验证在另一安全位置可恢复，不能只有本机加密凭据 |
-| 登录/MFA、退出和各页面验收 | 用户；只在明确的 Release 应用内操作，不清旧内部包数据 |
-| 学校允许的第三方客户端发行范围 | 用户确认；Codex可整理咨询要点，不自行发消息 |
-| Draft / Pre-release 附件与最后发布 | 本次按用户明确要求完成公开Pre-release；后续按新版本重复核对源码/附件/验收，不覆盖已发布APK |
-
-## 签名与打包
-
-签名只从四个 `MWP_RELEASE_*` 环境变量读取。无变量时贡献者可构建 unsigned
-Release；`checkReleaseSigning` 和打包脚本拒绝将 unsigned APK 当作发布产物。
-正式构建禁用 Gradle configuration cache，防止序列化签名密码；不要用
-`--debug`、build scan、共享日志等方式泄露签名配置。
-
-Windows 本机命令：
-
-```powershell
-$env:JAVA_HOME = 'D:/Dev/JDK21.0.8'
-$env:ANDROID_HOME = 'D:/Dev/AndroidSDK'
-# 首次使用一次；已生成后绝不覆盖/重新生成：
-& tools/release/initialize-signing.ps1
-# 确认提交且工作区干净后：
-& tools/release/package.ps1 -Tag v0.26.0-beta.1
-```
-
-当前密钥位于 `%LOCALAPPDATA%/MyWarwickPlus/signing/release.p12`，凭据在同目录
-`credentials.xml`，采用当前 Windows 用户的 DPAPI 加密并限制目录访问。
-打包脚本只临时向子进程提供密码，结束后恢复环境；不会打印密码或上传密钥。
-
-**用户必须备份 keystore 和密码，XML 本身不能跨 Windows 账户/重装后恢复。**
-自行在本机 PowerShell 中将密码复制到密码管理器，勿把命令结果发给 Codex或Issues：
+用户需要独立备份 **keystore 和实际密码**，分开安全保存。可自行在本机 PowerShell 将密码复制到密码管理器，勿发送到聊天或 Issues：
 
 ```powershell
 $signing = Import-Clixml (Join-Path $env:LOCALAPPDATA 'MyWarwickPlus/signing/credentials.xml')
 Set-Clipboard $signing.Credential.GetNetworkCredential().Password
-# 粘贴至密码管理器，记录 alias = mywarwickplus-release；然后：
+# 粘贴至密码管理器，然后清剪贴板：
 Set-Clipboard ''
 $signing = $null
 ```
 
-将 `release.p12` 复制到独立、安全的备份位置；密码与密钥分开保存。后续签名证书
-SHA-256已记录在`tools/release/certificate-sha256.txt`，脚本默认核对；也可通过
-`-ExpectedCertificateSha256`显式指定，避免误换密钥。指纹是公开信息，不是私钥。
+已发布后不要重建或覆盖密钥；`initialize-signing.ps1` 仅用于首次创建。后续更新保持包名和签名，versionCode 递增。公开证书指纹保存在 `tools/release/certificate-sha256.txt`，打包时默认核对。
 
-脚本输出 `dist/<tag>/public/`（APK、SHA256SUMS、发布说明、源码提交/签名指纹
-manifest、许可证/隐私）与 `private/`（mapping、构建/依赖与核对记录）。只上传
-public 中的附件；private 长期本地归档，帮助解混淆崩溃。dist 不入Git。
-脚本不安装应用、不操作账号、不创建标签、不发布 Release。
+## 打包
 
-## 物理手机手动验收
-
-指定物理手机 `10AG4S2KQJ0066R`，使用 `install -r`；安装新包无需删除旧应用。
-新包显示 `MyWarwick+`，内部旧包同名，安装后通过明确组件启动确认目标。
+1. 更新 Gradle 版本号/versionCode 与英文发布说明；提交并确认工作区干净。
+2. 使用新 tag 打包，脚本检查实际 APK 的签名、包名、版本、最低 SDK、非 Debug 和源码一致性。
+3. 按 [手动检查表](development.md#手动检查)验证该 Release，记录实际结果。
 
 ```powershell
-& 'D:/Dev/AndroidSDK/platform-tools/adb.exe' -s 10AG4S2KQJ0066R install -r dist/v0.26.0-beta.1/public/MyWarwickPlus-0.26.0-beta.1.apk
-& 'D:/Dev/AndroidSDK/platform-tools/adb.exe' -s 10AG4S2KQJ0066R shell am start -W -n io.github.nook001.mywarwickplus/uk.ac.warwick.plus.MainActivity
+$env:JAVA_HOME = 'D:/Dev/JDK21.0.8'
+$env:ANDROID_HOME = 'D:/Dev/AndroidSDK'
+$tag = 'v0.26.0-beta.2' # 示例：必须与本次已更新的 versionName 一致
+& tools/release/package.ps1 -Tag $tag
 ```
 
-| 检查 | 用户操作 / 通过条件 |
+脚本临时提供四个 `MWP_RELEASE_*` 环境变量，并禁用 Gradle configuration cache，结束后恢复环境。无凭据可构建 unsigned，但不能通过发布检查。签名配置不写入仓库，不用 debug/build scan 输出签名秘密。
+
+| 位置 | 内容与用途 |
 | --- | --- |
-| 新安装与认证 | 新包首次登录，Warwick SSO/MFA后返回；姓名/邮箱、数据正常 |
-| Home / Classes / Tasks | 时间、截止日期正确，选日/搜索/筛选/详情/地点与快捷链接正常 |
-| Inbox | 搜索/清除、打开/关闭详情、All、最新刷新、更早分页正常 |
-| 离线 | 飞行模式打开各页；已有缓存保留、失败反馈可恢复；恢复联网后正常刷新 |
-| 外观与无障碍 | 浅/深颜色主题各一，系统大字体不重叠；五Tab标签完整 |
-| 重启与更新 | 关闭应用/重开后登录和缓存保留；同签名 Release 覆盖安装后再验证 |
-| 本地退出 | 最后在新 Release 内退出，数据消失；重新登录成功，不影响旧包/浏览器 |
+| `dist/<tag>/public/` | 仅签名 APK 和 `SHA256SUMS.txt`，作为下载附件 |
+| `dist/<tag>/private/` | mapping、构建/依赖日志、签名与 Manifest 核对、源码/签名/哈希清单、发布说明副本；保留本地归档 |
+| GitHub Release 正文 | 使用发布说明副本，不另上传同内容 Markdown 附件 |
+| 仓库根与 APK `assets/legal/` | 隐私、MIT、Apache-2.0 和第三方声明；不重复上传为独立附件 |
 
-覆盖相同 APK 只能验证重装保留数据，不能证明未来 schema 迁移。测试另一账户
-不是本轮默认操作；没有授权账号则明确留空，不宣称多账户实测。
+`dist/` 不入 Git；private 中的发布说明可用于 Release 正文，其余构建记录不上传。脚本不安装、不创建 tag、不自动发布，也拒绝替换既有 dist 目录。
 
-## 对外说明与许可
+首个 Beta 使用旧附件布局，包含八个附件，manifest 在 `public/`；本次整理保留这些已发布文件。新打包使用上表布局，不混用两个目录位置。
 
-MIT仅覆盖本项目代码；依赖保留自身许可，学校内容/品牌不归本项目授权。
-正式发布前检查截图、Git历史与附件没有私人数据，README/PRIVACY明确非官方身份。
-不要把 Issues 当作私人支持渠道，不要求用户上传完整 HAR/logcat/database。
+GitHub 还会[自动提供源码 ZIP/tar.gz](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases)，它们不属于脚本上传的两个附件。
 
-学校内部接口可用不代表第三方发行已被允许。用户向 IDG确认时可说明：Android
-学生客户端、官方SSO/MFA、不接收密码、不设中转服务器、仅本人只读数据、有限刷新、
-不修改账户/已读状态；询问该方式与公开Beta分发是否被允许及有没有推荐接口。
-这与申请新的 OAuth application 是不同问题，不能用 Beta/免责声明替代确认。
-
-## 创建发布
-
-验收/备份/允许范围确认后，核对 `release-manifest.json` 的 `sourceCommit`，将
-对应 tag 指向该提交，在 GitHub创建 Draft，添加 public 附件，再标为 Pre-release。
-不要沿用旧的 `app-release-unsigned.apk`、Debug包或profile包。
-
-下列保留首次发布命令示例；本次tag已发布，不重复执行create/upload，后续须改为新版本tag：
+## 安装与验收
 
 ```powershell
-$manifest = Get-Content dist/v0.26.0-beta.1/public/release-manifest.json -Raw | ConvertFrom-Json
-gh release create $manifest.tag --repo Nook001/MyWarwickPlus --target $manifest.sourceCommit --draft --prerelease --title 'MyWarwick+ 0.26.0-beta.1' --notes-file dist/v0.26.0-beta.1/public/RELEASE_NOTES.md
-gh release upload $manifest.tag dist/v0.26.0-beta.1/public/* --repo Nook001/MyWarwickPlus
+$apk = "dist/$tag/public/MyWarwickPlus-$($tag.Substring(1)).apk"
+& 'D:/Dev/AndroidSDK/platform-tools/adb.exe' -s 10AG4S2KQJ0066R install -r $apk
+& 'D:/Dev/AndroidSDK/platform-tools/adb.exe' -s 10AG4S2KQJ0066R shell am start -n io.github.nook001.mywarwickplus/uk.ac.warwick.plus.MainActivity
 ```
 
-正式发布后保持包名/签名，versionCode递增，从公开schema5起新增数据库版本必须有
-迁移；不得使用 destructive fallback 静默清缓存。已发布tag/APK不覆盖，修复发新版本。
-首轮不必增加自动更新或复杂CI，保留手动、可核对的发布流程。
+用户完成 SSO/MFA 和实际页面验收，明确核对 Release 包；新公开包与旧内部/Debug/Profile 数据隔离。覆盖安装保留同包数据，无需卸载旧应用。公开 schema 5 起的数据库变更需要迁移，不能静默清缓存。
 
-参考：[Android签名](https://developer.android.com/studio/publish/app-signing)、
-[apksigner](https://developer.android.com/tools/apksigner)、
-[GitHub Releases](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository)、
-[Warwick IMST04](https://warwick.ac.uk/services/secretarytocouncil/info-security/im-policy-framework/standards/imst04/)。
+## 创建 GitHub Release
+
+核对 manifest 的 sourceCommit，让 tag 对应实际打包源码，先创建 Draft、上传两个 public 文件，再按发行安排公开为 Pre-release。每次修复发新版本，不覆盖已发布 APK/tag。
+
+```powershell
+$manifest = Get-Content "dist/$tag/private/release-manifest.json" -Raw | ConvertFrom-Json
+$notes = "dist/$tag/private/RELEASE_NOTES.md"
+gh release create $manifest.tag --repo Nook001/MyWarwickPlus --target $manifest.sourceCommit --draft --prerelease --title "MyWarwick+ $($manifest.versionName)" --notes-file $notes
+gh release upload $manifest.tag "dist/$tag/public/$($manifest.apk)" "dist/$tag/public/SHA256SUMS.txt" --repo Nook001/MyWarwickPlus
+# 发布时核对附件/标签/说明后执行：
+gh release edit $manifest.tag --repo Nook001/MyWarwickPlus --draft=false --prerelease --latest=false
+```
+
+脚本和构建/核对由 Codex 执行；密钥独立备份、账号操作、手测和学校允许范围由用户确认。MIT 仅覆盖本项目代码，不授权学校服务、内容或品牌。发布前检查附件/截图/源码不含私人数据。
+
+学校内部接口可用不代表第三方客户端分发获得许可。可向 IDG 说明官方 SSO/MFA、本人只读数据、无密码收集/中转服务器、有界刷新，询问这种方式和公开分发的允许范围；这与申请新的 OAuth application 是不同问题。当前没有学校书面确认，不把 Beta 或免责声明当许可。
+
+参考：[Android 签名](https://developer.android.com/studio/publish/app-signing)、[GitHub Releases](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository)、[Warwick IMST04](https://warwick.ac.uk/services/secretarytocouncil/info-security/im-policy-framework/standards/imst04/)。

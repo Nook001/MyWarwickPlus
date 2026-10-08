@@ -14,8 +14,8 @@ The Android runtime dependencies include:
 
 Upstream authors retain their copyrights. Existing dependency license/notice
 resources are retained in the APK, and `assets/legal/` includes this notice,
-MIT, Apache License 2.0 and the privacy information. The release packaging
-script also distributes these files. This table names the principal runtime
+MIT, Apache License 2.0 and the privacy information. These files are also
+available in the source repository. This table names the principal runtime
 projects, not a complete dependency inventory; the release's resolved runtime
 dependency report is archived with its build records.
 
