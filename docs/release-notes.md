@@ -6,7 +6,8 @@ an independent student project; a Warwick account is required.
 ## Changes
 
 - Home: Buses and Print occupy two half-width cards after Deadlines. Buses
-  shows up to two original departure times and route descriptions; Print
+  shows up to two departure times with compact route/destination and stop
+  previews; tap for complete original route descriptions. Print
   shows the returned balance and opens the official account website.
 - Events: up to three upcoming or ongoing campus activities at the bottom of
   Home, with full details and links to the original event website.
