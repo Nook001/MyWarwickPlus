@@ -88,7 +88,7 @@ internal fun MetricListRow(onSelect: () -> Unit, actionLabel: String, modifier: 
     content: @Composable ColumnScope.() -> Unit) {
     val compact = density == ListRowDensity.Compact
     val rowPadding = if (compact) Spacing.compactRowPadding else 10.dp
-    val width = with(LocalDensity.current) { 48.sp.toDp() }
+    val width = with(LocalDensity.current) { (if (compact) 40.sp else 48.sp).toDp() }
     Row(modifier.fillMaxWidth().clickable(onClickLabel = actionLabel, onClick = onSelect)
         .heightIn(min = if (compactTop) Spacing.sectionFirstRowHeight else if (compact) Spacing.compactRowHeight else 64.dp)
         .padding(start = 12.dp, end = 12.dp, top = if (compactTop) 0.dp else rowPadding,

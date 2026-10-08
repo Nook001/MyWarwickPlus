@@ -138,7 +138,6 @@
     <string name="open_module_moodle">Open module in Moodle</string>
     <string name="open_source_website">Open source website</string>
     <string name="close_service_details">Close service details</string>
-    <string name="messages_feed_description">Messages from MyWarwick. Viewing here doesn\'t mark messages read on the website.</string>
     <string name="modules_feed_description">Modules returned by MyWarwick. Open Moodle for learning materials and announcements.</string>
     <string name="library_feed_description">Your Library account summary from MyWarwick.</string>
     <string name="library_not_loaded">Your Library summary hasn\'t loaded yet</string>

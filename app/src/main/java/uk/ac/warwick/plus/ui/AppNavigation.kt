@@ -54,7 +54,7 @@ internal fun AppNavigation(tab: AppTab, needsSignIn: Boolean, logoutFailed: Bool
             AppTab.entries.forEach { item ->
                 val selected = tab == item
                 CompactTab(stringResource(item.labelRes), selected, { onSelect(item) }, item.tag) {
-                    Box(Modifier.size(24.dp)) {
+                    Box(Modifier.size(22.dp)) {
                         val icon = when (item) {
                             AppTab.HOME -> if (selected) NavigationIcons.homeFilled else NavigationIcons.homeOutline
                             AppTab.CLASSES -> if (selected) NavigationIcons.scheduleFilled else NavigationIcons.scheduleOutline
@@ -62,7 +62,7 @@ internal fun AppNavigation(tab: AppTab, needsSignIn: Boolean, logoutFailed: Bool
                             AppTab.MESSAGES -> if (selected) NavigationIcons.messagesFilled else NavigationIcons.messagesOutline
                             AppTab.ME -> if (selected) NavigationIcons.meFilled else NavigationIcons.meOutline
                         }
-                        Icon(icon, null, Modifier.size(24.dp))
+                        Icon(icon, null, Modifier.size(22.dp))
                         if (item == AppTab.ME && (needsSignIn || logoutFailed)) Box(Modifier.align(Alignment.TopEnd)
                             .size(5.dp).background(MaterialTheme.colorScheme.error, CircleShape).semantics {
                                 contentDescription = attention

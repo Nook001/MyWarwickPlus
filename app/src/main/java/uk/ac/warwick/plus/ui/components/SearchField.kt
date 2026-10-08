@@ -36,10 +36,11 @@ private val ClearIcon = ImageVector.Builder("Clear", 24.dp, 24.dp, 24f, 24f).app
 
 @Composable
 internal fun SearchField(query: String, onQueryChange: (String) -> Unit, placeholder: String,
-    modifier: Modifier = Modifier, onSearch: () -> Unit) {
+    modifier: Modifier = Modifier, compact: Boolean = false, onSearch: () -> Unit) {
+    val textStyle = if (compact) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium
     AppCard(shape = AppShapes.search, tone = CardTone.Quiet, modifier = modifier.fillMaxWidth()) {
         BasicTextField(query, onQueryChange, singleLine = true,
-            textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
+            textStyle = textStyle.copy(color = MaterialTheme.colorScheme.onSurface),
             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = { onSearch() }),
@@ -49,7 +50,7 @@ internal fun SearchField(query: String, onQueryChange: (String) -> Unit, placeho
                     Icon(SearchIcon, placeholder, Modifier.size(20.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Box(Modifier.weight(1f).padding(vertical = 12.dp)) {
-                        if (query.isEmpty()) Text(placeholder, style = MaterialTheme.typography.bodyMedium,
+                        if (query.isEmpty()) Text(placeholder, style = textStyle,
                             color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         input()
                     }

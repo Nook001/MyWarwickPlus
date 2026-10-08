@@ -8,7 +8,20 @@
 
 仅更新三个现有文档，不改源码/测试/依赖/schema/版本；不构建、不运行JVM/UI/设备测试、不部署或请求学校接口。核对本地引用、表格/代码块结构、评估中的源码符号及git diff --check；查阅Compose/Kotlin官方技术说明，不访问用户会话。之前0.18.0手机安装被拒和待验收状态保留。
 
-## 最新代码：0.25.0 / versionCode 37
+## 最新代码：0.25.1 / versionCode 38
+
+2026-10-08：首页Today/Deadlines采用Compact左列40sp（原48sp），随系统字体缩放，默认正文左移8dp。Inbox标题14sp Medium、摘要/搜索12sp、来源日期11sp Regular；移除顶部说明、来源与英文短日期同行，标题/摘要各最多两行，卡片内边距12dp/内容间距4dp/卡片间距8dp。消息详情标题18sp/正文14sp，完整文本/日期保留；Tab图标24→22dp，原24dp布局槽/点击区不变。Library/Modules与Classes/Tasks保留标准布局；无API/认证/权限/依赖/schema5变更。
+
+| 检查 | 本次结果 / 边界 |
+| --- | --- |
+| 构建 / Lint | assembleDebug/lintDebug成功（21s），Lint报告No issues found；日志work/0251-build.log。无新增测试，未运行JVM/UI Test或Release构建 |
+| 数据 / 文档 | 消息搜索/账户文本缓存/排序/详情/分页与网站已读行为不变；README、架构/API进度已同步 |
+| 物理部署 | 指定10AG4S2KQJ0066R执行install -r成功，dumpsys确认0.25.1 / versionCode38；启动Status:ok / COLD / TotalTime472ms，单次Debug值不作性能基准。未卸载/清数据或安装到模拟器 |
+| 视觉核对 | 只读截图work/inbox0251.png（不跟踪）：手机已切到Inbox，来源/日期同行、标题紧凑、五条消息完整及第六条部分可见，Tab轮廓/实心两态可见，无可见重叠；未自动点击/滑动。首页左列、详情/搜索/分页与大字体仍待手动验收 |
+
+手动重点：首页时间与倒计时左列仍居中、课程/作业名更靠左；Inbox首屏可见消息量、来源日期对齐、长标题/摘要省略与详情全文、搜索/清除/下拉/更早分页；五Tab两态图标及大字体可读性。构建/安装不能替代UI手动验收。
+
+## 上一版：0.25.0 / versionCode 37
 
 2026-10-08：Today起始时间及Deadline数字改为11sp Bold，结束时间/days保持Regular；Next当日只显示时间，未来显示Tomorrow或日期。Messages独立为Inbox Tab（页标题Messages），Home摘要保留、All到Inbox；Me删除Data status/Developer tools/重复Messages入口，Sign out到版本号后的页面末尾，保留确认与退出失败重试。无API/权限/认证/依赖/Room schema5变更。
 
