@@ -9,9 +9,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import java.time.LocalDate
 import uk.ac.warwick.plus.R
 import uk.ac.warwick.plus.config.AppLabels
@@ -36,11 +36,12 @@ internal fun HomeMessages(state: FeedState, recovery: RecoveryState, today: Loca
             Row(Modifier.fillMaxWidth().testTag("home-message-${entry.id}")
                 .clickable(role = Role.Button, onClickLabel = stringResource(R.string.view_resource_details,
                     stringResource(AppLabels.MESSAGES)), onClick = { onSelect(entry) })
-                .heightIn(min = if (index == 0) Spacing.sectionFirstRowHeight else 56.dp)
-                .padding(start = 12.dp, end = 12.dp, top = if (index == 0) 0.dp else 8.dp, bottom = 10.dp),
+                .heightIn(min = if (index == 0) Spacing.sectionFirstRowHeight else Spacing.compactRowHeight)
+                .padding(start = 12.dp, end = 12.dp, top = if (index == 0) 0.dp else Spacing.compactRowPadding,
+                    bottom = Spacing.compactRowPadding),
                 horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text(entry.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(entry.title, style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 18.sp),
                         maxLines = 2, overflow = TextOverflow.Ellipsis)
                     val preview = textById[entry.id] ?: if (entry.html) "" else entry.text
                     if (preview.isNotBlank()) Text(preview, style = MaterialTheme.typography.bodySmall,

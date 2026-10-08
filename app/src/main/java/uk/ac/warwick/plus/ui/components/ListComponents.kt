@@ -32,7 +32,7 @@ internal fun SectionCard(title: String, modifier: Modifier = Modifier,
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (icon != null) Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold,
+                Text(title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f).then(if (headingTag == null) Modifier else Modifier.testTag("$headingTag-heading")))
                 trailing()
@@ -79,14 +79,20 @@ internal fun GroupedListItem(first: Boolean, last: Boolean, content: @Composable
 }
 
 /** Shared geometry only; class status and deadline rules belong to their domain rows. */
+internal enum class ListRowDensity { Standard, Compact }
+
 @Composable
 internal fun MetricListRow(onSelect: () -> Unit, actionLabel: String, modifier: Modifier = Modifier,
-    compactTop: Boolean = false, metric: @Composable ColumnScope.() -> Unit,
+    compactTop: Boolean = false, density: ListRowDensity = ListRowDensity.Standard,
+    metric: @Composable ColumnScope.() -> Unit,
     content: @Composable ColumnScope.() -> Unit) {
+    val compact = density == ListRowDensity.Compact
+    val rowPadding = if (compact) Spacing.compactRowPadding else 10.dp
     val width = with(LocalDensity.current) { 48.sp.toDp() }
     Row(modifier.fillMaxWidth().clickable(onClickLabel = actionLabel, onClick = onSelect)
-        .heightIn(min = if (compactTop) Spacing.sectionFirstRowHeight else 64.dp)
-        .padding(start = 12.dp, end = 12.dp, top = if (compactTop) 0.dp else 10.dp, bottom = if (compactTop) 8.dp else 10.dp),
+        .heightIn(min = if (compactTop) Spacing.sectionFirstRowHeight else if (compact) Spacing.compactRowHeight else 64.dp)
+        .padding(start = 12.dp, end = 12.dp, top = if (compactTop) 0.dp else rowPadding,
+            bottom = if (compactTop) 8.dp else rowPadding),
         horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.width(width), horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(2.dp), content = metric)

@@ -2,7 +2,7 @@
 
 独立的 Android 学生客户端原型，Kotlin + Jetpack Compose。通过官方 WebView SSO 登录，复用 MyWarwick session 与只读聚合接口，不申请新的 OAuth application；不是 Warwick 官方应用。
 
-当前代码：**0.24.1 / versionCode 34**。构建、物理安装和手动验收是不同状态，交付情况见 [验收记录](docs/validation.md)。
+当前代码：**0.24.2 / versionCode 35**。构建、物理安装和手动验收是不同状态，交付情况见 [验收记录](docs/validation.md)。
 
 ## 当前功能
 

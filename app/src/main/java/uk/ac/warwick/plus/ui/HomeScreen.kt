@@ -14,6 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import java.time.LocalDate
 import uk.ac.warwick.plus.config.AppLabels
 import uk.ac.warwick.plus.data.*
@@ -60,8 +61,10 @@ internal fun HomeContent(state: HomePageState, today: LocalDate, now: Long, onSe
                 agenda.weekendMessage?.let { SectionEmptyRow(stringResource(it)) }
                 agenda.day.events.forEachIndexed { index, event ->
                     if (index > 0) ListDivider()
-                    val status = classStatus(event, now, nextId, agenda.day.date)?.let { stringResource(it) }
-                    ScheduleClassRow(event, agenda.day.date, status, event.id in conflicts, compactTop = index == 0) { onSelect(event) }
+                    val status = classStatus(event, now, nextId, agenda.day.date)
+                        ?.takeUnless { it == AppLabels.NEXT }?.let { stringResource(it) }
+                    ScheduleClassRow(event, agenda.day.date, status, event.id in conflicts,
+                        compactTop = index == 0, density = ListRowDensity.Compact) { onSelect(event) }
                 }
             }
         }
@@ -108,14 +111,14 @@ private fun NextClassCard(event: EventContentItem, now: Long, onSelect: () -> Un
                 verticalAlignment = Alignment.CenterVertically) {
                 Icon(ContentIcons.clock, contentDescription = null, modifier = Modifier.size(18.dp))
                 Text(if (isClassNow(event, now)) stringResource(AppLabels.NOW) else stringResource(AppLabels.NEXT), style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold)
+                    fontWeight = FontWeight.Medium)
                 Text(if (event.startMillis <= now) time else "${nextClassLabel(event, now).render()} · $time",
-                    style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium,
+                    style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Normal,
                     textAlign = TextAlign.End,
                     modifier = Modifier.weight(1f).testTag("next-when"))
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(identity.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
+                Text(identity.name, style = MaterialTheme.typography.titleMedium.copy(lineHeight = 22.sp), fontWeight = FontWeight.Medium,
                     maxLines = 2, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f).alignByBaseline().testTag("next-name"))
                 if (identity.code.isNotBlank()) Text(identity.code, style = MaterialTheme.typography.labelMedium,

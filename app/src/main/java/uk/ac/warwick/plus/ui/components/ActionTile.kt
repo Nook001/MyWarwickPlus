@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -20,18 +21,22 @@ internal enum class ActionDestination { Internal, External }
 
 @Composable
 internal fun ActionTile(label: String, icon: ImageVector, onClick: () -> Unit,
-    layout: ActionTileLayout, modifier: Modifier = Modifier, minimumHeight: Dp = 64.dp,
+    layout: ActionTileLayout, modifier: Modifier = Modifier,
+    minimumHeight: Dp = if (layout == ActionTileLayout.Compact) 48.dp else 64.dp,
     destination: ActionDestination? = null, actionLabel: String? = null) {
     val compact = layout == ActionTileLayout.Compact
-    AppCard(onClick, modifier, shape = if (compact) AppShapes.section else AppShapes.tile, actionLabel = actionLabel ?: stringResource(R.string.open_item, label)) {
+    AppCard(onClick, modifier, shape = if (compact) AppShapes.section else AppShapes.tile,
+        tone = if (compact) CardTone.Quiet else CardTone.Normal,
+        actionLabel = actionLabel ?: stringResource(R.string.open_item, label)) {
         Box(Modifier.heightIn(min = minimumHeight)) {
             Column(Modifier.align(Alignment.Center).then(if (compact)
-                Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp) else Modifier.padding(10.dp)),
+                Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp) else Modifier.padding(10.dp)),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 6.dp, Alignment.CenterVertically)) {
+                verticalArrangement = Arrangement.spacedBy(if (compact) 2.dp else 6.dp, Alignment.CenterVertically)) {
                 Icon(icon, contentDescription = null, modifier = Modifier.size(if (compact) 20.dp else 24.dp),
                     tint = MaterialTheme.colorScheme.primary)
                 Text(label, style = if (compact) MaterialTheme.typography.labelMedium else MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Normal,
                     textAlign = TextAlign.Center, maxLines = if (compact) 1 else 2, overflow = TextOverflow.Ellipsis)
             }
             if (destination != null) Icon(if (destination == ActionDestination.External) MeIcons.external else DetailsChevron,
