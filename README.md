@@ -2,7 +2,7 @@
 
 独立的 Android 学生客户端，使用 Kotlin + Jetpack Compose，通过官方 WebView SSO 登录并复用 MyWarwick 只读接口。不是 University of Warwick 官方应用。
 
-**[下载首个 Beta](https://github.com/Nook001/MyWarwickPlus/releases/tag/v0.26.0-beta.1)**：0.26.0-beta.1，Android 9+，需要 Warwick 账号。安装签名 APK，首次使用需登录；当前为 Pre-release。下载页包含该版本说明，下一版本草稿见 [发布说明](docs/release-notes.md)。
+**[下载当前 Beta](https://github.com/Nook001/MyWarwickPlus/releases/tag/v0.27.0-beta.1)**：0.27.0-beta.1，Android 9+，需要 Warwick 账号。安装签名 APK，首次使用需登录；当前为 Pre-release。下载页及 [发布说明](docs/release-notes.md)包含该版本说明。
 
 ## 功能
 
@@ -16,7 +16,7 @@
 
 固定颜色主题、静态渐变背景、离线缓存和真实任务阶段进度。时间按 Europe/London 显示。当前无后台同步、系统通知、作业提交或消息已读写回。
 
-开发候选为 0.27.0-beta.1：首页增加 Buses/Print/Events 摘要及独立缓存，保留现有 UI 调整；浏览器真实批次结构已确认，原生功能验收状态见 API 表。公交不宣称实时预测，打印充值与活动报名通过原站进行。
+0.27.0-beta.1 首页增加 Buses/Print/Events 摘要及独立缓存，保留现有 UI 调整；浏览器真实批次结构已确认，物理手机手动验收通过。公交不宣称实时预测，打印充值与活动报名通过原站进行。
 
 ## 文档
 

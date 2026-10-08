@@ -27,23 +27,9 @@ $env:JAVA_HOME = 'D:/Dev/JDK21.0.8'
 
 ## 最新公开版本验证
 
-`v0.26.0-beta.1` 于 2026-10-08 [发布为 Pre-release](https://github.com/Nook001/MyWarwickPlus/releases/tag/v0.26.0-beta.1)，versionCode 39，APK 源码提交 `5494241`。后续文档提交不改变该 APK。
-
-| 项目 | 已确认结果 |
-| --- | --- |
-| 构建 | 签名 Release、Debug、Profile 构建通过，Release R8/资源收缩通过 |
-| JVM / Lint | 76 项既有 JVM 检查通过；Debug Lint 无问题，Release 0 errors/1 warning（可用 Gradle 补丁提示） |
-| 包与签名 | Android 9+、非 debuggable、正式版性能标记关闭；签名和 SHA-256 校验通过，APK 内含四份隐私/许可文件 |
-| 手机 | 指定物理手机覆盖安装与启动成功；实际安装 APK 哈希与发布 APK 相同，旧内部包保留 |
-| 用户反馈 | 手动登录测试正常；不扩充为所有页面、离线、退出、更新或多设备全部验收 |
-
-构建日志、mapping 和 trace 只在本地 `work/`、`dist/` 保存。先前跟踪文件扫描未发现高置信 token/private-key，不等于完整安全审计。历史 API 验证边界在 API 表，旧版本安装重试和逐次构建日志通过 Git 查询。
-
-## 开发候选
-
 0.27.0-beta.1 / versionCode 41：保留用户 UI 调整，首页半宽 Buses/Print、底部 Events；核心优先、首页附加刷新、schema 5→6 非破坏迁移。签名 Release、Debug 构建和 82 项 JVM 检查通过；Debug Lint 无问题，Release 0 errors/1 warning（Gradle 补丁提示）。五项新 JVM 检查只覆盖协议、时间、刷新和账户隔离，不新增或运行 UI Test；既有夹具仅适配新增接口。
 
-最新签名包在 `dist/v0.27.0-beta.1/public/`，源码 `f2dbab2`，尚未发布 GitHub Release。物理手机已覆盖安装并启动公交文字修正版，实际安装 APK 的 SHA-256 与候选包一致；此前已在原生首页观察到非空公交和打印余额。公交文字布局、Events 详情/原站链接、离线及长文字/字体仍待用户手测。
+`v0.27.0-beta.1` 于 2026-10-08 [发布为 Pre-release](https://github.com/Nook001/MyWarwickPlus/releases/tag/v0.27.0-beta.1)。签名包在 `dist/v0.27.0-beta.1/public/`，源码及发布 tag 对应 `f2dbab2`；后续文档提交不改变 APK。物理手机已覆盖安装并启动公交文字修正版，实际安装 APK 的 SHA-256 与候选包一致；此前已在原生首页观察到非空公交和打印余额。用户确认本轮手动验收通过，未逐项记录边界场景或多设备结果。
 
 迁移 SQL 已用 SQLite 核对，与 Room 导出的 schema 6 八张表一致，原有五张表的样本行保留；手机启动无 SQLite/运行时错误，仍需手测覆盖前后的离线缓存。新服务浏览器整批字段验证见 API 表。
 
@@ -85,7 +71,7 @@ $traceProcessor = 'C:/Tools/Perfetto/trace_processor_shell.exe'
 | 方向 | 开始条件或缺口 |
 | --- | --- |
 | 公开版验证 | 补离线/更新/退出、字体与主题、更多设备；API 37 运行仍待对应设备 |
-| 数据覆盖 | Buses/Print/Events 已有首页摘要，待真实非空数据手测；非空 Library、Modules 公告/评估仍待结构证据 |
+| 数据覆盖 | Buses/Print/Events 首页摘要已手动验收；非空 Library、Modules 公告/评估仍待结构证据 |
 | 性能 | Messages 滚动、主题切换内存、可重复 Classes 对比；有热点证据后才考虑 Baseline Profile 或进一步时钟调度 |
 | 存储与备份 | 真设备 Room 迁移验证、OEM 迁移是否遵守禁备份规则；JVM 假缓存不能替代 Room 引擎检查 |
 | 发行维护 | 密钥/密码独立备份及学校允许范围仍待用户确认，操作见发布文档 |

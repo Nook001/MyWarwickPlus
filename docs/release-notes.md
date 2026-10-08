@@ -1,7 +1,7 @@
 # MyWarwick+ 0.27.0-beta.1
 
-Local candidate for Android 9 and later, not yet published on GitHub. This is
-an independent student project; a Warwick account is required.
+Beta release for Android 9 and later. This is an independent student project;
+a Warwick account is required.
 
 ## Changes
 
@@ -24,9 +24,9 @@ Install the signed `MyWarwickPlus-0.27.0-beta.1.apk` over the public package
 Internal, Debug and Profile packages remain separate. Use `SHA256SUMS.txt`
 for checksum verification.
 
-Confirm the bus and balance summaries, Events details and original website
-links, Home refresh and offline cache. Physical-device acceptance of the new
-features is still pending.
+The signed build passed the developer's physical-device acceptance. When
+upgrading, check the bus and balance summaries, Events links, Home refresh and
+offline cache on your device.
 
 ## Limits
 
