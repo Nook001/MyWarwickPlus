@@ -11,8 +11,8 @@ android {
         applicationId = "uk.ac.warwick.plus"
         minSdk = 28
         targetSdk = 37
-        versionCode = 35
-        versionName = "0.24.2"
+        versionCode = 36
+        versionName = "0.24.3"
         buildConfigField("boolean", "PERFORMANCE_TRACING", "false")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

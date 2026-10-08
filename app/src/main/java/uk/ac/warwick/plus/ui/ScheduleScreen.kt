@@ -22,7 +22,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import java.time.LocalDate
 import java.util.Locale
 import uk.ac.warwick.plus.config.AppActions
@@ -80,13 +79,15 @@ internal fun ScheduleClassRow(event: EventContentItem, date: LocalDate, status: 
     val compact = density == ListRowDensity.Compact
     MetricListRow(onSelect, stringResource(R.string.view_class_details), Modifier.testTag("schedule-class-${date}-${event.id}"),
         compactTop = compactTop, density = density, metric = {
-            Text(if (event.allDay) stringResource(R.string.all_day) else time.start, style = if (event.allDay) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
+            Text(if (event.allDay) stringResource(R.string.all_day) else time.start,
+                style = if (compact) HomeTypography.metric else if (event.allDay) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
                 fontWeight = if (compact) FontWeight.Medium else FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary, maxLines = 1, softWrap = false)
-            if (!event.allDay) Text(time.end, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            if (!event.allDay) Text(time.end, style = if (compact) HomeTypography.metricSecondary else MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1, softWrap = false)
     }) {
-        Text(identity.name, style = if (compact) MaterialTheme.typography.bodyMedium.copy(lineHeight = 18.sp) else MaterialTheme.typography.bodyMedium,
+        Text(identity.name, style = if (compact) HomeTypography.content else MaterialTheme.typography.bodyMedium,
             fontWeight = if (compact) FontWeight.Normal else FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             if (status != null) Text(status, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold,

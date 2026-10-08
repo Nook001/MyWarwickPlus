@@ -8,7 +8,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.sp
 import uk.ac.warwick.plus.config.AppLabels
 import uk.ac.warwick.plus.data.CourseworkContentItem
 
@@ -26,14 +25,15 @@ internal fun DeadlineRow(entry: CourseworkContentItem, now: Long, presentation: 
             style = MaterialTheme.typography.bodySmall,
             color = if (timing.passed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary)
         else {
-            Text(timing.days.toString(), style = MaterialTheme.typography.bodyMedium,
+            Text(timing.days.toString(), style = if (home) HomeTypography.metric else MaterialTheme.typography.bodyMedium,
                 fontWeight = if (home) FontWeight.Medium else FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
-            Text(stringResource(R.string.unit_days), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            Text(stringResource(R.string.unit_days), style = if (home) HomeTypography.metricSecondary else MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1, softWrap = false)
         }
     }) {
-        Text(entry.title, style = if (home) MaterialTheme.typography.bodyMedium.copy(lineHeight = 18.sp) else MaterialTheme.typography.bodyMedium,
+        Text(entry.title, style = if (home) HomeTypography.content else MaterialTheme.typography.bodyMedium,
             fontWeight = if (home) FontWeight.Normal else FontWeight.SemiBold,
             maxLines = if (home) 1 else 2, overflow = TextOverflow.Ellipsis)
         Text(date, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

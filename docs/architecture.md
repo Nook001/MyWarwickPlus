@@ -1,6 +1,6 @@
 # 架构与组件规范
 
-更新：2026-10-08，适用代码 0.24.2。前文记录已落地的组件、共享函数、同步、数据反馈、课表和主题标准；末节保留评估基线并标注实施进度。接口证据见 [protocol.md](protocol.md)，覆盖表见 [api-progress.md](api-progress.md)，验证状态见 [validation.md](validation.md)。
+更新：2026-10-08，适用代码 0.24.3。前文记录已落地的组件、共享函数、同步、数据反馈、课表和主题标准；末节保留评估基线并标注实施进度。接口证据见 [protocol.md](protocol.md)，覆盖表见 [api-progress.md](api-progress.md)，验证状态见 [validation.md](validation.md)。
 
 ## 代码职责
 
@@ -138,7 +138,7 @@
 | 圆角 AppShapes | 分区/列表/紧凑入口 14dp；账户/网格 16dp；强调/设置/Tab 18dp；Feed 内容 20dp；搜索 24dp |
 | Spacing | Home/Classes/Me 左右16、顶部4、底部16dp；Tasks/Feed/Appearance 保留20dp。首页区块14、Me区块16、列表12、网格8dp；父组件拥有间距 |
 | 标题 / 页眉 | 分区内行最小20dp，外部左右12/上8/下2dp，共用sectionHeader/sectionHeadingHeight；All视觉高度同标题行，labelMedium/Medium/onSurfaceVariant。日期小标题labelLarge。AppPageHeader最小48dp、上下2dp，动作不改变品牌文字位置 |
-| 信息行 | 左列48sp转dp，随字缩放，两行居中、间距2dp；左右列间距10dp。MetricListRow默认Standard：正文bodyMedium/SemiBold、最小64dp/上下10dp，Classes/Tasks保持此标准。首页显式Compact：14sp Regular标题/18sp行高、时间和倒计时Medium、最小54dp/上下6dp；分区首行48dp/上0/下8dp。Messages标题14sp Regular/18sp行高，首行48dp/上0/下6dp，后续54dp/上下6dp；空行上0。次要信息bodySmall/onSurfaceVariant；长内容/大字体自然增长，不以固定高度裁切 |
+| 信息行 | 左列48sp转dp，随字缩放，两行居中、间距2dp；左右列间距10dp。MetricListRow默认Standard：正文bodyMedium/SemiBold、最小64dp/上下10dp，Classes/Tasks保持此标准。首页显式Compact：HomeTypography.content为bodySmall（12sp Regular/16sp行高），课程/Deadline/消息标题与空状态共用；metric为11sp Medium/16sp行高，时间结束值/days共用metricSecondary（11sp Regular）。分区标题12sp Medium，Next课程名16sp Medium保持主要层级。行最小54dp/上下6dp；分区首行48dp/上0/下8dp。Messages首行48dp/上0/下6dp，后续54dp/上下6dp；空行上0。次要信息bodySmall/onSurfaceVariant；长内容/大字体自然增长，不以固定高度裁切 |
 | 搜索 / 箭头 | 搜索最小48dp、图标20dp、清除操作区48dp；普通详情箭头16dp，Next地点行20dp，网格角标12dp；装饰图标的动作语义在点击容器 |
 | 空状态 | SectionEmptyRow 分区内直接一行；DataEmptyState 用于独立未加载/空/无匹配，可带恢复动作，不嵌套空卡 |
 | Tab | Home / Classes / Tasks / Me；12sp常规字重，轮廓/实心两态，图标和文字共用高亮。selectable + Role.Tab，indication=null，直接最终色；最小64dp，两侧20dp，安全区一次 |

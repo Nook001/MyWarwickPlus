@@ -57,7 +57,7 @@ internal fun SectionAllAction(actionLabel: String, onClick: () -> Unit) {
 
 @Composable
 internal fun SectionEmptyRow(text: String, modifier: Modifier = Modifier) {
-    Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+    Text(text, style = HomeTypography.content, color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 10.dp))
 }
 

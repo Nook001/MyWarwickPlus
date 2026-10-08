@@ -8,7 +8,13 @@
 
 仅更新三个现有文档，不改源码/测试/依赖/schema/版本；不构建、不运行JVM/UI/设备测试、不部署或请求学校接口。核对本地引用、表格/代码块结构、评估中的源码符号及git diff --check；查阅Compose/Kotlin官方技术说明，不访问用户会话。之前0.18.0手机安装被拒和待验收状态保留。
 
-## 最新代码：0.24.2 / versionCode 35
+## 最新代码：0.24.3 / versionCode 36
+
+2026-10-08：首页课程/作业/消息标题和空状态14→12sp，与分区标题同字号；Today起止时间与Deadline数字/days统一11sp，保留数字Medium、次要值Regular。HomeTypography集中此规则，沿用Material字体族与系统字体缩放；Next课程名仍16sp，Classes/Tasks及现有间距、卡片颜色、数据逻辑不变。
+
+assembleDebug、lintDebug成功（26s，日志work/0243-build.log），Lint报告No issues found；未新增测试，未运行JVM/UI Test或Release构建。按用户要求配置origin为https://github.com/Nook001/MyWarwickPlus.git；本次交付远程源码，不安装到手机，物理手机仍是上一版0.24.2。未进行新版真机截图或手动验收；手动重点：时间/倒计时可读性、长标题省略减少、字体缩放与详情/All/刷新，构建不能替代手动验收。
+
+## 上一版：0.24.2 / versionCode 35
 
 2026-10-08：首页减少同时强调的文本，普通课程/Deadline/消息标题14sp Regular、18sp行高，Next课程名16sp Medium、22sp行高；分区标题/时间/倒计时Medium。分区间距24→14dp；复用MetricListRow的显式Compact变体，后续行64→54dp/上下6dp，首行保留48dp/上0/下8dp。消息行对应收紧；网站入口64→48dp、Quiet底色、常规标签。Today移除重复Next，仍保留Now、地点、冲突和跨日提示；Classes/Tasks默认行布局与字重不变。
 

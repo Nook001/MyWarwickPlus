@@ -11,7 +11,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import java.time.LocalDate
 import uk.ac.warwick.plus.R
 import uk.ac.warwick.plus.config.AppLabels
@@ -41,7 +40,7 @@ internal fun HomeMessages(state: FeedState, recovery: RecoveryState, today: Loca
                     bottom = Spacing.compactRowPadding),
                 horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(entry.title, style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 18.sp),
+                    Text(entry.title, style = HomeTypography.content,
                         maxLines = 2, overflow = TextOverflow.Ellipsis)
                     val preview = textById[entry.id] ?: if (entry.html) "" else entry.text
                     if (preview.isNotBlank()) Text(preview, style = MaterialTheme.typography.bodySmall,
