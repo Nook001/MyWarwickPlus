@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="476" viewBox="0 0 1000 476" role="img" aria-labelledby="title desc">
+      <title id="title">MyWarwick+ — MyWarwick, reimagined natively.</title>
+      <desc id="desc">Minimal native Android student app hero. Native Android, Jetpack Compose, open source. 14.32 MB installed, about 79% smaller than the My Warwick app in a same-device comparison.</desc>
+      <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif">
+        <rect x="1.25" y="1.25" width="997.5" height="473.5" rx="17" fill="none" stroke="#d0d7de" stroke-width="1.5" />
+        <text x="34" y="46" fill="#646b73" font-size="16" font-weight="500" letter-spacing="1.1">OPEN-SOURCE ANDROID APP</text>
+        <text x="34" y="109" fill="#24292f" font-size="42" font-weight="730" letter-spacing="-1.1">MyWarwick+</text>
+        <text x="34" y="163" fill="#24292f" font-size="27" font-weight="600" letter-spacing="-0.4">MyWarwick, reimagined natively.</text>
+        <text x="34" y="213" fill="#24292f" font-size="21">A modern, lightweight, open-source Android experience for Warwick students.</text>
+        <rect x="34" y="236" width="168" height="32" rx="16" fill="#f0f2f4"/>
+        <text x="118.0" y="257" fill="#43484e" font-size="16" text-anchor="middle" font-weight="600">Native Android</text>
+        <rect x="214" y="236" width="185" height="32" rx="16" fill="#f0f2f4"/>
+        <text x="306.5" y="257" fill="#43484e" font-size="16" text-anchor="middle" font-weight="600">Jetpack Compose</text>
+        <rect x="411" y="236" width="143" height="32" rx="16" fill="#f0f2f4"/>
+        <text x="482.5" y="257" fill="#43484e" font-size="16" text-anchor="middle" font-weight="600">Open Source</text>
+        <text x="45" y="343" fill="#24292f" font-size="40" font-weight="700" letter-spacing="-.7">14.32 MB</text>
+        <text x="515" y="343" fill="#24292f" font-size="40" font-weight="700">~79%</text>
+        <text x="45" y="369" fill="#646b73" font-size="19">Installed app size</text>
+        <text x="515" y="369" fill="#646b73" font-size="19">Smaller than My Warwick*</text>
+        <path d="M34 395 H966" stroke="#e4e7eb" stroke-width="1"/>
+        <text x="34" y="421" fill="#646b73" font-size="16">*Same-device signed-in comparison: 14.32 MB vs. 69.56 MB. Sizes may vary.</text>
+        <text x="34" y="449" fill="#646b73" font-size="16">Independent student project. Not affiliated with or endorsed by the University.</text>
+      </g>
+    </svg>

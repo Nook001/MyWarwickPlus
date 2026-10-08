@@ -1,39 +1,96 @@
-# MyWarwick+
+<div align="center">
 
-独立的 Android 学生客户端，使用 Kotlin + Jetpack Compose，通过官方 WebView SSO 登录并复用 MyWarwick 只读接口。不是 University of Warwick 官方应用。
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/hero-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/hero-light.svg">
+  <img alt="MyWarwick+ — MyWarwick, reimagined natively. Native Android, Jetpack Compose, open source. 14.32 MB installed; around 79% smaller than My Warwick in a same-device comparison." src="docs/assets/readme/hero-light.svg" width="100%">
+</picture>
 
-**[下载当前版本](https://github.com/Nook001/MyWarwickPlus/releases/tag/v0.27.0-beta.1)**：0.27.0-beta.1，Android 9+，需要 Warwick 账号。安装签名 APK，首次使用需登录；已作为正式 Release 发布并设为 Latest，保留原版本号。下载页及 [发布说明](docs/release-notes.md)包含该版本说明。
+**[Download beta](https://github.com/Nook001/MyWarwickPlus/releases/tag/v0.26.0-beta.1)** · [Report an issue](https://github.com/Nook001/MyWarwickPlus/issues) · [Explore the source](https://github.com/Nook001/MyWarwickPlus)
 
-## 功能
+<sub>Android 9+ · Version 0.26.0-beta.1 · Independent student project</sub>
 
-| 页面 | 内容 |
-| --- | --- |
-| Home | Now/Next、今日剩余课程或明日预览、截止日期、公交/打印余额半宽摘要、消息、底部公开 Events、网站入口 |
-| Classes | 连续日程、日期跳转、跨日/冲突提示、课程与地点详情 |
-| Tasks | Coursework 搜索、Upcoming/Past、准确期限、原站链接 |
-| Inbox | 消息搜索、来源筛选、完整详情、最新页刷新和显式更早分页 |
-| Me | 邮箱复制、主题设置、Library/Modules、服务入口和本地退出 |
+</div>
 
-固定颜色主题、静态渐变背景、离线缓存和真实任务阶段进度。时间按 Europe/London 显示。当前无后台同步、系统通知、作业提交或消息已读写回。
+## Your Warwick day, at a glance.
 
-0.27.0-beta.1 首页增加 Buses/Print/Events 摘要及独立缓存，保留现有 UI 调整；浏览器真实批次结构已确认，物理手机手动验收通过。公交不宣称实时预测，打印充值与活动报名通过原站进行。
+**Your next class. Your deadlines. Your messages.** No crowded dashboards or unnecessary detours.
 
-## 文档
+MyWarwick+ is a modern, lightweight Android client for University of Warwick students. It's designed around what you check every day, with a clear interface, native navigation and quick access to university services.
 
-| 类型 | 入口 |
-| --- | --- |
-| 架构与 UI 标准 | [架构与组件规范](docs/architecture.md) |
-| 数据接口 | [API 接入、响应结构与认证](docs/api-progress.md) |
-| 开发与质量 | [构建、手机验证、性能采集与待办](docs/development.md) |
-| 发行维护 | [签名备份、打包和发布](docs/release.md) |
-| 用户发布说明 | [当前版本说明](docs/release-notes.md) |
+## App showcase
 
-Android Studio 打开仓库，使用 JDK 21 和 SDK 37.0；具体命令见开发文档。版本/依赖以 Gradle 为准，开发纪律见 [AGENTS.md](AGENTS.md)。文档维护当前行为与必要流程，旧评分、方案和逐版过程通过 Git 历史查阅。
+<table>
+  <tr>
+    <td align="center" width="50%"><img src="docs/assets/readme/screenshots/home.jpg" alt="Home screen" width="270"><br><b>Home (Lake theme)</b><br><sub>What matters right now.</sub></td>
+    <td align="center" width="50%"><img src="docs/assets/readme/screenshots/classes.jpg" alt="Classes screen" width="270"><br><b>Classes (Heather)</b><br><sub>Your timetable, without the clutter.</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/assets/readme/screenshots/tasks.jpg" alt="Tasks screen" width="270"><br><b>Tasks (Rosewood)</b><br><sub>Deadlines at a glance.</sub></td>
+    <td align="center"><img src="docs/assets/readme/screenshots/inbox.jpg" alt="Inbox screen" width="270"><br><b>Inbox (Forest)</b><br><sub>Stay on top of messages.</sub></td>
+  </tr>
+</table>
 
-## 隐私与反馈
+<!-- Replace each PNG in docs/assets/readme/screenshots/ with a real app capture.
+     Keep filenames the same. Remove student IDs, names, messages and other personal data. -->
 
-[隐私说明](PRIVACY.md) · [MIT 许可证](LICENSE) · [第三方许可](THIRD_PARTY_NOTICES.md)
+## Rebuilt, not rewrapped.
 
-数据直接在设备与学校间传输，没有项目中转服务器。内部接口可能变化，第三方发行允许范围尚未得到学校确认；个人账号可以访问不等于官方授权。
+The original My Warwick Android app has historically presented its web application inside a native wrapper. MyWarwick+ rebuilds the everyday experience with **Native Android, Kotlin and Jetpack Compose**.
 
-通过 [GitHub Issues](https://github.com/Nook001/MyWarwickPlus/issues)反馈，附应用/Android 版本与复现步骤；请移除姓名、邮箱、学号、私人消息和 cookie/token，不上传完整 HAR 或数据库。
+- **Native by design.** Screens, navigation and interactions use Jetpack Compose; WebView is reserved for Warwick's official SSO sign-in.
+- **Modern and focused.** Clear information hierarchy, compact timetables, five colour themes and simpler day-to-day navigation.
+- **Useful offline.** Previously loaded information is cached on-device and remains available when a fresh connection isn't.
+
+### Small by design.
+
+| Installed app storage after sign-in | My Warwick | MyWarwick+ |
+| :-- | --: | --: |
+| Same-device measurement | 69.56 MB | **14.32 MB** |
+
+**~79% smaller** in this comparison, with a fully native main interface.
+
+<sub>Measured from Android app storage settings on the same device after sign-in. Storage depends on device, Android version, app version and saved data. This is not a comparative startup-speed or memory benchmark.</sub>
+
+<details>
+<summary><b>For developers: how it's built</b></summary>
+
+Built with **Kotlin + Jetpack Compose**, targeting **Android API 37** while supporting **Android 9+**. Student information is read from Warwick services via the app's read-only integrations and cached locally. The project includes a profiling build and Perfetto trace tooling; no unmeasured performance multiplier is claimed.
+
+[Architecture and UI](docs/architecture.md) · [API integration](docs/api-progress.md) · [Development and performance](docs/development.md)
+
+</details>
+
+## Made for the things students actually do.
+
+| | Experience |
+| :-- | :-- |
+| **Home** | Now/Next, today's remaining classes or tomorrow's preview, nearby deadlines and recent messages. |
+| **Classes** | Date-grouped timetable, date navigation, locations, event details and conflict indicators. |
+| **Tasks** | Upcoming and past coursework, search, exact due times and links to official pages. |
+| **Inbox** | Searchable university messages, full details and older-message pagination. |
+| **Me** | Account info, Library/Modules summaries, services, themes and local sign-out. |
+
+## Built by a Warwick student. Shaped by Warwick students.
+
+MyWarwick+ is **open source**. Whether you write Android code or just know what would make the app better, your feedback can help shape what comes next.
+
+**[Report a bug](https://github.com/Nook001/MyWarwickPlus/issues/new)** · **[Suggest an improvement](https://github.com/Nook001/MyWarwickPlus/issues/new)** · **[Contribute on GitHub](https://github.com/Nook001/MyWarwickPlus/pulls)**
+
+Please include app/Android versions and steps to reproduce when reporting bugs. **Never share passwords, tokens, cookies, student IDs or private messages in public issues.**
+
+## Get the beta
+
+**[Download MyWarwick+ v0.26.0-beta.1 →](https://github.com/Nook001/MyWarwickPlus/releases/tag/v0.26.0-beta.1)**
+
+Requires Android 9 or later and a Warwick account. Download the signed APK from the release assets, optionally verify it against `SHA256SUMS.txt`, then sign in through Warwick's official authentication pages. This is an early beta with limited device testing. See the [release notes](docs/release-notes.md) before installing.
+
+## Privacy and current limitations
+
+The app connects directly to Warwick services; **there is no MyWarwick+ server receiving your student data**. The application has no advertising or analytics SDK. Account information and retrieved content are stored in private on-device storage. See the [privacy notice](PRIVACY.md).
+
+**Current beta limitations:** no background sync, system notifications, coursework submission or read-state writeback. Coursework items reflect the MyWarwick aggregation feed, not a complete assessment history. Some Library data and cross-device behaviours remain unverified; the client depends on internal read-only APIs that can change. For authoritative records or important submissions, use the official Warwick services.
+
+**Independent project disclaimer:** MyWarwick+ is not affiliated with, endorsed by or officially authorised by the University of Warwick. University permission for third-party distribution and use of internal APIs has not yet been confirmed.
+
+<sub>[Release notes](docs/release-notes.md) · [Documentation](docs/architecture.md) · [Privacy](PRIVACY.md) · [MIT License](LICENSE) · [Third-party notices](THIRD_PARTY_NOTICES.md)</sub>
