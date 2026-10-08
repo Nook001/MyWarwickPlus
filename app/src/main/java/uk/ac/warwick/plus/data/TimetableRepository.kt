@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.map
 data class CachedTimetable(val events: List<EventEntity>, val sync: SyncEntity?,
     val coursework: List<CourseworkEntity> = emptyList(), val courseworkSync: SyncEntity? = null,
     val feeds: Map<FeedKind, CachedFeed> = emptyMap(), val accountSync: SyncEntity? = null,
-    val revision: Long = 0)
+    val revision: Long = 0, val services: Map<ServiceKind, CachedService> = emptyMap())
 
 interface TimetableStore {
     fun observeCache(): Flow<CachedTimetable>
@@ -25,6 +25,7 @@ interface TimetableStore {
     suspend fun syncAccount(onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit): Unit
     suspend fun syncFeed(kind: FeedKind, before: String?, onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit): Unit
     suspend fun signOut()
+    suspend fun syncService(kind: ServiceKind, onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit)
 }
 
 interface StudentApi {
@@ -35,6 +36,7 @@ interface StudentApi {
     fun coursework(user: SignedInUser): List<CourseworkEntity>
     fun account(user: SignedInUser): String
     fun feed(kind: FeedKind, user: SignedInUser, before: String?): ParsedFeed
+    fun service(kind: ServiceKind, user: SignedInUser): ParsedService
 }
 
 class TimetableRepository(private val api: StudentApi, private val dao: StudentCache,
@@ -129,4 +131,8 @@ class TimetableRepository(private val api: StudentApi, private val dao: StudentC
         dao.clear()
         revision++
     }
+
+    override suspend fun syncService(kind: ServiceKind, onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit) =
+        authenticatedSync(kind.slot, onAuthenticated,
+            read = { user -> api.request { api.service(kind, user) } }) { parsed, state -> dao.replaceService(parsed, state) }
 }

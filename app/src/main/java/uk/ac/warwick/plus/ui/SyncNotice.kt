@@ -3,9 +3,10 @@ package uk.ac.warwick.plus.ui
 import uk.ac.warwick.plus.R
 
 internal fun TimetableState.completionNotice(
-    id: Long, resource: SyncResource?, olderMessages: Boolean
+    id: Long, resource: SyncResource?, olderMessages: Boolean,
+    resources: List<SyncResource> = resource?.let(::listOf) ?: SyncResource.core
 ): SyncNotice? {
-    val failures = (resource?.let(::listOf) ?: SyncResource.entries).mapNotNull { kind ->
+    val failures = resources.mapNotNull { kind ->
         issue(kind)?.let { kind to it }
     }
     if (failures.isEmpty()) return null

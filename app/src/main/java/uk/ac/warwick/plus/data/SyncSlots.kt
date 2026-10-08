@@ -8,4 +8,7 @@ object SyncSlots {
     const val LIBRARY = 4
     const val MODULES = 5
     const val ACCOUNT = 6
+    const val BUSES = 7
+    const val PRINT = 8
+    const val CAMPUS_EVENTS = 9
 }

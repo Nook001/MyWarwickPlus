@@ -21,6 +21,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import java.time.LocalDate
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.awaitCancellation
 import uk.ac.warwick.plus.config.AppActions
 import uk.ac.warwick.plus.config.AppLabels
 import uk.ac.warwick.plus.data.*
@@ -37,7 +38,7 @@ internal fun PlusScreen(state: TimetableState, actions: PlusActions) {
     val dispatchRecovery: (RecoveryAction) -> Unit = { action ->
         when (val resolved = action.resolve(currentState.value)) {
             RecoveryAction.SignIn -> actions.signIn()
-            RecoveryAction.RefreshAll -> actions.refresh()
+            RecoveryAction.RefreshAll -> if (navigator.tab == AppTab.HOME) actions.refreshHome() else actions.refresh()
             RecoveryAction.OlderMessages -> actions.loadOlderMessages()
             is RecoveryAction.Refresh -> actions.refreshResource(resolved.resource)
             null -> Unit
@@ -79,6 +80,13 @@ internal fun PlusScreen(state: TimetableState, actions: PlusActions) {
     }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
+    val homeVisibilityAction = rememberUpdatedState(actions.setHomeVisible)
+    LaunchedEffect(lifecycle, navigator.tab) {
+        if (navigator.tab == AppTab.HOME) lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            homeVisibilityAction.value(true)
+            try { awaitCancellation() } finally { homeVisibilityAction.value(false) }
+        }
+    }
     LaunchedEffect(lifecycle) {
         lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             while (true) {
@@ -93,7 +101,8 @@ internal fun PlusScreen(state: TimetableState, actions: PlusActions) {
     val messages = state.feed(FeedKind.MESSAGES)
     val messagesRecovery = state.recovery(SyncResource.MESSAGES)
     val home = remember(state.events, state.lastSynced, state.busy, state.coursework,
-        timetableRecovery, courseworkRecovery, messages, messagesRecovery) { state.homePage(conflicts) }
+        timetableRecovery, courseworkRecovery, messages, messagesRecovery, state.services, state.needsLogin,
+        state.signingOut, state.logoutFailed, state.syncProgress?.operation) { state.homePage(conflicts) }
     val schedule = remember(state.events, state.lastSynced, state.busy, state.needsLogin, state.message) {
         state.schedulePage(conflicts)
     }
@@ -108,7 +117,7 @@ internal fun PlusScreen(state: TimetableState, actions: PlusActions) {
         navigator.chooseDate(date, today)
         scheduleListState.requestScrollToItem(0)
     }
-    LaunchedEffect(state.events, state.coursework, state.feeds, state.busy, navigator.detail, navigator.meRoute, navigator.tab) {
+    LaunchedEffect(state.events, state.coursework, state.feeds, state.services, state.busy, navigator.detail, navigator.meRoute, navigator.tab) {
         navigator.detail = navigator.detail.validated(state, navigator.meRoute, navigator.tab)
     }
     BackHandler(navigator.tab != AppTab.HOME && navigator.detail == DetailSelection.None) {
@@ -152,6 +161,7 @@ internal fun PlusScreen(state: TimetableState, actions: PlusActions) {
                             onRefresh = {
                                 if (!state.signingOut && !state.logoutFailed) {
                                     when {
+                                        navigator.tab == AppTab.HOME -> actions.refreshHome()
                                         navigator.tab == AppTab.MESSAGES -> actions.refreshResource(SyncResource.MESSAGES)
                                         navigator.tab == AppTab.ME && route != null -> actions.refreshResource(SyncResource.forFeed(route))
                                         else -> actions.refresh()
@@ -176,7 +186,8 @@ internal fun PlusScreen(state: TimetableState, actions: PlusActions) {
                                         { navigator.openTasks(CourseworkFilter.UPCOMING) },
                                         { navigator.openTasks(CourseworkFilter.PAST) }, actions.signIn, recoverResource, openLink,
                                         { navigator.detail = DetailSelection.Feed(FeedKind.MESSAGES, it.id) },
-                                        { navigator.select(AppTab.MESSAGES) })
+                                        { navigator.select(AppTab.MESSAGES) },
+                                        { navigator.detail = DetailSelection.CampusEvent(it.id) })
                                     AppTab.MESSAGES -> FeedContent(FeedKind.MESSAGES, messages, state.busy, state.needsLogin,
                                         { recoverResource(SyncResource.MESSAGES) }, actions.loadOlderMessages,
                                         { navigator.detail = DetailSelection.Feed(FeedKind.MESSAGES, it.id) }, openLink, actions.signIn, today)
@@ -206,6 +217,9 @@ internal fun PlusScreen(state: TimetableState, actions: PlusActions) {
             }
             is DetailSelection.Feed -> if (selection.visibleOn(navigator.tab, navigator.meRoute)) state.feed(selection.kind).entries.firstOrNull { it.id == selection.id }?.let {
                 FeedDetails(selection.kind, it, actions.openExternal, { navigator.detail = DetailSelection.None })
+            }
+            is DetailSelection.CampusEvent -> state.service(ServiceKind.EVENTS).events.firstOrNull { it.id == selection.id }?.let {
+                CampusEventDetails(it, { navigator.detail = DetailSelection.None }, actions.openExternal)
             }
             DetailSelection.None -> Unit
         }

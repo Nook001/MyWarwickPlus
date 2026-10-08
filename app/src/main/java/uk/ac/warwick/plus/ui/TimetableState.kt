@@ -14,10 +14,20 @@ data class FeedState(val entries: List<FeedContentItem> = emptyList(), val lastS
     val message: UiText? = null, val loading: Boolean = false, val hasMore: Boolean = false,
     val description: String = "", val url: String = "", val webReadMillis: Long = 0, val olderPageFailed: Boolean = false)
 
-enum class SyncResource(val labelRes: Int, val slot: Int, val feed: FeedKind? = null) {
+data class ServiceState(val summaries: List<ServiceSummary> = emptyList(), val events: List<CampusEvent> = emptyList(),
+    val lastSynced: Long? = null, val message: UiText? = null, val description: String = "", val url: String = "")
+
+enum class SyncResource(val labelRes: Int, val slot: Int, val feed: FeedKind? = null, val service: ServiceKind? = null) {
     TIMETABLE(AppLabels.CLASSES, SyncSlots.TIMETABLE), COURSEWORK(AppLabels.TASKS, SyncSlots.COURSEWORK), MESSAGES(AppLabels.MESSAGES, SyncSlots.MESSAGES, FeedKind.MESSAGES),
-    LIBRARY(AppLabels.LIBRARY, SyncSlots.LIBRARY, FeedKind.LIBRARY), MODULES(AppLabels.MODULES, SyncSlots.MODULES, FeedKind.MODULES), ACCOUNT(AppLabels.ACCOUNT, SyncSlots.ACCOUNT);
-    companion object { fun forFeed(kind: FeedKind) = entries.first { it.feed == kind } }
+    LIBRARY(AppLabels.LIBRARY, SyncSlots.LIBRARY, FeedKind.LIBRARY), MODULES(AppLabels.MODULES, SyncSlots.MODULES, FeedKind.MODULES), ACCOUNT(AppLabels.ACCOUNT, SyncSlots.ACCOUNT),
+    BUSES(AppLabels.BUSES, SyncSlots.BUSES, service = ServiceKind.BUSES),
+    PRINT(AppLabels.PRINT, SyncSlots.PRINT, service = ServiceKind.PRINT),
+    EVENTS(AppLabels.EVENTS, SyncSlots.CAMPUS_EVENTS, service = ServiceKind.EVENTS);
+    companion object {
+        val core = entries.filter { it.service == null }
+        val homeServices = entries.filter { it.service != null }
+        fun forFeed(kind: FeedKind) = entries.first { it.feed == kind }
+    }
 }
 data class SyncNotice(val id: Long, val message: UiText, val action: RecoveryAction = RecoveryAction.RefreshAll)
 // Progress measures settled resource updates, with a half-step after account verification.
@@ -38,22 +48,23 @@ data class TimetableState(
     val sessionCheckedAt: Long? = null, val signingOut: Boolean = false, val logoutFailed: Boolean = false,
     val notice: SyncNotice? = null, val syncProgress: SyncProgress? = null, val account: AccountState = AccountState(),
     val globalMessage: UiText? = null,
-    internal val cacheRevision: Long = -1
+    internal val cacheRevision: Long = -1, val services: Map<ServiceKind, ServiceState> = emptyMap()
 ) {
     fun feed(kind: FeedKind) = feeds[kind] ?: FeedState()
+    fun service(kind: ServiceKind) = services[kind] ?: ServiceState()
     val email get() = account.email
-    val hasSavedData get() = lastSynced != null || coursework.lastSynced != null || account.lastSynced != null || feeds.values.any { it.lastSynced != null }
+    val hasSavedData get() = lastSynced != null || coursework.lastSynced != null || account.lastSynced != null || feeds.values.any { it.lastSynced != null } || services.values.any { it.lastSynced != null }
     fun syncedAt(resource: SyncResource): Long? = when (resource) {
         SyncResource.TIMETABLE -> lastSynced
         SyncResource.COURSEWORK -> coursework.lastSynced
         SyncResource.ACCOUNT -> account.lastSynced
-        else -> feed(resource.feed!!).lastSynced
+        else -> if (resource.service != null) service(resource.service).lastSynced else feed(requireNotNull(resource.feed)).lastSynced
     }
     fun issue(resource: SyncResource): UiText? = when (resource) {
         SyncResource.TIMETABLE -> message
         SyncResource.COURSEWORK -> coursework.message
         SyncResource.ACCOUNT -> account.message
-        else -> feed(resource.feed!!).message
+        else -> if (resource.service != null) service(resource.service).message else feed(requireNotNull(resource.feed)).message
     }
     fun updating(resource: SyncResource): Boolean = if (resource.feed != null) feed(resource.feed).loading
         else busy && syncProgress?.operation?.resource == resource
@@ -64,7 +75,7 @@ internal fun TimetableState.withCache(cache: CachedTimetable): TimetableState {
     // A Flow read may arrive after authentication already cleared another account.
     if (cache.revision < cacheRevision) return this
     val owner = (listOfNotNull(cache.sync, cache.courseworkSync, cache.accountSync) +
-        cache.feeds.values.mapNotNull { it.sync }).maxByOrNull { it.syncedAt }
+        cache.feeds.values.mapNotNull { it.sync } + cache.services.values.mapNotNull { it.sync }).maxByOrNull { it.syncedAt }
     val projectedCoursework = coursework.copy(
         entries = cache.coursework.map { it.snapshot() }.reuseIfEqual(coursework.entries),
         lastSynced = cache.courseworkSync?.syncedAt)
@@ -79,6 +90,14 @@ internal fun TimetableState.withCache(cache: CachedTimetable): TimetableState {
                 description = saved?.meta?.description.orEmpty(), url = saved?.meta?.url.orEmpty(),
                 hasMore = saved?.meta?.hasMore ?: false, webReadMillis = saved?.meta?.webReadMillis ?: 0)
             if (projected == previous) previous else projected
+        }, services = ServiceKind.entries.associateWith { kind ->
+            val saved = cache.services[kind]
+            val previous = service(kind)
+            val projected = previous.copy(
+                summaries = saved?.summaries.orEmpty().map { it.snapshot() }.reuseIfEqual(previous.summaries),
+                events = saved?.events.orEmpty().map { it.snapshot() }.reuseIfEqual(previous.events),
+                lastSynced = saved?.sync?.syncedAt, description = saved?.meta?.description.orEmpty(), url = saved?.meta?.url.orEmpty())
+            if (projected == previous) previous else projected
         })
 }
 
@@ -89,7 +108,8 @@ internal fun TimetableState.withIssue(resource: SyncResource, issue: UiText?, ol
     SyncResource.TIMETABLE -> copy(message = issue)
     SyncResource.COURSEWORK -> copy(coursework = coursework.copy(message = issue))
     SyncResource.ACCOUNT -> copy(account = account.copy(message = issue))
-    else -> withFeed(requireNotNull(resource.feed)) { it.copy(message = issue, olderPageFailed = olderMessages) }
+    else -> resource.service?.let { kind -> copy(services = services + (kind to service(kind).copy(message = issue))) }
+        ?: withFeed(requireNotNull(resource.feed)) { it.copy(message = issue, olderPageFailed = olderMessages) }
 }
 
 internal fun TimetableState.resourceFailed(resource: SyncResource, error: Exception, olderMessages: Boolean): TimetableState {

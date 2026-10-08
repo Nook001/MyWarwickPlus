@@ -36,6 +36,7 @@ class SyncRetryTest {
         var feedGate: CompletableDeferred<Unit>? = null
         var feedFailure: (FeedKind, String?) -> Exception? = { _, _ -> null }
         val feeds = mutableListOf<Pair<FeedKind, String?>>()
+        override suspend fun syncService(kind: ServiceKind, onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit) { }
         override suspend fun syncAccount(onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit): Unit {
             accountCalls++; onAuthenticated(user, cache); accountFailure?.let { throw it }; return
         }

@@ -19,7 +19,8 @@ import uk.ac.warwick.plus.data.*
 import java.io.IOException
 
 class TimetableViewModel(private val repository: TimetableStore,
-    private val reportFailure: (Exception) -> Unit = ::reportSyncFailure, private val hasNetwork: () -> Boolean = { true }) : ViewModel() {
+    private val reportFailure: (Exception) -> Unit = ::reportSyncFailure, private val hasNetwork: () -> Boolean = { true },
+    private val nowMillis: () -> Long = System::currentTimeMillis) : ViewModel() {
     private val mutable = MutableStateFlow(TimetableState(busy = true))
     val state = mutable.asStateFlow()
     private var syncJob: Job? = null
@@ -27,6 +28,9 @@ class TimetableViewModel(private val repository: TimetableStore,
     private var noticeId = 0L
     private var syncId = 0L
     private var refreshAfterCurrent = false
+    private var homeVisible = false
+    private var pendingHome = false
+    private val serviceAttempts = mutableMapOf<SyncResource, Long>()
     init {
         syncJob = viewModelScope.launch {
             try { applyCache(repository.cached()) }
@@ -36,6 +40,7 @@ class TimetableViewModel(private val repository: TimetableStore,
             } finally { mutable.update { it.copy(busy = false) } }
             observeCache()
             refreshAfterCurrent = false
+            pendingHome = homeVisible
             refresh()
         }
     }
@@ -52,6 +57,10 @@ class TimetableViewModel(private val repository: TimetableStore,
         }
     }
     private fun authenticated(user: SignedInUser, clearedCache: CachedTimetable?) {
+        if (clearedCache != null) {
+            serviceAttempts.clear()
+            pendingHome = homeVisible
+        }
         mutable.update { state ->
             val current = if (clearedCache != null) state.withCache(clearedCache) else state
             current.copy(signedIn = true, needsLogin = false, globalMessage = null, name = user.name,
@@ -60,10 +69,11 @@ class TimetableViewModel(private val repository: TimetableStore,
         }
     }
     private fun startSync(resource: SyncResource? = null, olderMessages: Boolean = false,
+        resources: List<SyncResource> = resource?.let(::listOf) ?: SyncResource.core,
         operation: suspend () -> Unit) {
         if (mutable.value.busy || mutable.value.signingOut || mutable.value.logoutFailed) return
         if (cacheJob?.isActive != true) observeCache()
-        val progress = SyncProgress(++syncId, if (resource == null) SyncResource.entries.size else 1,
+        val progress = SyncProgress(++syncId, resources.size,
             operation = if (olderMessages) SyncOperation.OlderMessages
                 else SyncOperation.Refresh(resource ?: SyncResource.TIMETABLE))
         mutable.update { it.copy(busy = true, notice = null,
@@ -72,13 +82,16 @@ class TimetableViewModel(private val repository: TimetableStore,
             try { operation() } finally {
                 if (!mutable.value.signingOut) {
                     val current = mutable.value
-                    val notice = current.completionNotice(noticeId + 1, resource, olderMessages)
+                    val notice = current.completionNotice(noticeId + 1, resource, olderMessages, resources)
                     if (notice != null) noticeId++
                     mutable.update { it.copy(busy = false, notice = notice,
                         syncProgress = it.syncProgress?.copy(finished = true)) }
                     if (refreshAfterCurrent) {
                         refreshAfterCurrent = false
                         refresh()
+                    } else if (pendingHome) {
+                        pendingHome = false
+                        refreshHomeServicesIfDue()
                     }
                 }
             }
@@ -95,30 +108,54 @@ class TimetableViewModel(private val repository: TimetableStore,
                 retry = 0, failures = it.failures + if (failed) 1 else 0)
         }) }
     }
-    fun refresh() = startSync {
-        mutable.update { it.copy(message = null, globalMessage = null, coursework = it.coursework.copy(message = null), account = it.account.copy(message = null),
-            feeds = it.feeds.mapValues { (_, feed) -> feed.copy(message = null, olderPageFailed = false) }) }
-        for (resource in SyncResource.entries) {
+    fun refresh() = refreshBatch(SyncResource.core)
+    fun refreshHome() = refreshBatch(SyncResource.core + SyncResource.homeServices)
+
+    fun setHomeVisible(visible: Boolean) {
+        homeVisible = visible
+        if (!visible) { pendingHome = false; return }
+        if (mutable.value.busy) pendingHome = true else refreshHomeServicesIfDue()
+    }
+
+    private fun refreshHomeServicesIfDue() {
+        if (!homeVisible || mutable.value.needsLogin || mutable.value.logoutFailed || mutable.value.signingOut || !hasNetwork()) return
+        val now = nowMillis()
+        val due = SyncResource.homeServices.filter { resource ->
+            val latest = maxOf(mutable.value.syncedAt(resource) ?: 0L, serviceAttempts[resource] ?: 0L)
+            latest == 0L || now < latest || now - latest >= requireNotNull(resource.service).refreshMillis
+        }
+        if (due.isNotEmpty()) refreshBatch(due)
+    }
+
+    private fun refreshBatch(resources: List<SyncResource>) = startSync(resources = resources) {
+        mutable.update { current -> resources.fold(current.copy(globalMessage = null)) { state, resource -> state.withIssue(resource, null) } }
+        for (resource in resources) {
             currentCoroutineContext().ensureActive()
             val outcome = syncResource(resource)
             if (mutable.value.needsLogin) {
-                mutable.update { state -> SyncResource.entries.dropWhile { it != resource }.drop(1).fold(state) { next, kind ->
+                mutable.update { state -> resources.dropWhile { it != resource }.drop(1).fold(state) { next, kind ->
                     if (next.issue(kind) == null) next.withIssue(kind, text(R.string.sign_in_update_resource, text(kind.labelRes))) else next
                 } }
                 break
             }
             // An exhausted transport failure is not proof of being offline. Stop this batch,
             // but allow a new pull-to-refresh or a targeted resource retry to try again.
-            if (outcome == ResourceOutcome.TransportFailed || !mutable.value.signedIn) break
+            if (outcome == ResourceOutcome.TransportFailed || !mutable.value.signedIn) {
+                pendingHome = false
+                break
+            }
         }
     }
     fun refreshAfterSignIn() {
         if (mutable.value.signingOut || mutable.value.logoutFailed) return
+        serviceAttempts.clear()
+        pendingHome = homeVisible
         if (mutable.value.busy) refreshAfterCurrent = true else refresh()
     }
     private enum class ResourceOutcome { Updated, Failed, TransportFailed }
     // Every resource shares execution/recovery; the store still owns authentication and persistence.
     private suspend fun syncResource(resource: SyncResource, before: String? = null): ResourceOutcome {
+        if (resource.service != null) serviceAttempts[resource] = nowMillis()
         beginResource(if (before != null) SyncOperation.OlderMessages else SyncOperation.Refresh(resource))
         mutable.update { state ->
             val cleared = state.withIssue(resource, null)
@@ -133,7 +170,8 @@ class TimetableViewModel(private val repository: TimetableStore,
                     SyncResource.TIMETABLE -> repository.sync(::authenticated)
                     SyncResource.COURSEWORK -> repository.syncCoursework(::authenticated)
                     SyncResource.ACCOUNT -> repository.syncAccount(::authenticated)
-                    else -> repository.syncFeed(requireNotNull(resource.feed), before, ::authenticated)
+                    else -> if (resource.service != null) repository.syncService(resource.service, ::authenticated)
+                        else repository.syncFeed(requireNotNull(resource.feed), before, ::authenticated)
                 }
             }
             mutable.update { state ->
@@ -162,6 +200,8 @@ class TimetableViewModel(private val repository: TimetableStore,
     fun signOut() {
         if (mutable.value.signingOut) return
         refreshAfterCurrent = false
+        pendingHome = false
+        serviceAttempts.clear()
         val previous = syncJob
         mutable.update { it.copy(signingOut = true, busy = true, syncProgress = null) }
         syncJob = viewModelScope.launch {

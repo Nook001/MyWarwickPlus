@@ -68,6 +68,7 @@ class CourseworkTest {
         var courseworkGate: CompletableDeferred<Unit>? = null
         var courseworkCalls = 0
         var changeAccount = false
+        override suspend fun syncService(kind: ServiceKind, onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit) { }
         override suspend fun syncAccount(onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit) { }
         override suspend fun cached() = data
         override suspend fun syncFeed(kind: FeedKind, before: String?, onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit) { }

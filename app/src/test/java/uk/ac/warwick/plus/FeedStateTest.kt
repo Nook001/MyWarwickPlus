@@ -30,6 +30,7 @@ class FeedStateTest {
         var logoutError = false
         var signedOut = false
         val calls = mutableListOf<Pair<FeedKind,String?>>()
+        override suspend fun syncService(kind: ServiceKind, onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit) { }
         override suspend fun syncAccount(onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit) { }
         override suspend fun cached() = cache
         override suspend fun sync(onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit): Unit {

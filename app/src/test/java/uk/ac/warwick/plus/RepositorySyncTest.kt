@@ -16,12 +16,17 @@ class RepositorySyncTest {
         var reads = 0
         override fun changes() = flowOf(Unit)
         override fun snapshot() = cache.also { reads++ }
-        override fun states() = listOfNotNull(cache.sync, cache.courseworkSync, cache.accountSync) + cache.feeds.values.mapNotNull { it.sync }
+        override fun states() = listOfNotNull(cache.sync, cache.courseworkSync, cache.accountSync) +
+            cache.feeds.values.mapNotNull { it.sync } + cache.services.values.mapNotNull { it.sync }
         override fun feedEntries(feed: Int) = cache.feeds[FeedKind.entries.first { it.key == feed }]?.entries.orEmpty()
         override fun replaceCoursework(entries: List<CourseworkEntity>, state: SyncEntity) { writes++; cache = cache.copy(coursework = entries, courseworkSync = state) }
         override fun replaceAccount(state: SyncEntity) { writes++; cache = cache.copy(accountSync = state) }
         override fun clear() { cache = CachedTimetable(emptyList(), null) }
         override fun replace(events: List<EventEntity>, state: SyncEntity) { writes++; cache = cache.copy(events = events, sync = state) }
+        override fun replaceService(parsed: ParsedService, state: SyncEntity) {
+            writes++
+            cache = cache.copy(services = cache.services + (ServiceKind.entries.first { it.slot == state.id } to CachedService(parsed.summaries, parsed.events, parsed.meta, state)))
+        }
         override fun replaceFeed(entries: List<FeedEntry>, meta: FeedMeta, state: SyncEntity) {
             writes++
             cache = cache.copy(feeds = cache.feeds + (FeedKind.entries.first { it.key == meta.feed } to CachedFeed(entries, meta, state)))
@@ -31,8 +36,28 @@ class RepositorySyncTest {
         override fun user() = SignedInUser("new-user", "New student", "", "")
         override fun timetable(user: SignedInUser) = emptyList<EventEntity>()
         override fun coursework(user: SignedInUser) = emptyList<CourseworkEntity>()
+        override fun service(kind: ServiceKind, user: SignedInUser) = ParsedService(emptyList(), emptyList(), ServiceMeta(kind.slot, "", ""))
         override fun account(user: SignedInUser) = ""
         override fun feed(kind: FeedKind, user: SignedInUser, before: String?) = ParsedFeed(emptyList(), FeedMeta())
+    }
+
+    @Test fun serviceOnlyCacheIsClearedBeforeAnotherAccountDownloads() = runBlocking {
+        val dao = Dao().apply {
+            cache = cache.copy(services = mapOf(ServiceKind.PRINT to CachedService(
+                listOf(ServiceSummaryEntity(8, "balance", "Old balance", "Print", 0)), emptyList(), null,
+                SyncEntity().apply { id = 8; userCode = "old-user" })))
+        }
+        val api = object : Api() {
+            override fun service(kind: ServiceKind, user: SignedInUser): ParsedService = throw InvalidResponseException()
+        }
+        val repo = TimetableRepository(api, dao, logSync = {})
+        try {
+            repo.syncService(ServiceKind.PRINT) { user, cleared ->
+                assertEquals("new-user", user.code); assertTrue(cleared!!.services.isEmpty())
+            }
+            fail("Invalid response must fail")
+        } catch (_: InvalidResponseException) { }
+        assertTrue(repo.cached().services.isEmpty())
     }
 
     @Test fun sameAccountWritesDoNotReadSnapshotsButChangedAccountClearsBeforeFailure() = runBlocking {

@@ -68,7 +68,7 @@ try {
     [ordered]@{
         tag = $Tag; sourceCommit = $commit; package = $metadata.applicationId
         versionName = $element[0].versionName; versionCode = $element[0].versionCode
-        minimumAndroid = '9'; roomSchema = 5; apk = $name
+        minimumAndroid = '9'; roomSchema = 6; apk = $name
         apkSha256 = $hash; signingCertificateSha256 = $certificate
     } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $private 'release-manifest.json') -Encoding utf8
     Copy-Item -LiteralPath 'docs\release-notes.md' -Destination (Join-Path $private 'RELEASE_NOTES.md')

@@ -37,7 +37,9 @@ class MainActivity : ComponentActivity() {
                     signOut = model::signOut,
                     refreshResource = model::refreshResource,
                     loadOlderMessages = model::loadMoreMessages,
-                    consumeNotice = model::consumeNotice
+                    consumeNotice = model::consumeNotice,
+                    refreshHome = model::refreshHome,
+                    setHomeVisible = model::setHomeVisible
                 ))
             }
         }

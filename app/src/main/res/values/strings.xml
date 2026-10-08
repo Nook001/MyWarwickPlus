@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="label_buses">Buses</string>
+    <string name="label_print">Print</string>
+    <string name="label_events">Events</string>
+    <string name="service_not_loaded">%1$s not loaded</string>
+    <string name="no_bus_times">No bus times available</string>
+    <string name="print_unavailable">No balance available</string>
+    <string name="print_account">Print account</string>
+    <string name="bus_cached_at">Cached · %1$s</string>
+    <string name="bus_updated_at">Updated · %1$s</string>
+    <string name="no_campus_events">No upcoming events</string>
     <string name="privacy_information">Privacy</string>
     <string name="open_source_licenses">Licenses</string>
     <string name="label_home">Home</string>

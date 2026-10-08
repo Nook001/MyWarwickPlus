@@ -12,6 +12,7 @@ class FeedsCacheTest {
     private class Api : StudentApi {
         var code="example"
         var page=ParsedFeed(emptyList(),FeedMeta().apply { feed=3 })
+        override fun service(kind: ServiceKind, user: SignedInUser) = ParsedService(emptyList(), emptyList(), ServiceMeta(kind.slot, "", ""))
         override fun account(user: SignedInUser) = ""
         override fun user()=SignedInUser(code,"Example student","","")
         override fun timetable(user: SignedInUser)=emptyList<EventEntity>()

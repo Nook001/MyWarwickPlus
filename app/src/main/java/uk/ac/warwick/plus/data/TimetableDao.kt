@@ -12,10 +12,11 @@ import kotlinx.coroutines.flow.map
 
 @Dao
 abstract class TimetableDao : StudentCache {
-    // Observe all five tables, then re-read them in snapshot()'s single transaction.
+    // Observe cached content and metadata, then read a single transaction snapshot.
     // A constant result is intentional: the query signals invalidation, not content.
     @RawQuery(observedEntities = [EventEntity::class, CourseworkEntity::class,
-        SyncEntity::class, FeedEntry::class, FeedMeta::class])
+        SyncEntity::class, FeedEntry::class, FeedMeta::class,
+        ServiceSummaryEntity::class, CampusEventEntity::class, ServiceMeta::class])
     protected abstract fun invalidations(query: SupportSQLiteQuery): Flow<Int>
     override fun changes(): Flow<Unit> = invalidations(SimpleSQLiteQuery("SELECT 1")).map { Unit }
 
@@ -24,7 +25,37 @@ abstract class TimetableDao : StudentCache {
     override fun snapshot(): CachedTimetable = CachedTimetable(
         events(), state(), coursework(), courseworkState(),
         FeedKind.entries.associateWith { CachedFeed(feedEntries(it.key), feedMeta(it.key), feedState(it.key)) },
-        feedState(SyncSlots.ACCOUNT))
+        feedState(SyncSlots.ACCOUNT), services = ServiceKind.entries.associateWith { kind ->
+            CachedService(serviceSummaries(kind.slot), if (kind == ServiceKind.EVENTS) campusEvents() else emptyList(),
+                serviceMeta(kind.slot), feedState(kind.slot))
+        })
+
+    @Query("SELECT * FROM service_summaries WHERE resource = :resource ORDER BY position, id") abstract fun serviceSummaries(resource: Int): List<ServiceSummaryEntity>
+    @Query("SELECT * FROM campus_events ORDER BY startMillis, id") abstract fun campusEvents(): List<CampusEventEntity>
+    @Query("SELECT * FROM service_meta WHERE resource = :resource") abstract fun serviceMeta(resource: Int): ServiceMeta?
+    @Query("DELETE FROM service_summaries WHERE resource = :resource") abstract fun deleteServiceSummaries(resource: Int)
+    @Query("DELETE FROM campus_events") abstract fun deleteCampusEvents()
+    @Query("DELETE FROM service_meta WHERE resource = :resource") abstract fun deleteServiceMeta(resource: Int)
+    @Query("DELETE FROM service_summaries") abstract fun deleteAllServiceSummaries()
+    @Query("DELETE FROM service_meta") abstract fun deleteAllServiceMeta()
+    @Insert abstract fun insertServiceSummaries(entries: List<ServiceSummaryEntity>)
+    @Insert abstract fun insertCampusEvents(entries: List<CampusEventEntity>)
+    @Insert abstract fun insertServiceMeta(meta: ServiceMeta)
+
+    @Transaction
+    override fun replaceService(parsed: ParsedService, state: SyncEntity) {
+        require(state.id == parsed.meta.resource)
+        require(parsed.summaries.all { it.resource == state.id })
+        require(if (state.id == SyncSlots.CAMPUS_EVENTS) parsed.summaries.isEmpty() else parsed.events.isEmpty())
+        deleteServiceSummaries(state.id)
+        if (state.id == SyncSlots.CAMPUS_EVENTS) deleteCampusEvents()
+        deleteServiceMeta(state.id)
+        deleteFeedState(state.id)
+        insertServiceSummaries(parsed.summaries)
+        insertCampusEvents(parsed.events)
+        insertServiceMeta(parsed.meta)
+        insertState(state)
+    }
 
     @Query("SELECT * FROM events ORDER BY startMillis, id") abstract fun events(): List<EventEntity>
     @Query("SELECT * FROM sync_state WHERE id = ${SyncSlots.TIMETABLE}") abstract fun state(): SyncEntity?
@@ -86,6 +117,9 @@ abstract class TimetableDao : StudentCache {
         deleteFeeds()
         deleteFeedMetas()
         deleteNonCoreStates()
+        deleteAllServiceSummaries()
+        deleteAllServiceMeta()
+        deleteCampusEvents()
     }
 
     @Transaction

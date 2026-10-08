@@ -41,9 +41,9 @@ $env:JAVA_HOME = 'D:/Dev/JDK21.0.8'
 
 ## 开发候选
 
-0.26.0-beta.2 / versionCode 40：Inbox 本地来源筛选、Home 正方形入口、紧凑 Me 网格。源码提交 `fdb359d`；Debug/签名 Release 构建通过，76 项既有 JVM 检查通过，Debug Lint 无问题，Release 0 errors/1 warning（Gradle 补丁提示）。同签名 APK 与校验文件在 `dist/v0.26.0-beta.2/public/`，尚未发布 GitHub。已在指定物理手机覆盖安装并启动，版本核对通过；新 UI 手测反馈待用户确认。没有新增单元测试或 UI Test。
+0.27.0-beta.1 / versionCode 41：保留用户 UI 调整，首页半宽 Buses/Print、底部 Events；核心优先、首页附加刷新、schema 5→6 非破坏迁移。Debug 构建和检查通过；签名 Release 打包及物理手机覆盖安装待完成。新增精简 JVM 检查只覆盖协议、时间、刷新和账户隔离，不新增或运行 UI Test；既有夹具仅适配新增接口。
 
-新增服务的浏览器只读证据及原生接入边界统一记录在 API 表，当前仍只同步六类业务数据、使用 schema 5。
+迁移 SQL 已用 SQLite 核对，与 Room 导出的 schema 6 八张表一致，原有五张表的样本行保留；这不等于真机 Room 升级验收。新服务浏览器整批字段验证见 API 表。
 
 ## 手动检查
 
@@ -83,7 +83,7 @@ $traceProcessor = 'C:/Tools/Perfetto/trace_processor_shell.exe'
 | 方向 | 开始条件或缺口 |
 | --- | --- |
 | 公开版验证 | 补离线/更新/退出、字体与主题、更多设备；API 37 运行仍待对应设备 |
-| 数据覆盖 | Buses/Print/Events 已确认登录态 GET 和结构，待独立服务页与按需缓存；非空 Library、Modules 公告/评估仍待结构证据 |
+| 数据覆盖 | Buses/Print/Events 已有首页摘要，待真实非空数据手测；非空 Library、Modules 公告/评估仍待结构证据 |
 | 性能 | Messages 滚动、主题切换内存、可重复 Classes 对比；有热点证据后才考虑 Baseline Profile 或进一步时钟调度 |
 | 存储与备份 | 真设备 Room 迁移验证、OEM 迁移是否遵守禁备份规则；JVM 假缓存不能替代 Room 引擎检查 |
 | 发行维护 | 密钥/密码独立备份及学校允许范围仍待用户确认，操作见发布文档 |

@@ -18,6 +18,7 @@ class CacheAndAuthTest {
             dao.replace(listOf(EventEntity().apply { id = "class" }), SyncEntity().apply { userCode = "old" })
             dao.replaceCoursework(listOf(CourseworkEntity().apply { id = "deadline" }), SyncEntity().apply { id = 2; userCode = "old" })
             val api = object : StudentApi {
+                override fun service(kind: ServiceKind, user: SignedInUser) = ParsedService(emptyList(), emptyList(), ServiceMeta(kind.slot, "", ""))
                 override fun account(user: SignedInUser) = ""
                 override fun user() = SignedInUser("new", "New student", "", "")
                 override fun timetable(user: SignedInUser) = emptyList<EventEntity>()

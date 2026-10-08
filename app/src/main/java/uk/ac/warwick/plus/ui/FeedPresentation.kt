@@ -21,8 +21,13 @@ internal class FeedTextCache {
         override fun sizeOf(key: String, value: String) = (key.length + value.length) * 2
     }
     fun plain(entry: FeedContentItem): String {
-        if (!entry.html) return entry.text
-        return text[entry.text] ?: traceWork("MWP.Feed.html") { feedText(entry) }.also { text.put(entry.text, it) }
+        return plain(entry.text, entry.html)
+    }
+    fun plain(raw: String, html: Boolean): String {
+        if (!html) return raw
+        return text[raw] ?: traceWork("MWP.Feed.html") {
+            Html.fromHtml(raw, Html.FROM_HTML_MODE_LEGACY).toString().replace("\uFFFC", "").trim()
+        }.also { text.put(raw, it) }
     }
 }
 

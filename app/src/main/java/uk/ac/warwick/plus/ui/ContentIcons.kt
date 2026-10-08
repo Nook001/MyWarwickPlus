@@ -2,6 +2,16 @@ package uk.ac.warwick.plus.ui
 
 /** One outline style for content categories, shared by headers and metadata. */
 internal object ContentIcons {
+    val bus = serviceIcon("Bus") {
+        moveTo(5f, 17f); lineTo(5f, 5f); lineTo(7f, 3f); lineTo(17f, 3f); lineTo(19f, 5f); lineTo(19f, 17f); close()
+        moveTo(5f, 11f); lineTo(19f, 11f); moveTo(8f, 14f); lineTo(9f, 14f); moveTo(15f, 14f); lineTo(16f, 14f)
+        moveTo(7f, 17f); lineTo(7f, 21f); moveTo(17f, 17f); lineTo(17f, 21f)
+    }
+    val print = serviceIcon("Print") {
+        moveTo(7f, 8f); lineTo(7f, 3f); lineTo(17f, 3f); lineTo(17f, 8f)
+        moveTo(7f, 17f); lineTo(3f, 17f); lineTo(3f, 8f); lineTo(21f, 8f); lineTo(21f, 17f); lineTo(17f, 17f)
+        moveTo(7f, 13f); lineTo(17f, 13f); lineTo(17f, 21f); lineTo(7f, 21f); close()
+    }
     val clock = serviceIcon("ClassTime") {
         moveTo(21f, 12f); curveTo(21f, 17f, 17f, 21f, 12f, 21f)
         curveTo(7f, 21f, 3f, 17f, 3f, 12f); curveTo(3f, 7f, 7f, 3f, 12f, 3f)

@@ -1,6 +1,6 @@
 # API 接入与协议
 
-更新：2026-10-08，开发版本 0.26.0-beta.2。现有代码使用 MyWarwick 登录会话和只读接口，无新增 OAuth application。既有结构依据 2026-10-03 至 06 的观察，新服务另于 10 月 8 日只读验证；不将样本当持续实时状态。界面规范见 [架构](architecture.md)，当前交付见 [开发与验证](development.md)。
+更新：2026-10-08，开发版本 0.27.0-beta.1。现有代码使用 MyWarwick 登录会话和只读接口，无新增 OAuth application。既有结构依据 2026-10-03 至 06 的观察，新服务另于 10 月 8 日只读验证；不将样本当持续实时状态。界面规范见 [架构](architecture.md)，当前交付见 [开发与验证](development.md)。
 
 ## 接入与展示
 
@@ -14,7 +14,7 @@
 | `/api/tiles/content/library` | Me → Library：学校摘要、账户入口；未知条目提示原站 | 仅空列表被浏览器/原生验证；非空借阅、到期日和欠费字段待验证 |
 | `/api/tiles/content/account` | Me 本人真实邮箱和显式复制；独立缓存/刷新 | 原生解析和持久化已验证；不拼邮箱，姓名/账号仍以 user/info 为准 |
 
-网站快捷入口只是浏览器跳转，不算 API 接入。六类业务数据独立缓存，账户变化清旧数据，失败保留缓存；同步/重试与界面反馈规则见架构文档。
+网站快捷入口只是浏览器跳转，不算 API 接入。核心六类业务与三类首页服务独立缓存，账户变化清旧数据，失败保留缓存；同步/重试与界面反馈规则见架构文档。
 
 ## 认证与请求规则
 
@@ -43,31 +43,19 @@ Messages 的 `before` 是排除边界的更早 ID；URL 编码后传入。最新
 
 Modules 仅存公告/评估数组数量；Library 未知字段不推断借阅状态。邮箱缺失/null/空串表示不可用，非字符串拒绝并保留缓存。
 
-## 已确认且待原生接入
+## 首页服务摘要
 
-2026-10-08，在现有浏览器登录态中读取 `/api/tiles` 的官方卡片目录及以下 GET，均返回 200/有效 content；未修改卡片偏好、未申请 token、未输出打印余额或私人消息。浏览器可读不等于 Android 页面和缓存已接入。
+0.27.0-beta.1 已实现以下原生 GET、整批解析和 Room 缓存；2026-10-08 浏览器只读复核整批字段及唯一 ID 有效。本次样本为公交 11 条、打印 1 条、活动 100 条，不保存私人余额或原始响应。构建/解析检查不等于手机真实内容验收，后者见开发文档。
 
-| GET 路径 | 已确认结构 | 首轮用途与边界 |
+| GET 路径 | 结构与原生展示 | 边界 |
 | --- | --- | --- |
-| `/api/tiles/content/bus` | content.items；item: id/callout/text，全为字符串；本次 18 条 | Home 半宽公交摘要，按原始顺序显示少量时刻和线路文字；没有结构化实时标志，不标注“实时”，旧缓存要注明过期，不先猜路线/站点字段 |
-| `/api/tiles/content/print` | content.href/items；item: id/callout/text；本次 1 条，原站 printercredits.warwick.ac.uk | Home 半宽打印余额摘要和官方入口；不充值、不提交打印任务，不解析成未确认的账户/配额结构 |
-| `/api/tiles/content/uni-events` | content.defaultText/currentWeek/items；item: id/source/start/end/isAllDay/title/location[]/href/extraInfo/academicWeek；本次 100 条，location item 已见 name，时间 offset 同 Coursework | Home 最底部少量未来/进行中的公开活动，详情及报名原站；source 已见 insite/student-events/library。与个人汇总日程 eventsmerge 分开，不直接影响课程 Now/Next |
+| `/api/tiles/content/bus` | items: id/callout/text 字符串；Home 半宽卡，最多两条原始时刻和线路 | 顺序沿用原站；只有 HH:mm，不推断日期、实时预测、已发车或倒计时；注明拉取时间，过期/失败标为缓存 |
+| `/api/tiles/content/print` | content.href/items；item: id/callout/text；Home 半宽余额/说明卡，点卡打开接口给出的官方账户入口 | 保留原始余额字符串，不推断币种、可打印页数或配额，不充值、不打印 |
+| `/api/tiles/content/uni-events` | items: id/source/title/extraInfo/href/location[]{name}/start/end/isAllDay；Home 最底部最多三条未来/进行中活动，详情与原站链接 | 时间 offset 同 Coursework，全日结束边界按排他处理；未知来源保留；不搜索、不分页，不混入课程 Now/Next；HTML 仅转纯文本 |
 
-### 原生接入实施计划
+核心六项仍优先同步。Home 下拉刷新九项，其他页面维持原刷新范围；进入/回前台 Home 补加载到期服务，繁忙时合并一次待请求，切页取消待请求。不后台轮询；公交/打印/活动初始间隔为 1/10/30 分钟，这是客户端节流策略，不代表后端有效期。失败尝试也节流，手动下拉/单项恢复可立即再试。进度分母依据实际任务列表。
 
-保持现有个人日程和 Deadlines 的优先级，其后增加一行 Buses/Print 两个半宽摘要卡，Messages 之后在首页最底部展示 Events。不增加底部 Tab 或独立服务页。以下均为待实施计划，不代表已接入。
-
-| 批次 | 交付内容 | 验收重点 |
-| --- | --- | --- |
-| 1：缓存/刷新基础 + 两个半宽卡 | Buses 最多两条时刻与线路文字，Print 原始余额与说明、官方网页入口；普通单层卡、紧凑标题，窄屏/大字体可改上下排列 | 左右各占可用宽度的一半；公交不猜发车日期或实时性，余额不猜币种/配额；未加载、真空列表、缓存和失败明确区分 |
-| 2：首页底部 Events | 最多三条未来/正在进行活动，日期时间、标题、可选地点；长说明放复用详情，报名跳学校给出的活动链接；初版不加搜索或来源筛选 | 全日/跨日、英国时区、重复 ID 与坏日期；空集合简短反馈，不虚构分页或完整历史，不混入课程 Now/Next |
-| 3：手机验收与收尾 | 校验真实公交、余额、活动及覆盖升级；按反馈控制高度和文字截断，更新实际 API 状态 | 半宽长线路与大字体；失效会话、断网旧数据、账户切换；原站跳转与返回，首页刷新完成时间 |
-
-**数据与同步：** 复用现有认证、有限重试、请求取消、账户隔离和事务缓存。新增资源使用稳定 slot/key；不能继续用 `SyncResource.entries` 隐式决定刷新范围。首页加载先完成核心六项，再刷新到期的服务摘要；Home 下拉包含三个新资源，其余页面只沿用原刷新范围。任务分母由本次实际执行列表决定；繁忙期间合并待执行请求，切页与重组不重复启动。新增内容进入 Room 快照和变更观察，退出/换账户同时清理。Buses/Print 可共用已确认的 id/callout/text 结构解析，业务展示保持独立；Events 使用独立活动模型，复用日期、地点和详情组件，不塞入课程或通知模型。缓存变更须提供从公开 schema 5 开始的非破坏迁移；后续批次递增并保留迁移链。
-
-**新鲜度：** 首次首页加载三个资源；再次进入首页，公交缓存超过 1 分钟才尝试刷新，Print/Events 分别以 10/30 分钟为初始间隔，不后台轮询。Home 下拉始终刷新。间隔是客户端策略，不是后端有效期保证。公交读取旧缓存、离线或刷新失败时，在卡片内显示简短的更新时间及非实时提示，不恢复各页面日志页脚。服务只有 HH:mm，首版保留原始顺序，不据此猜测日期、过滤已发车或计算倒计时。缺少日期字段及余额/extraInfo 的实际格式在实现前做针对性的只读复核。
-
-**检查：** 构建、Lint 与相关既有检查；只为时间边界、缓存隔离、迁移等复杂逻辑补必要的精简检查，不新增 UI Test。物理手机确认三类真实数据与 schema 升级保留旧缓存；构建或空响应不能代替非空内容验收。每批更新本表的“已确认且待接入”状态，不把浏览器证据改写成原生验证。
+三个资源沿用账户验证、取消、有限重试和失败保留缓存；退出/换账户清理所有新增内容。schema 6 通过非破坏的 5→6 迁移新增摘要、活动和元数据表，保留公开版本原缓存。显示名称仍由 AppLabels/strings 管理，新增资源不借用通知或课程身份。
 
 ## 候选与未采用接口
 
@@ -88,4 +76,4 @@ Modules 仅存公告/评估数组数量；Library 未知字段不推断借阅状
 
 证据索引：[官方 Android 仓库](https://github.com/UniversityofWarwick/mywarwick-android)（参考提交 `cb105bf`）、[MyWarwick](https://my.warwick.ac.uk/)、[CookieManager](https://developer.android.com/reference/android/webkit/CookieManager)、[Custom Tabs](https://developer.chrome.com/docs/android/custom-tabs)。早期手机已解析课表、Coursework 和空 Library；浏览器确认 Messages/Modules 与分页；2026-10-06 手机确认 account 邮箱持久化。前端文件 hash 和样本数量不作为长期协议要求，不保存原始 HAR、cookie/token 或私人正文。
 
-本轮增加 Inbox 本地来源筛选，Home 正方形入口和更紧凑的 Me 网格；随后 Home 增加当日时间轴、模块色和期限紧急色，移除 Sand 主题（已保存的 sand 回退 Forest）；业务请求和 schema 5 未变。三个新服务目前只完成浏览器协议验证，尚未作为原生功能展示。
+本轮保留用户已有 UI 调整，新增首页 Buses/Print/Events 原生摘要、按需刷新和 schema 6 缓存；既有六类接口未更改。

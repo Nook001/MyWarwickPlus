@@ -29,6 +29,7 @@ class TimetableStateTest {
         override fun observeCache() = snapshots
         var operation: suspend ((SignedInUser, CachedTimetable?) -> Unit) -> CachedTimetable = { cache }
         var calls = 0
+        override suspend fun syncService(kind: ServiceKind, onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit) { }
         override suspend fun syncAccount(onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit) { }
         override suspend fun cached() = cache
         override suspend fun syncCoursework(onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit) { }

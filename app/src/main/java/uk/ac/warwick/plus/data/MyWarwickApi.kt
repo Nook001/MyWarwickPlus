@@ -74,4 +74,5 @@ class MyWarwickApi(session: AuthSession) : StudentApi {
     }
     override fun coursework(user: SignedInUser) = CourseworkParser.parse(get("/api/tiles/content/coursework", user))
     override fun feed(kind: FeedKind, user: SignedInUser, before: String?) = FeedParser.parse(kind, get(kind.path(before), user))
+    override fun service(kind: ServiceKind, user: SignedInUser) = ServiceParser.parse(kind, get("/api/tiles/content/${kind.tile}", user))
 }

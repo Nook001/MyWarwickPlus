@@ -58,12 +58,14 @@ sealed interface DetailSelection {
     data object None : DetailSelection
     data class Class(val id: String) : DetailSelection
     data class Task(val id: String) : DetailSelection
+    data class CampusEvent(val id: String) : DetailSelection
     data class Feed(val kind: FeedKind, val id: String) : DetailSelection
 
     fun savedValues(): List<String> = when (this) {
         None -> listOf("none")
         is Class -> listOf("class", id)
         is Task -> listOf("task", id)
+        is CampusEvent -> listOf("campus-event", id)
         is Feed -> listOf("feed", kind.key.toString(), id)
     }
 
@@ -74,6 +76,7 @@ sealed interface DetailSelection {
             return when (values.firstOrNull()) {
                 "class" -> Class(id)
                 "task" -> Task(id)
+                "campus-event" -> CampusEvent(id)
                 "feed" -> savedFeed(values.getOrNull(1))?.let { Feed(it, id) } ?: None
                 else -> None
             }
@@ -93,6 +96,9 @@ internal fun DetailSelection.validated(state: TimetableState, route: MeRoute, ta
     DetailSelection.None -> this
     is DetailSelection.Class -> if ((state.lastSynced != null || !state.busy) && state.events.none { it.id == id }) DetailSelection.None else this
     is DetailSelection.Task -> if ((state.coursework.lastSynced != null || !state.busy) && state.coursework.entries.none { it.id == id }) DetailSelection.None else this
+    is DetailSelection.CampusEvent -> if (tab != AppTab.HOME ||
+        (state.service(uk.ac.warwick.plus.data.ServiceKind.EVENTS).lastSynced != null || !state.busy) &&
+        state.service(uk.ac.warwick.plus.data.ServiceKind.EVENTS).events.none { it.id == id }) DetailSelection.None else this
     is DetailSelection.Feed -> if (!visibleOn(tab, route) ||
         (state.feed(kind).lastSynced != null || !state.busy) && state.feed(kind).entries.none { it.id == id }) DetailSelection.None else this
 }

@@ -41,8 +41,8 @@ android {
         applicationId = "io.github.nook001.mywarwickplus"
         minSdk = 28
         targetSdk = 37
-        versionCode = 40
-        versionName = "0.26.0-beta.2"
+        versionCode = 41
+        versionName = "0.27.0-beta.1"
         buildConfigField("boolean", "PERFORMANCE_TRACING", "false")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

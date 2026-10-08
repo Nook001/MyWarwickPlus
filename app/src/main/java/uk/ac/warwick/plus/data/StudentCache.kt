@@ -13,5 +13,6 @@ interface StudentCache {
     fun replaceCoursework(entries: List<CourseworkEntity>, state: SyncEntity)
     fun replaceAccount(state: SyncEntity)
     fun replaceFeed(entries: List<FeedEntry>, meta: FeedMeta, state: SyncEntity)
+    fun replaceService(parsed: ParsedService, state: SyncEntity)
     fun clear()
 }

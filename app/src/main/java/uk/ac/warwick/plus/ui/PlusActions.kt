@@ -7,5 +7,7 @@ internal data class PlusActions(
     val refreshResource: (SyncResource) -> Unit,
     val loadOlderMessages: () -> Unit,
     val consumeNotice: (Long) -> Unit,
-    val openExternal: ((String) -> Unit)? = null
+    val openExternal: ((String) -> Unit)? = null,
+    val refreshHome: () -> Unit = refresh,
+    val setHomeVisible: (Boolean) -> Unit = {}
 )

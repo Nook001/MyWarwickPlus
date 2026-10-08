@@ -18,6 +18,7 @@ class PlusApplication : Application() {
         traceWork("MWP.Repository.create") {
             TimetableRepository(api,
                 Room.databaseBuilder(this, TimetableDatabase::class.java, "timetable.db")
+                    .addMigrations(ServiceMigration)
                     .build().timetable(), endSession = { api.cancelRequests(); session.clear(this) })
         }
     }

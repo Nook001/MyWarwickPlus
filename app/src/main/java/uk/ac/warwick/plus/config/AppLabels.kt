@@ -14,6 +14,9 @@ object AppLabels {
     val LIBRARY = R.string.label_library
     val MODULES = R.string.label_modules
     val ACCOUNT = R.string.label_account
+    val BUSES = R.string.label_buses
+    val PRINT = R.string.label_print
+    val EVENTS = R.string.label_events
     val UPCOMING = R.string.label_upcoming
     val PAST = R.string.label_past
     val OLDER_MESSAGES = R.string.label_older_messages

@@ -19,7 +19,7 @@ import uk.ac.warwick.plus.data.*
 internal fun HomeContent(state: HomePageState, today: LocalDate, now: Long, onSelect: (EventContentItem) -> Unit,
     onCoursework: (CourseworkContentItem) -> Unit, onAllCoursework: () -> Unit, onPastCoursework: () -> Unit,
     onLogin: () -> Unit, onRecover: (SyncResource) -> Unit, onOpen: (String) -> Unit,
-    onMessage: (FeedContentItem) -> Unit, onAllMessages: () -> Unit) {
+    onMessage: (FeedContentItem) -> Unit, onAllMessages: () -> Unit, onCampusEvent: (CampusEvent) -> Unit) {
     val next = remember(state.events, now) { currentOrNextClass(state.events, now) }
     val nextId = remember(state.events, now) { nextTimedClass(state.events, now)?.id }
     val agenda = remember(state.events, now) { homeAgenda(state.events, now) }
@@ -94,10 +94,17 @@ internal fun HomeContent(state: HomePageState, today: LocalDate, now: Long, onSe
                 }
             }
         }
+        item(key = "service-summaries") {
+            HomeServiceSummaries(state.services, state.serviceRecovery, now, onLogin, onRecover, onOpen)
+        }
         if (state.messages.entries.isNotEmpty()) item(key = "messages") {
             HomeMessages(state.messages, state.messagesRecovery, today, onMessage, onAllMessages, onLogin) {
                 onRecover(SyncResource.MESSAGES)
             }
+        }
+        item(key = "campus-events") {
+            HomeCampusEvents(state.services[ServiceKind.EVENTS] ?: ServiceState(),
+                state.serviceRecovery.getValue(ServiceKind.EVENTS), now, onCampusEvent, onLogin) { onRecover(SyncResource.EVENTS) }
         }
     }
 }

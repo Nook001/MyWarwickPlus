@@ -27,7 +27,7 @@ $signing = $null
 ```powershell
 $env:JAVA_HOME = 'D:/Dev/JDK21.0.8'
 $env:ANDROID_HOME = 'D:/Dev/AndroidSDK'
-$tag = 'v0.26.0-beta.2' # 示例：必须与本次已更新的 versionName 一致
+$tag = 'v0.27.0-beta.1' # 示例：必须与本次已更新的 versionName 一致
 & tools/release/package.ps1 -Tag $tag
 ```
 
