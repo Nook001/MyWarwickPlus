@@ -58,7 +58,7 @@ $apk = "dist/$tag/public/MyWarwickPlus-$($tag.Substring(1)).apk"
 
 ## 创建 GitHub Release
 
-核对 manifest 的 sourceCommit，让 tag 对应实际打包源码，先创建 Draft、上传两个 public 文件，再按发行安排公开。当前 0.27.0-beta.1 按用户要求作为正式 Release/Latest，保留原 tag 和 APK。每次代码修复发新版本，不覆盖已发布 APK/tag。
+核对 manifest 的 sourceCommit，让 tag 对应实际打包源码，先创建 Draft、上传两个 public 文件，再按发行安排公开。当前 Latest 为 0.27.1-beta.1；0.27.0-beta.1 保留原 tag 和 APK。每次代码修复发新版本，不覆盖已发布 APK/tag。
 
 ```powershell
 $manifest = Get-Content "dist/$tag/private/release-manifest.json" -Raw | ConvertFrom-Json
