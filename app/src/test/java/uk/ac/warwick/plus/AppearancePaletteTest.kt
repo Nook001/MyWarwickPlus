@@ -31,9 +31,9 @@ class AppearancePaletteTest {
         }
     }
     @Test fun unknownPreferenceFallsBackToForestAndIdsAreUnique() {
-        assertEquals(ColourTheme.FOREST, ColourTheme.fromId("removed-theme"))
+        assertEquals(ColourTheme.FOREST, ColourTheme.fromId("sand"))
         assertEquals(ColourTheme.FOREST, ColourTheme.fromId(null))
-        assertEquals(5, ColourTheme.entries.map { it.id }.distinct().size)
+        assertEquals(4, ColourTheme.entries.map { it.id }.distinct().size)
     }
     @Test fun backgroundDimensionsRemainBoundedAndSeparateTextureAndOrientation() {
         val portrait = backgroundKey(Appearance(), 1080f / 2400)

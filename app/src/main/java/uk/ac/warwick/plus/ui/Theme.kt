@@ -8,12 +8,13 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 enum class ColourTheme(val id: String, val labelRes: Int, val descriptionRes: Int) {
     FOREST("forest", R.string.theme_forest, R.string.theme_forest_detail), LAKE("lake", R.string.theme_lake, R.string.theme_lake_detail),
-    HEATHER("heather", R.string.theme_heather, R.string.theme_heather_detail), SAND("sand", R.string.theme_sand, R.string.theme_sand_detail),
+    HEATHER("heather", R.string.theme_heather, R.string.theme_heather_detail),
     ROSEWOOD("rosewood", R.string.theme_rosewood, R.string.theme_rosewood_detail);
     companion object { fun fromId(id: String?) = entries.firstOrNull { it.id == id } ?: FOREST }
 }
@@ -96,21 +97,6 @@ private val palettes = mapOf(
         errorContainer = 0xFFE7E3,
         onError = 0xFFFFFF,
         onErrorContainer = 0x61100C),
-    ColourTheme.SAND to palette(
-        background = 0xF8F3EA,
-        text = 0x342B23,
-        muted = 0x524133,
-        accent = 0x5D3D23,
-        next = 0xEFE0C8,
-        nextText = 0x4C3824,
-        card = 0xFFFCF6,
-        empty = 0xF0E9DF,
-        spots = listOf(0xDDB579, 0xDFAF99, 0xBDC5A4),
-        darkIcons = true,
-        error = 0x7F1D16,
-        errorContainer = 0xFFE7E3,
-        onError = 0xFFFFFF,
-        onErrorContainer = 0x61100C),
     ColourTheme.ROSEWOOD to palette(
         background = 0x21181D,
         text = 0xF0E5E9,
@@ -128,6 +114,32 @@ private val palettes = mapOf(
         onErrorContainer = 0xFFDED9))
 
 fun ColourTheme.palette(): FixedPalette = palettes.getValue(this)
+
+// Hues are shared by every theme so a module keeps its identity; only lightness follows the surface.
+private val moduleHues = floatArrayOf(150f, 200f, 255f, 325f, 20f, 42f, 178f, 285f)
+fun moduleColour(index: Int, onLight: Boolean): Color {
+    val hue = moduleHues[Math.floorMod(index, moduleHues.size)]
+    return if (onLight) Color.hsl(hue, .45f, .42f) else Color.hsl(hue, .5f, .74f)
+}
+
+/** Warmer text marks closer deadlines, moving lightness away from the surface until it reads at 4.5:1. */
+fun deadlineColour(days: Long, surface: Color): Color? {
+    val hue = when {
+        days <= 1 -> 4f
+        days <= 3 -> 26f
+        days <= 7 -> 42f
+        else -> return null
+    }
+    val onLight = surface.luminance() > .5f
+    fun contrast(colour: Color): Float {
+        val a = colour.luminance(); val b = surface.luminance()
+        return (maxOf(a, b) + .05f) / (minOf(a, b) + .05f)
+    }
+    var lightness = if (onLight) .45f else .7f
+    while (contrast(Color.hsl(hue, .85f, lightness)) < 4.5f && lightness in .05f..0.95f)
+        lightness += if (onLight) -.02f else .02f
+    return Color.hsl(hue, .85f, lightness)
+}
 /** The featured card role preserves Lake's softer emphasis without page-specific theme checks. */
 internal fun ColourTheme.emphasisColours(): AppCardColours {
     val scheme = palette().scheme

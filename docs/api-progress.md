@@ -7,8 +7,8 @@
 | GET 路径 | 接入与用途 | 验证边界 |
 | --- | --- | --- |
 | `/user/info` | 每资源尝试前验证账户；Me 姓名/usercode | 原生已验证；CSRF 只用于请求，不记录认证值 |
-| `/api/tiles/content/timetable` | Home Now/Next、Today/Tomorrow；Classes 连续列表、冲突/跨日、地点与详情 | 原生解析和缓存已验证；全日项保留在列表，不参加 Now/Next |
-| `/api/tiles/content/coursework` | Home 最近三条未来期限/Recently passed；Tasks 搜索、Upcoming/Past、详情与原站 | 浏览器/原生已验证；近期聚合，不代表完整历史或提交状态，使用原始 title |
+| `/api/tiles/content/timetable` | Home Now/Next 卡片含倒计时与当日时间轴（Now 标记、剩余课程开始时间、模块色）、Later today/Tomorrow；Classes 连续列表、冲突/跨日、地点与详情 | 原生解析和缓存已验证；全日项保留在列表，不参加 Now/Next |
+| `/api/tiles/content/coursework` | Home 最近三条未来期限/Recently passed，1/3/7 天内期限按紧急程度着色文字；Tasks 搜索、Upcoming/Past、详情与原站 | 浏览器/原生已验证；近期聚合，不代表完整历史或提交状态，使用原始 title |
 | `/api/streams/notifications?limit=100[&before={id}]` | Home 两条摘要；Inbox 搜索叠加缓存来源筛选、详情、刷新最新页、更早分页 | 10 月 8 日浏览器确认 provider/displayName 为 tabula/Tabula、comms/Comms；既有分页及手机反馈正常，新筛选待手测；不写网站已读 |
 | `/api/tiles/content/modules` | Me → Modules：名称、代码、学年、公告/评估数量、Moodle 入口 | 浏览器结构已验证，手机整体反馈正常；非空公告/评估正文及完整选课覆盖待验证 |
 | `/api/tiles/content/library` | Me → Library：学校摘要、账户入口；未知条目提示原站 | 仅空列表被浏览器/原生验证；非空借阅、到期日和欠费字段待验证 |
@@ -74,4 +74,4 @@ Modules 仅存公告/评估数组数量；Library 未知字段不推断借阅状
 
 证据索引：[官方 Android 仓库](https://github.com/UniversityofWarwick/mywarwick-android)（参考提交 `cb105bf`）、[MyWarwick](https://my.warwick.ac.uk/)、[CookieManager](https://developer.android.com/reference/android/webkit/CookieManager)、[Custom Tabs](https://developer.chrome.com/docs/android/custom-tabs)。早期手机已解析课表、Coursework 和空 Library；浏览器确认 Messages/Modules 与分页；2026-10-06 手机确认 account 邮箱持久化。前端文件 hash 和样本数量不作为长期协议要求，不保存原始 HAR、cookie/token 或私人正文。
 
-本轮增加 Inbox 本地来源筛选，Home 正方形入口和更紧凑的 Me 网格；业务请求和 schema 5 未变。三个新服务目前只完成浏览器协议验证，尚未作为原生功能展示。
+本轮增加 Inbox 本地来源筛选，Home 正方形入口和更紧凑的 Me 网格；随后 Home 增加当日时间轴、模块色和期限紧急色，移除 Sand 主题（已保存的 sand 回退 Forest）；业务请求和 schema 5 未变。三个新服务目前只完成浏览器协议验证，尚未作为原生功能展示。

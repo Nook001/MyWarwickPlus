@@ -116,8 +116,8 @@ class AppearanceUiTest {
         val preferences = context.getSharedPreferences(name, Context.MODE_PRIVATE)
         try {
             val store = AppearancePreferences(preferences)
-            store.update(Appearance(ColourTheme.SAND, true))
-            assertEquals(Appearance(ColourTheme.SAND, true), AppearancePreferences(preferences).state.value)
+            store.update(Appearance(ColourTheme.HEATHER, true))
+            assertEquals(Appearance(ColourTheme.HEATHER, true), AppearancePreferences(preferences).state.value)
             preferences.edit().putString("colour_theme", "unknown").commit()
             assertEquals(ColourTheme.FOREST, AppearancePreferences(preferences).state.value.theme)
         } finally { context.deleteSharedPreferences(name) }

@@ -7,14 +7,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import java.time.LocalDate
 import uk.ac.warwick.plus.config.AppLabels
 import uk.ac.warwick.plus.data.*
@@ -27,6 +23,11 @@ internal fun HomeContent(state: HomePageState, today: LocalDate, now: Long, onSe
     val next = remember(state.events, now) { currentOrNextClass(state.events, now) }
     val nextId = remember(state.events, now) { nextTimedClass(state.events, now)?.id }
     val agenda = remember(state.events, now) { homeAgenda(state.events, now) }
+    val heroDate = next?.let { atWarwick(it.startMillis).toLocalDate() }
+    val timeline = remember(state.events, heroDate, now) { heroDate?.let { dayTimeline(state.events, it, now) } }
+    val agendaEvents = remember(agenda, next) { agenda.day.events.filter { it.id != next?.id } }
+    val featuredColourOf = rememberModuleColours(state.events, appCardColours(CardTone.Featured).background.luminance() > .5f)
+    val colourOf = rememberModuleColours(state.events, appCardColours(CardTone.Normal).background.luminance() > .5f)
     val conflicts = state.conflicts
     val upcoming = remember(state.coursework.entries, now) {
         state.coursework.entries.filter { it.dueMillis >= now }.sortedBy { it.dueMillis }.take(3)
@@ -44,7 +45,7 @@ internal fun HomeContent(state: HomePageState, today: LocalDate, now: Long, onSe
                     SectionEmptyRow(if (state.busy) stringResource(R.string.loading_timetable) else stringResource(R.string.timetable_not_loaded))
                 }
                 next == null -> SectionCard(stringResource(AppLabels.NEXT), modifier = Modifier.testTag("home-next-section"), headingTag = "next", icon = ContentIcons.clock) { SectionEmptyRow(stringResource(R.string.no_upcoming_classes)) }
-                else -> NextClassCard(next, now) { onSelect(next) }
+                else -> NextClassCard(next, timeline, today, now, featuredColourOf) { onSelect(next) }
             }
             Box(Modifier.padding(horizontal = 12.dp)) {
                 ResourceRecoveryRow(state.timetableRecovery, onLogin) { onRecover(SyncResource.TIMETABLE) }
@@ -52,19 +53,21 @@ internal fun HomeContent(state: HomePageState, today: LocalDate, now: Long, onSe
             Spacer(Modifier.height(12.dp))
             HomeQuickLinks(onOpen)
         }
-        if (state.lastSynced != null && (agenda.day.events.isNotEmpty() || agenda.weekendMessage != null)) item(key = "agenda") {
-            SectionCard(scheduleDateLabel(agenda.day.date, today).render(), modifier = Modifier.testTag("home-today-section"),
+        if (state.lastSynced != null && (agendaEvents.isNotEmpty() || agenda.weekendMessage != null)) item(key = "agenda") {
+            val title = if (agenda.day.date == today && heroDate == today) stringResource(R.string.later_today)
+                else scheduleDateLabel(agenda.day.date, today).render()
+            SectionCard(title, modifier = Modifier.testTag("home-today-section"),
                 headingTag = "today", icon = ContentIcons.calendar, trailing = {
-                if (agenda.day.events.isNotEmpty()) Text(classCountLabel(agenda.day.events.size),
+                if (agendaEvents.isNotEmpty()) Text(classCountLabel(agendaEvents.size),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }) {
                 agenda.weekendMessage?.let { SectionEmptyRow(stringResource(it)) }
-                agenda.day.events.forEachIndexed { index, event ->
+                agendaEvents.forEachIndexed { index, event ->
                     if (index > 0) ListDivider()
                     val status = classStatus(event, now, nextId, agenda.day.date)
                         ?.takeUnless { it == AppLabels.NEXT }?.let { stringResource(it) }
                     ScheduleClassRow(event, agenda.day.date, status, event.id in conflicts,
-                        compactTop = index == 0, density = ListRowDensity.Compact) { onSelect(event) }
+                        compactTop = index == 0, density = ListRowDensity.Compact, accent = colourOf(event)) { onSelect(event) }
                 }
             }
         }
@@ -93,50 +96,6 @@ internal fun HomeContent(state: HomePageState, today: LocalDate, now: Long, onSe
         if (state.messages.entries.isNotEmpty()) item(key = "messages") {
             HomeMessages(state.messages, state.messagesRecovery, today, onMessage, onAllMessages, onLogin) {
                 onRecover(SyncResource.MESSAGES)
-            }
-        }
-    }
-}
-
-@Composable
-private fun NextClassCard(event: EventContentItem, now: Long, onSelect: () -> Unit) {
-    val identity = classIdentity(event)
-    val time = classTimeRange(event, includeWeekday = true)
-    val date = atWarwick(event.startMillis).toLocalDate()
-    val today = atWarwick(now).toLocalDate()
-    val whenLabel = when {
-        date <= today -> time
-        date == today.plusDays(1) -> "${stringResource(R.string.tomorrow)} · $time"
-        else -> "${weekdayDateLabel(date, includeYear = date.year != today.year)} · $time"
-    }
-    val colours = appCardColours(CardTone.Featured)
-    AppCard(onClick = onSelect, tone = CardTone.Featured, shape = AppShapes.featured,
-        modifier = Modifier.fillMaxWidth().testTag("next-class-card"), actionLabel = stringResource(R.string.view_class_details)) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically) {
-                Icon(ContentIcons.clock, contentDescription = null, modifier = Modifier.size(18.dp))
-                Text(if (isClassNow(event, now)) stringResource(AppLabels.NOW) else stringResource(AppLabels.NEXT), style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Medium)
-                Text(whenLabel,
-                    style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Normal,
-                    textAlign = TextAlign.End,
-                    modifier = Modifier.weight(1f).testTag("next-when"))
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(identity.name, style = MaterialTheme.typography.titleMedium.copy(lineHeight = 22.sp), fontWeight = FontWeight.Medium,
-                    maxLines = 2, overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f).alignByBaseline().testTag("next-name"))
-                if (identity.code.isNotBlank()) Text(identity.code, style = MaterialTheme.typography.labelMedium,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.widthIn(max = 112.dp).alignByBaseline().testTag("next-code"))
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically) {
-                LocationLabel(event.location, modifier = Modifier.weight(1f).testTag("next-location"),
-                    colour = colours.foreground)
-                DetailsArrow(Modifier.testTag("next-details-chevron"), size = 20.dp, tint = colours.foreground)
             }
         }
     }

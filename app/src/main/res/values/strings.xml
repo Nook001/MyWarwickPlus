@@ -117,9 +117,10 @@
     <string name="recently_passed">Recently passed · %1$d</string>
     <string name="tomorrow_date">Tomorrow · %1$s</string>
     <string name="tomorrow">Tomorrow</string>
-    <string name="happening_now">Happening now</string>
+    <string name="minutes_left">%1$d min left</string>
+    <string name="hours_left">%1$dh %2$02dm left</string>
     <string name="in_minutes">In %1$d min</string>
-    <string name="later_today">Later today</string>
+    <string name="in_hours">In %1$dh %2$02dm</string>    <string name="later_today">Later today</string>
     <string name="good_morning">Good morning</string>
     <string name="good_afternoon">Good afternoon</string>
     <string name="good_evening">Good evening</string>
@@ -163,8 +164,6 @@
     <string name="theme_lake_detail">Mist blue</string>
     <string name="theme_heather">Heather</string>
     <string name="theme_heather_detail">Soft purple</string>
-    <string name="theme_sand">Sand</string>
-    <string name="theme_sand_detail">Warm sandstone</string>
     <string name="theme_rosewood">Rosewood</string>
     <string name="theme_rosewood_detail">Deep burgundy</string>
     <string name="deadline_time">Deadline\n%1$s · Warwick time</string>

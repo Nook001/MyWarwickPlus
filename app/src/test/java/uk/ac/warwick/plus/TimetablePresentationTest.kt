@@ -27,8 +27,23 @@ class TimetablePresentationTest {
     @Test fun countdownDistinguishesNowTomorrowAndRoundsUp() {
         val item = event("2026-10-05T10:00:00+01:00", "2026-10-05T11:00:00+01:00")
         assertEquals(text(R.string.in_minutes, 2L), nextClassLabel(item, item.startMillis - 61_000))
-        assertEquals(text(R.string.happening_now), nextClassLabel(item, item.startMillis))
+        assertEquals(text(R.string.minutes_left, 45L), nextClassLabel(item, item.startMillis + 15 * 60_000))
+        assertEquals(text(R.string.in_hours, 3L, 9L), nextClassLabel(item, item.startMillis - 189 * 60_000))
         assertEquals(text(R.string.tomorrow), nextClassLabel(item, item.startMillis - 24 * 3_600_000))
+    }
+    @Test fun timelineWidensDefaultHoursAndSplitsOverlaps() {
+        val early = event("2026-10-05T08:30:00+01:00", "2026-10-05T10:00:00+01:00").apply { id = "early" }
+        val overlap = event("2026-10-05T09:00:00+01:00", "2026-10-05T11:00:00+01:00").apply { id = "overlap" }
+        val late = event("2026-10-05T17:00:00+01:00", "2026-10-05T18:30:00+01:00").apply { id = "late" }
+        val timeline = dayTimeline(listOf(late, overlap, early), LocalDate.of(2026, 10, 5), overlap.startMillis)!!
+        assertEquals(8 to 19, timeline.startHour to timeline.endHour)
+        assertEquals(listOf(0, 1, 0), timeline.blocks.map { it.lane })
+        assertEquals(2, timeline.lanes)
+        assertEquals(1f / 11, timeline.now!!, 1e-4f)
+        val morning = dayTimeline(listOf(late), LocalDate.of(2026, 10, 5), early.startMillis - 60 * 60_000)!!
+        assertEquals(7, morning.startHour)
+        assertEquals(.5f / 12, morning.now!!, 1e-4f)
+        assertNull(dayTimeline(listOf(late), LocalDate.of(2026, 10, 6), overlap.startMillis))
     }
     @Test fun probeExposesOnlySchemaAndCounts() {
         val body = """{"success":true,"data":{"coursework":{"content":{"items":[{"id":"private-id","title":"Private title","date":"2026-10-15T12:00:00.000+01","href":"https://tabula.warwick.ac.uk/private"}]}}}}"""

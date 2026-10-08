@@ -3,7 +3,9 @@ package uk.ac.warwick.plus.ui
 import uk.ac.warwick.plus.R
 import androidx.compose.ui.res.stringResource
 import uk.ac.warwick.plus.ui.components.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -13,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -73,7 +76,8 @@ internal fun ScheduleContent(state: SchedulePageState, today: LocalDate, now: Lo
 
 @Composable
 internal fun ScheduleClassRow(event: EventContentItem, date: LocalDate, status: String?, conflict: Boolean,
-    compactTop: Boolean = false, density: ListRowDensity = ListRowDensity.Standard, onSelect: () -> Unit) {
+    compactTop: Boolean = false, density: ListRowDensity = ListRowDensity.Standard, accent: Color? = null,
+    onSelect: () -> Unit) {
     val identity = classIdentity(event)
     val time = scheduleTime(event, date)
     val compact = density == ListRowDensity.Compact
@@ -90,6 +94,7 @@ internal fun ScheduleClassRow(event: EventContentItem, date: LocalDate, status: 
         Text(identity.name, style = if (compact) HomeTypography.content else MaterialTheme.typography.bodyMedium,
             fontWeight = if (compact) FontWeight.Normal else FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            if (accent != null) Box(Modifier.align(Alignment.CenterVertically).size(8.dp).background(accent, CircleShape))
             if (status != null) Text(status, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary)
             if (identity.code.isNotBlank()) Text(identity.code, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)

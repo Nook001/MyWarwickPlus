@@ -19,17 +19,20 @@ internal fun DeadlineRow(entry: CourseworkContentItem, now: Long, presentation: 
     val timing = deadlineTiming(entry.dueMillis, now)
     val home = presentation == DeadlinePresentation.Home
     val date = deadlineDateLabel(entry.dueMillis, now, includeTime = !home)
+    val scheme = MaterialTheme.colorScheme
+    val urgency = if (timing.passed) null else deadlineColour(timing.days, scheme.surfaceContainerLow)
+    val emphasis = urgency ?: scheme.primary
     MetricListRow(onSelect, stringResource(R.string.view_coursework_details), modifier, compactTop,
         density = if (home) ListRowDensity.Compact else ListRowDensity.Standard, metric = {
         if (!home && (timing.passed || timing.days == 0L)) Text(if (timing.passed) stringResource(R.string.deadline_passed) else stringResource(AppLabels.TODAY),
             style = MaterialTheme.typography.bodySmall,
-            color = if (timing.passed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary)
+            color = if (timing.passed) scheme.onSurfaceVariant else emphasis)
         else {
             Text(timing.days.toString(), style = if (home) HomeTypography.metric else MaterialTheme.typography.bodyMedium,
                 fontWeight = if (home) FontWeight.Bold else FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
+                color = emphasis, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
             Text(stringResource(R.string.unit_days), style = if (home) HomeTypography.metricSecondary else MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = urgency ?: scheme.onSurfaceVariant,
                 maxLines = 1, softWrap = false)
         }
     }) {

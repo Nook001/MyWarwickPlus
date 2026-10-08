@@ -86,6 +86,42 @@ fun scheduleTime(event: EventContentItem, date: LocalDate): ScheduleTime {
         continuesBefore = event.startMillis < start, continuesAfter = event.endMillis > end)
 }
 
+internal data class TimelineBlock(val event: EventContentItem, val start: Float, val end: Float, val lane: Int)
+
+/** Positions are fractions of the visible hour range; overlapping classes take separate lanes. */
+internal data class DayTimeline(val startHour: Int, val endHour: Int, val blocks: List<TimelineBlock>,
+    val lanes: Int, val now: Float?) {
+    fun position(hour: Int) = (hour - startHour).toFloat() / (endHour - startHour)
+}
+
+internal fun dayTimeline(events: List<EventContentItem>, date: LocalDate, now: Long): DayTimeline? {
+    val dayStart = date.atStartOfDay(WarwickZone).toInstant().toEpochMilli()
+    val dayEnd = date.plusDays(1).atStartOfDay(WarwickZone).toInstant().toEpochMilli()
+    // Wall-clock hours keep DST days aligned with the printed times.
+    fun hour(millis: Long) = when {
+        millis <= dayStart -> 0f
+        millis >= dayEnd -> 24f
+        else -> atWarwick(millis).toLocalTime().toSecondOfDay() / 3600f
+    }
+    val timed = eventsOnDate(events, date).filter { !it.allDay && it.endMillis > it.startMillis }
+    if (timed.isEmpty()) return null
+    val nowHour = if (atWarwick(now).toLocalDate() == date) hour(now) else null
+    // Waking hours widen the range to show the current time; night-time stays pinned to an edge.
+    val visibleNow = nowHour?.takeIf { it in 7f..22f }
+    val startHour = minOf(9, timed.minOf { hour(it.startMillis) }.toInt(), visibleNow?.toInt() ?: 24)
+    val endHour = maxOf(18, kotlin.math.ceil(maxOf(timed.maxOf { hour(it.endMillis) }, visibleNow ?: 0f)).toInt())
+    val span = (endHour - startHour).toFloat()
+    val laneEnds = mutableListOf<Long>()
+    val blocks = timed.map { event ->
+        val lane = laneEnds.indexOfFirst { it <= event.startMillis }.takeIf { it >= 0 }
+            ?: laneEnds.size.also { laneEnds += 0L }
+        laneEnds[lane] = event.endMillis
+        TimelineBlock(event, (hour(event.startMillis) - startHour) / span, (hour(event.endMillis) - startHour) / span, lane)
+    }
+    val current = nowHour?.let { ((it - startHour) / span).coerceIn(0f, 1f) }
+    return DayTimeline(startHour, endHour, blocks, laneEnds.size, current)
+}
+
 // Material's date picker encodes a calendar date at UTC midnight, independent of Warwick DST.
 fun pickerMillis(date: LocalDate): Long = date.toEpochDay() * 86_400_000L
 fun pickerDate(millis: Long): LocalDate = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
@@ -100,10 +136,17 @@ fun currentOrNextClass(events: List<EventContentItem>, now: Long): EventContentI
     .minWithOrNull(EventOrder)
     ?: nextTimedClass(events, now)
 
-fun nextClassLabel(event: EventContentItem, now: Long): UiText = when {
-    event.startMillis <= now -> text(R.string.happening_now)
-    event.startMillis - now < 60 * 60_000 -> text(R.string.in_minutes, (event.startMillis - now + 59_999) / 60_000)
-    atWarwick(event.startMillis).toLocalDate() == atWarwick(now).toLocalDate() -> text(R.string.later_today)
-    atWarwick(event.startMillis).toLocalDate() == atWarwick(now).toLocalDate().plusDays(1) -> text(R.string.tomorrow)
-    else -> UiText.Literal(relativeDateLabel(atWarwick(event.startMillis).toLocalDate()))
+fun nextClassLabel(event: EventContentItem, now: Long): UiText {
+    val today = atWarwick(now).toLocalDate()
+    val date = atWarwick(event.startMillis).toLocalDate()
+    val minutes = (event.startMillis - now + 59_999) / 60_000
+    return when {
+        event.startMillis <= now -> ((event.endMillis - now + 59_999) / 60_000).let {
+            if (it < 60) text(R.string.minutes_left, it) else text(R.string.hours_left, it / 60, it % 60)
+        }
+        minutes < 60 -> text(R.string.in_minutes, minutes)
+        date == today -> text(R.string.in_hours, minutes / 60, minutes % 60)
+        date == today.plusDays(1) -> text(R.string.tomorrow)
+        else -> UiText.Literal(relativeDateLabel(date))
+    }
 }
