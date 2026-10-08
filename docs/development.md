@@ -27,6 +27,8 @@ $env:JAVA_HOME = 'D:/Dev/JDK21.0.8'
 
 ## 最新公开版本验证
 
+0.27.1-beta.1 / versionCode 42（候选，未签名发布）：首页今天结束后列出下一个上课日课程，跨天 Next 标为 Tomorrow/日期且不显示时间轴；首页 Library 改为应用内页面。Debug 构建与 JVM 检查通过，物理手机覆盖安装 Debug 包确认 Tomorrow 显示及 Library 跳转/返回首页。本机 `%LOCALAPPDATA%/MyWarwickPlus/signing/` 已不存在，需恢复原 keystore 与凭据后才能按发布流程打包；不得改用新密钥。
+
 0.27.0-beta.1 / versionCode 41：保留用户 UI 调整，首页半宽 Buses/Print、底部 Events；核心优先、首页附加刷新、schema 5→6 非破坏迁移。签名 Release、Debug 构建和 82 项 JVM 检查通过；Debug Lint 无问题，Release 0 errors/1 warning（Gradle 补丁提示）。五项新 JVM 检查只覆盖协议、时间、刷新和账户隔离，不新增或运行 UI Test；既有夹具仅适配新增接口。
 
 `v0.27.0-beta.1` 于 2026-10-08 [发布为正式 Release 并设为 Latest](https://github.com/Nook001/MyWarwickPlus/releases/tag/v0.27.0-beta.1)，保留原版本号、tag 与已验收 APK。签名包在 `dist/v0.27.0-beta.1/public/`，源码及发布 tag 对应 `f2dbab2`；后续文档提交不改变 APK。物理手机已覆盖安装并启动公交文字修正版，实际安装 APK 的 SHA-256 与候选包一致；此前已在原生首页观察到非空公交和打印余额。用户确认本轮手动验收通过，未逐项记录边界场景或多设备结果。

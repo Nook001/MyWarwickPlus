@@ -9,6 +9,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import java.time.LocalDate
+import uk.ac.warwick.plus.data.FeedKind
 
 /** UI transitions and saved keys, independent of network clients and cache ownership. */
 @Stable
@@ -20,14 +21,23 @@ internal class PlusNavigator(today: LocalDate) {
     var selectedDay by mutableLongStateOf(today.toEpochDay())
     var followToday by mutableStateOf(true)
     var showDatePicker by mutableStateOf(false)
+    private var feedFromHome = false
 
     fun select(next: AppTab) {
         if (next != tab) detail = DetailSelection.None
         tab = next
+        feedFromHome = false
         if (next == AppTab.ME) {
             meRoute = MeRoute.Overview
             detail = DetailSelection.None
         }
+    }
+
+    fun openFeed(kind: FeedKind) {
+        feedFromHome = tab == AppTab.HOME
+        tab = AppTab.ME
+        meRoute = MeRoute.Feed(kind)
+        detail = DetailSelection.None
     }
 
     fun openTasks(filter: CourseworkFilter) {
@@ -36,8 +46,11 @@ internal class PlusNavigator(today: LocalDate) {
     }
 
     fun back() {
-        if (tab == AppTab.ME && meRoute != MeRoute.Overview) meRoute = MeRoute.Overview
-        else tab = AppTab.HOME
+        if (tab == AppTab.ME && meRoute != MeRoute.Overview) {
+            meRoute = MeRoute.Overview
+            if (feedFromHome) tab = AppTab.HOME
+        } else tab = AppTab.HOME
+        feedFromHome = false
         detail = DetailSelection.None
     }
 

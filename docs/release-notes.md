@@ -1,33 +1,27 @@
-# MyWarwick+ 0.27.0-beta.1
+# MyWarwick+ 0.27.1-beta.1
 
-Public release for Android 9 and later, marked as Latest on GitHub. The
-original version name and tag are retained. This is an independent student
+Public update for Android 9 and later. This is an independent student
 project; a Warwick account is required.
 
 ## Changes
 
-- Home: Buses and Print occupy two half-width cards after Deadlines. Buses
-  shows up to two departure times with compact route/destination and stop
-  previews; tap for complete original route descriptions. Print
-  shows the returned balance and opens the official account website.
-- Events: up to three upcoming or ongoing campus activities at the bottom of
-  Home, with full details and links to the original event website.
-- Core student data loads first. Home pull-to-refresh includes the new
-  services; returning to Home refreshes stale summaries without background
-  polling. Failed requests retain cached data.
-- Existing UI refinements are retained. Schema 5 upgrades to 6 by adding tables;
-  existing account and student caches are preserved.
+- Home: once today's classes have finished, the agenda lists every class on
+  the next day with classes instead of disappearing. On Friday evening it
+  previews Monday; weekends keep the existing greeting.
+- Home: when the next class is not today, the card is labelled Tomorrow or
+  with its date, shows a countdown within 24 hours, and no longer shows a
+  day timeline that could be mistaken for today.
+- Home: the Library shortcut opens the in-app Library summary; Back returns
+  to Home. The official Library website remains one tap away on that page.
+- No database or API changes; existing account and student caches are
+  preserved.
 
 ## Install and verify
 
-Install the signed `MyWarwickPlus-0.27.0-beta.1.apk` over the public package
+Install the signed `MyWarwickPlus-0.27.1-beta.1.apk` over the public package
 `io.github.nook001.mywarwickplus`. The signing certificate is unchanged.
 Internal, Debug and Profile packages remain separate. Use `SHA256SUMS.txt`
 for checksum verification.
-
-The signed build passed the developer's physical-device acceptance. When
-upgrading, check the bus and balance summaries, Events links, Home refresh and
-offline cache on your device.
 
 ## Limits
 

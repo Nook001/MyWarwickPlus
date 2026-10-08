@@ -151,9 +151,9 @@ internal fun PlusScreen(state: TimetableState, actions: PlusActions) {
                                 Icon(CalendarPickerIcon, contentDescription = stringResource(R.string.choose_date), modifier = Modifier.size(20.dp))
                             }
                         }
-                        if (navigator.tab == AppTab.ME && (route != null || showAppearance)) TextButton(onClick = {
-                            navigator.meRoute = MeRoute.Overview; navigator.detail = DetailSelection.None
-                        }) { Text(stringResource(AppActions.BACK)) }
+                        if (navigator.tab == AppTab.ME && (route != null || showAppearance)) TextButton(onClick = navigator::back) {
+                            Text(stringResource(AppActions.BACK))
+                        }
                     }
                     SyncProgressBar(state.syncProgress)
                     if (navigator.tab == AppTab.ME && showAppearance && !state.signingOut) AppearanceContent() else {
@@ -187,7 +187,7 @@ internal fun PlusScreen(state: TimetableState, actions: PlusActions) {
                                         { navigator.openTasks(CourseworkFilter.PAST) }, actions.signIn, recoverResource, openLink,
                                         { navigator.detail = DetailSelection.Feed(FeedKind.MESSAGES, it.id) },
                                         { navigator.select(AppTab.MESSAGES) },
-                                        { navigator.detail = DetailSelection.CampusEvent(it.id) })
+                                        { navigator.detail = DetailSelection.CampusEvent(it.id) }, navigator::openFeed)
                                     AppTab.MESSAGES -> FeedContent(FeedKind.MESSAGES, messages, state.busy, state.needsLogin,
                                         { recoverResource(SyncResource.MESSAGES) }, actions.loadOlderMessages,
                                         { navigator.detail = DetailSelection.Feed(FeedKind.MESSAGES, it.id) }, openLink, actions.signIn, today)

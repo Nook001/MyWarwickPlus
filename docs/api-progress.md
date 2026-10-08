@@ -11,7 +11,7 @@
 | `/api/tiles/content/coursework` | Home 最近三条未来期限/Recently passed，1/3/7 天内期限按紧急程度着色文字；Tasks 搜索、Upcoming/Past、详情与原站 | 浏览器/原生已验证；近期聚合，不代表完整历史或提交状态，使用原始 title |
 | `/api/streams/notifications?limit=100[&before={id}]` | Home 两条摘要；Inbox 搜索叠加缓存来源筛选、详情、刷新最新页、更早分页 | 10 月 8 日浏览器确认 provider/displayName 为 tabula/Tabula、comms/Comms；既有分页及手机反馈正常，新筛选待手测；不写网站已读 |
 | `/api/tiles/content/modules` | Me → Modules：名称、代码、学年、公告/评估数量、Moodle 入口 | 浏览器结构已验证，手机整体反馈正常；非空公告/评估正文及完整选课覆盖待验证 |
-| `/api/tiles/content/library` | Me → Library：学校摘要、账户入口；未知条目提示原站 | 仅空列表被浏览器/原生验证；非空借阅、到期日和欠费字段待验证 |
+| `/api/tiles/content/library` | Home Library 快捷按钮与 Me → Library：应用内学校摘要、账户入口（首页进入时返回回到首页）；未知条目提示原站 | 仅空列表被浏览器/原生验证；非空借阅、到期日和欠费字段待验证 |
 | `/api/tiles/content/account` | Me 本人真实邮箱和显式复制；独立缓存/刷新 | 原生解析和持久化已验证；不拼邮箱，姓名/账号仍以 user/info 为准 |
 
 网站快捷入口只是浏览器跳转，不算 API 接入。核心六类业务与三类首页服务独立缓存，账户变化清旧数据，失败保留缓存；同步/重试与界面反馈规则见架构文档。

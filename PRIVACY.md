@@ -1,6 +1,6 @@
 # MyWarwick+ privacy information
 
-Updated: 8 October 2026. Applies to the 0.27.0-beta.1 candidate.
+Updated: 8 October 2026. Applies to 0.27.1-beta.1.
 
 MyWarwick+ is an independent student project, not an official University of
 Warwick application. It connects directly to Warwick services; the project
