@@ -20,8 +20,8 @@
 | APK | release为0.26.0-beta.1/code39/Android9+，apksigner校验通过，v2签名/RSA3072；非debuggable，PERFORMANCE_TRACING=false。Debug/Profile实际包名及后缀核对；APK含MIT/Apache/第三方声明/隐私四文件 |
 | 私人数据 / 文档 | 已跟踪文件高置信token/private-key扫描无匹配，未跟踪APK/keystore/HAR/local.properties/work/dist；不是完整历史秘密审计。隐私/发布分工/脱敏反馈/签名备份与手机清单已补齐；未访问学校数据 |
 | 用户反馈 / 未核实项 | 用户于2026-10-08反馈“手动登录测试了，没有问题”，并明确要求发布；不据此声明离线/升级/退出/所有页面及多设备全部验收。独立备份密钥/密码、学校第三方发行允许范围未在本会话核实 |
-| 最终打包 / Draft | package.ps1实际成功，产物源码提交5494241；签名指纹与固定文件一致，生成APK/SHA256SUMS/release-manifest及分离的private记录。源码已推送，GitHub Draft为v0.26.0-beta.1，isDraft=true/isPrerelease=true，8附件齐备；未公开发布 |
-| 新包安装 | 首次USB安装被拒；用户解锁授权重试后，指定10AG4S2KQJ0066R执行install -r成功。dumpsys确认新包0.26.0-beta.1/code39，无DEBUGGABLE；启动Status:ok/COLD/168ms（单次辅助值，非基准）。只读pull实际安装APK，SHA-256与候选一致；旧uk.ac.warwick.plus仍0.25.1/code38，未卸载/清数据。新包登录与交互仍待用户手测 |
+| 最终打包 / 原Draft | package.ps1实际成功，产物源码提交5494241；签名指纹与固定文件一致，生成APK/SHA256SUMS/release-manifest及分离的private记录。最初创建v0.26.0-beta.1 Draft并上传8附件；随后公开发布，当前状态见公开发布行 |
+| 新包安装 | 首次USB安装被拒；用户解锁授权重试后，指定10AG4S2KQJ0066R执行install -r成功。dumpsys确认新包0.26.0-beta.1/code39，无DEBUGGABLE；启动Status:ok/COLD/168ms（单次辅助值，非基准）。只读pull实际安装APK，SHA-256与候选一致；旧uk.ac.warwick.plus仍0.25.1/code38，未卸载/清数据。用户后续反馈登录正常，其他场景仍以真实手测为准 |
 | 公开发布 | 2026-10-08按用户明确要求将现有Draft发布为Pre-release：isDraft=false/isPrerelease=true，目标5494241，tag及八附件已核对，APK哈希不变；仅更新发布说明并补充真实登录反馈，不重建APK或冒称学校授权 |
 
 最终打包产物、SHA256与源码提交以dist/v0.26.0-beta.1/public/release-manifest.json为准；不把本地旧unsigned或Debug APK当作发行包。签名脚本不自动安装/发布；操作方法见[release.md](release.md)。
