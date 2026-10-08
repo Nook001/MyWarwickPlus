@@ -6,9 +6,9 @@
   <img alt="MyWarwick+ — MyWarwick, reimagined natively. Native Android, Jetpack Compose, open source. 14.32 MB installed; around 79% smaller than My Warwick in a same-device comparison." src="docs/assets/readme/hero-light.svg" width="100%">
 </picture>
 
-**[Download beta](https://github.com/Nook001/MyWarwickPlus/releases/tag/v0.26.0-beta.1)** · [Report an issue](https://github.com/Nook001/MyWarwickPlus/issues) · [Explore the source](https://github.com/Nook001/MyWarwickPlus)
+**[Download](https://github.com/Nook001/MyWarwickPlus/releases/latest)** · [Report an issue](https://github.com/Nook001/MyWarwickPlus/issues) · [Explore the source](https://github.com/Nook001/MyWarwickPlus)
 
-<sub>Android 9+ · Version 0.26.0-beta.1 · Independent student project</sub>
+<sub>Android 9+ · Warwick account required · Independent student project</sub>
 
 </div>
 
@@ -79,18 +79,10 @@ MyWarwick+ is **open source**. Whether you write Android code or just know what 
 
 Please include app/Android versions and steps to reproduce when reporting bugs. **Never share passwords, tokens, cookies, student IDs or private messages in public issues.**
 
-## Get the beta
+## Privacy and independence
 
-**[Download MyWarwick+ v0.26.0-beta.1 →](https://github.com/Nook001/MyWarwickPlus/releases/tag/v0.26.0-beta.1)**
-
-Requires Android 9 or later and a Warwick account. Download the signed APK from the release assets, optionally verify it against `SHA256SUMS.txt`, then sign in through Warwick's official authentication pages. This is an early beta with limited device testing. See the [release notes](docs/release-notes.md) before installing.
-
-## Privacy and current limitations
-
-The app connects directly to Warwick services; **there is no MyWarwick+ server receiving your student data**. The application has no advertising or analytics SDK. Account information and retrieved content are stored in private on-device storage. See the [privacy notice](PRIVACY.md).
-
-**Current beta limitations:** no background sync, system notifications, coursework submission or read-state writeback. Coursework items reflect the MyWarwick aggregation feed, not a complete assessment history. Some Library data and cross-device behaviours remain unverified; the client depends on internal read-only APIs that can change. For authoritative records or important submissions, use the official Warwick services.
-
-**Independent project disclaimer:** MyWarwick+ is not affiliated with, endorsed by or officially authorised by the University of Warwick. University permission for third-party distribution and use of internal APIs has not yet been confirmed.
+- No user data is stored on project-operated servers.
+- No advertising or analytics.
+- MyWarwick+ is an independent project, not affiliated with the University of Warwick.
 
 <sub>[Release notes](docs/release-notes.md) · [Documentation](docs/architecture.md) · [Privacy](PRIVACY.md) · [MIT License](LICENSE) · [Third-party notices](THIRD_PARTY_NOTICES.md)</sub>
