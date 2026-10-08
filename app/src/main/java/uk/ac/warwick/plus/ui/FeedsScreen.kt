@@ -6,6 +6,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalFocusManager
 import uk.ac.warwick.plus.ui.components.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
@@ -25,15 +27,21 @@ fun FeedContent(kind: FeedKind, state: FeedState, busy: Boolean, needsLogin: Boo
     onRefresh: () -> Unit, onMore: () -> Unit, onSelect: (FeedContentItem) -> Unit, onOpen: (String) -> Unit,
     onLogin: () -> Unit = {}) {
     var query by rememberSaveable(kind) { mutableStateOf("") }
+    var source by rememberSaveable(kind) { mutableStateOf("") }
     val focus = LocalFocusManager.current
     val messages = kind == FeedKind.MESSAGES
     val textById = rememberFeedText(state.entries)
-    val filtered = remember(state.entries, query, textById) {
+    val sources = remember(state.entries, source) {
+        (state.entries.map { it.provider }.filter { it.isNotBlank() } + listOfNotNull(source.takeIf { it.isNotBlank() }))
+            .distinct().sortedWith(String.CASE_INSENSITIVE_ORDER)
+    }
+    val filtered = remember(kind, state.entries, query, source, textById) {
         val search = query.trim()
         state.entries.filter {
-            search.isEmpty() || it.title.contains(search, true) ||
+            (!messages || source.isEmpty() || it.provider == source) &&
+                (search.isEmpty() || it.title.contains(search, true) ||
                 (textById[it.id] ?: if (it.html) "" else it.text).contains(search, true) ||
-                it.provider.contains(search, true) || it.moduleCode.contains(search, true)
+                it.provider.contains(search, true) || it.moduleCode.contains(search, true))
         }
     }
     LazyColumn(Modifier.fillMaxSize().testTag("feed-list"),
@@ -45,6 +53,14 @@ fun FeedContent(kind: FeedKind, state: FeedState, busy: Boolean, needsLogin: Boo
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (kind != FeedKind.LIBRARY) SearchField(query, { query = it }, stringResource(R.string.search_items, stringResource(kind.labelRes)),
                 modifier = Modifier.padding(top = if (messages) 0.dp else 12.dp), compact = messages) { focus.clearFocus() }
+            if (messages && sources.isNotEmpty()) Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                (listOf("") + sources).forEach { provider ->
+                    FilterChip(selected = source == provider, onClick = { source = provider; focus.clearFocus() },
+                        label = { Text(if (provider.isEmpty()) stringResource(R.string.all_sources) else provider,
+                            style = InboxTypography.preview) })
+                }
+            }
         }
         if (needsLogin || state.message != null) item {
             DataRecoveryRow(state.lastSynced, state.message, state.loading, needsLogin, !busy,
@@ -58,7 +74,9 @@ fun FeedContent(kind: FeedKind, state: FeedState, busy: Boolean, needsLogin: Boo
             }, action = if (!busy && !needsLogin && state.message == null) stringResource(AppActions.RETRY) else null, onAction = onRefresh) }
             state.entries.isEmpty() -> item { DataEmptyState(if (kind == FeedKind.LIBRARY) stringResource(R.string.no_library_items) else stringResource(R.string.no_resource_in_feed, stringResource(kind.labelRes)),
                 state.description.takeIf { it.isNotBlank() }) }
-            filtered.isEmpty() -> item { DataEmptyState(stringResource(R.string.no_matches), action = stringResource(AppActions.CLEAR_SEARCH), onAction = { query = ""; focus.clearFocus() }) }
+            filtered.isEmpty() -> item { DataEmptyState(stringResource(R.string.no_matches),
+                action = stringResource(if (messages && source.isNotEmpty()) AppActions.CLEAR_FILTERS else AppActions.CLEAR_SEARCH),
+                onAction = { query = ""; source = ""; focus.clearFocus() }) }
             else -> items(filtered, key = { it.id }, contentType = { "feed-entry" }) { entry ->
                 AppCard(onClick = { focus.clearFocus(); onSelect(entry) }, modifier = Modifier.fillMaxWidth(),
                     shape = AppShapes.feedContent, actionLabel = stringResource(R.string.view_resource_details, stringResource(kind.labelRes))) {

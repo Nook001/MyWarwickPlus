@@ -31,6 +31,7 @@ object AppActions {
     val BACK = R.string.action_back
     val CANCEL = R.string.action_cancel
     val CLEAR_SEARCH = R.string.action_clear_search
+    val CLEAR_FILTERS = R.string.action_clear_filters
     val CLOSE = R.string.action_close
     val RETRY_SIGN_OUT = R.string.action_retry_sign_out
 }

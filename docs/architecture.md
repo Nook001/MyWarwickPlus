@@ -66,10 +66,10 @@ Tab/Filter/Me 子页/详情使用类型化身份，Saver 保存稳定 key、日�
 | Deadlines | 左侧数字/days，右侧原标题及 `d MMM`，下一年才加年份；当天未过期为 0 days。Recently passed 是近七天缓存记录，不代表提交状态 |
 | Classes | 连续日期分组，跳过未来空日；选定起点空日保留简短说明。保留全日、跨日、冲突与详情；日期只在组标题出现，选日与滚动位置可恢复 |
 | Tasks | 紧凑搜索、Upcoming/Past，未来升序/过去降序；两行标题、英文短日期和准确时间，完整说明及原站链接放详情 |
-| Inbox | Tab 短标签 Inbox，页标题 Messages；紧凑搜索与卡片、来源/日期同行、两行标题和摘要、完整详情、显式更早分页 |
-| Me | 姓名/usercode/真实邮箱和显式复制；Settings/Library/Modules 网格、八个网站入口、隐私/许可、版本号，Sign out 在最后；不显示日志或开发者面板 |
+| Inbox | Tab 短标签 Inbox，页标题 Messages；搜索叠加来源筛选，来源选项取自缓存（如 Tabula/Comms），All 解除来源限制。来源/日期同行、两行标题和摘要、完整详情、显式更早分页 |
+| Me | 姓名/usercode/真实邮箱和显式复制；Settings/Library/Modules 网格、八个网站入口、隐私/许可、版本号，Sign out 在最后；默认最多四列、至少 72dp 高，长标签/大字体可撑高 |
 
-Classes 的跨日列表按单日裁剪至 00:00–24:00，午夜结束不插空日，详情保留完整范围。Me 默认三列，在大字体或窄屏时改两列。网站与详情来源仅在用户点击后打开浏览器。
+Classes 的跨日列表按单日裁剪至 00:00–24:00，午夜结束不插空日，详情保留完整范围。Home 四个网站入口保持正方形，大字体/窄屏改两列；Me 大字体/窄屏也改两列。网站与详情来源仅在用户点击后打开浏览器。
 
 ## 组件标准
 
@@ -78,7 +78,7 @@ Classes 的跨日列表按单日裁剪至 00:00–24:00，午夜结束不插空�
 | `AppCard` | Normal/Quiet/Featured/Selected 颜色角色；基础卡不隐式添加间距、边框或阴影。可点击卡要求动作语义，非交互分区无按钮语义 |
 | `SectionCard`、`GroupedListItem` | 标题与内容共享一层容器；稳定 Lazy key 和列表状态归页面，组内用浅分隔线 |
 | `MetricListRow`、`ScheduleClassRow`、`DeadlineRow` | 基础行负责左列、对齐和点击；业务变体负责时间、期限、冲突及文字含义 |
-| `ActionTile` | Home 紧凑入口、Me 网格入口共用目的地/点击语义；外部跳转有角标 |
+| `ActionTile` | Home Square 入口、Me 紧凑 Grid 入口共用目的地/点击语义；外部跳转有角标，图标 20/22dp，文字常规字重 |
 | `LocationLabel` | 统一定位针和文字；装饰图标不请求 GPS，地点链接由详情打开 |
 | `SearchField`、`DetailsSheet` | 输入/清除/键盘动作和可滚动详情骨架；搜索状态归页面，关闭先 hide 再移除 |
 | `PageHeader`、`AppNavigation` | 页眉统一几何；Tab 图标和文字共同高亮、轮廓/实心两态，无按压灰底，安全区仅应用一次 |

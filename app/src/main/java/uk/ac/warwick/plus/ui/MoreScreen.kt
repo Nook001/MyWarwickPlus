@@ -31,7 +31,7 @@ fun MoreContent(state: TimetableState, onLogin: () -> Unit, onSignOut: () -> Uni
     var confirmSignOut by remember { mutableStateOf(false) }
     LazyColumn(Modifier.fillMaxSize().testTag("more-list"),
         contentPadding = Spacing.compactPage,
-        verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             AccountCard(state, onLogin, onResourceRefresh)
         }
@@ -129,15 +129,15 @@ private fun MeGrid(title: String, actions: List<MeAction>) {
         Text(title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         BoxWithConstraints(Modifier.fillMaxWidth()) {
-            val columns = if (fontScale > 1.3f || maxWidth < 280.dp) 2 else 3
-            val size = (maxWidth - Spacing.grid * (columns - 1)) / columns
+            val preferredColumns = if (fontScale > 1.3f || maxWidth < 280.dp) 2 else 4
+            val columns = minOf(preferredColumns, actions.size.coerceAtLeast(1))
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.grid)) {
                 actions.chunked(columns).forEach { row ->
                     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.grid)) {
                         row.forEach { action ->
                             ActionTile(action.label, action.icon, action.onClick,
                                 layout = ActionTileLayout.Grid, modifier = Modifier.weight(1f).testTag(action.tag),
-                                minimumHeight = size, destination = if (action.external) ActionDestination.External else ActionDestination.Internal,
+                                destination = if (action.external) ActionDestination.External else ActionDestination.Internal,
                                 actionLabel = action.actionLabel ?: stringResource(R.string.open_item, action.label))
                         }
                         repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }

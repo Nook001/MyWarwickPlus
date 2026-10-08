@@ -16,31 +16,31 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-internal enum class ActionTileLayout { Compact, Grid }
+internal enum class ActionTileLayout { Square, Grid }
 internal enum class ActionDestination { Internal, External }
 
 @Composable
 internal fun ActionTile(label: String, icon: ImageVector, onClick: () -> Unit,
     layout: ActionTileLayout, modifier: Modifier = Modifier,
-    minimumHeight: Dp = if (layout == ActionTileLayout.Compact) 48.dp else 64.dp,
+    minimumHeight: Dp = if (layout == ActionTileLayout.Square) 48.dp else 72.dp,
     destination: ActionDestination? = null, actionLabel: String? = null) {
-    val compact = layout == ActionTileLayout.Compact
+    val compact = layout == ActionTileLayout.Square
     AppCard(onClick, modifier, shape = if (compact) AppShapes.section else AppShapes.tile,
         tone = if (compact) CardTone.Quiet else CardTone.Normal,
         actionLabel = actionLabel ?: stringResource(R.string.open_item, label)) {
-        Box(Modifier.heightIn(min = minimumHeight)) {
+        Box(Modifier.fillMaxWidth().heightIn(min = minimumHeight)) {
             Column(Modifier.align(Alignment.Center).then(if (compact)
-                Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp) else Modifier.padding(10.dp)),
+                Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp) else Modifier.padding(horizontal = 6.dp, vertical = 8.dp)),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(if (compact) 2.dp else 6.dp, Alignment.CenterVertically)) {
-                Icon(icon, contentDescription = null, modifier = Modifier.size(if (compact) 20.dp else 24.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically)) {
+                Icon(icon, contentDescription = null, modifier = Modifier.size(if (compact) 20.dp else 22.dp),
                     tint = MaterialTheme.colorScheme.primary)
                 Text(label, style = if (compact) MaterialTheme.typography.labelMedium else MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Normal,
                     textAlign = TextAlign.Center, maxLines = if (compact) 1 else 2, overflow = TextOverflow.Ellipsis)
             }
             if (destination != null) Icon(if (destination == ActionDestination.External) MeIcons.external else DetailsChevron,
-                contentDescription = null, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).size(12.dp),
+                contentDescription = null, modifier = Modifier.align(Alignment.TopEnd).padding(6.dp).size(10.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }

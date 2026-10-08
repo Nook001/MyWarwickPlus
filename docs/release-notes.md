@@ -1,60 +1,41 @@
-# MyWarwick+ 0.26.0-beta.1
+# MyWarwick+ 0.26.0-beta.2
 
-First public beta candidate for Android 9 and later. This is an independent
-student project, not an official University of Warwick application. A Warwick
-account is required; sign-in uses the university's official pages and MFA.
+Local candidate for Android 9 and later, awaiting manual acceptance. Not yet
+published on GitHub. This is an independent student project, not an official
+University of Warwick application; a Warwick account is required.
 
-## Included
+## Changes
 
-- Home: next class, remaining today's classes / tomorrow preview, deadlines,
-  recent messages, and Moodle/Email/Tabula/Library shortcuts.
-- Classes: continuous date-grouped list, date selection, locations and details.
-- Tasks: upcoming/past coursework, search, exact due times and source links.
-- Inbox: compact messages, search, full details and explicit older-page loading.
-- Me: email copy, library/module summaries, service links and local sign-out.
-- Five colour themes, offline cache and refresh progress based on actual tasks.
+- Inbox: filter cached messages by source, such as Tabula or Comms, alongside
+  text search. All removes the source restriction; Clear filters resets both.
+  Filtering does not send requests or mark university messages as read.
+- Home: four square website shortcuts, with a two-column layout on narrow
+  screens or with larger system text.
+- Me: smaller action tiles, up to four columns, reduced padding and icons.
+  Long labels and larger system text can expand tile height.
 
-## Install and update
+Buses, Print Balance and Events APIs have been verified in an authenticated
+browser. Their native pages and cache are still planned and are not included.
 
-Download `MyWarwickPlus-0.26.0-beta.1.apk` from the release's attached assets
-on https://github.com/Nook001/MyWarwickPlus/releases. Check `SHA256SUMS.txt`
-if needed. Android may ask you to allow installation from your browser/file
-manager; use the standard Android installation flow.
+## Install
 
-The public package is `io.github.nook001.mywarwickplus`. It installs separately
-from the earlier internal `uk.ac.warwick.plus` prototype and from Debug/Profile
-builds; the first installation requires a new sign-in. Do not uninstall your
-old prototype just to try this beta. Future public updates are intended to
-preserve data through the same package/signing certificate and supported
-database migrations.
+Use the signed `MyWarwickPlus-0.26.0-beta.2.apk`. It updates the public package
+`io.github.nook001.mywarwickplus` with the same signing certificate, retaining
+the existing session and cache. Earlier internal, Debug and Profile packages
+are separate; a first installation of the public package requires sign-in.
+Check `SHA256SUMS.txt` if needed.
 
-## Known limitations
+## Limits and feedback
 
-- Uses MyWarwick's internal read-only aggregation APIs; backend changes or
-  expired sessions may temporarily require re-sign-in or a client update.
-- Timetables/deadlines use Europe/London time. Tasks are the items returned by
-  the aggregation service, not a complete assignment history or submission status.
-- No background synchronization, system notifications or coursework submission.
-- Reading messages does not mark them read on the university website.
-- Non-empty library loan details have not been validated. Use the official site
-  for authoritative library balances, submissions and other consequential checks.
-- Device coverage is currently limited; English UI, no automatic app updater.
+MyWarwick internal APIs may change or require renewed sign-in. Times use
+Europe/London. Coursework is an aggregation feed, not a submission record.
+There is no background sync, system notification, submission or automatic
+updater. Non-empty library loan details and broader device coverage remain
+unverified. Use official services for authoritative balances and submissions.
 
-Privacy: https://github.com/Nook001/MyWarwickPlus/blob/master/PRIVACY.md
+[Privacy](https://github.com/Nook001/MyWarwickPlus/blob/master/PRIVACY.md) ·
+[Feedback](https://github.com/Nook001/MyWarwickPlus/issues)
 
-Feedback: https://github.com/Nook001/MyWarwickPlus/issues
-
-Please include the app/Android version and reproduction steps. Remove names,
-emails, student IDs, private messages, cookies and tokens from public reports.
-
-## Validation
-
-The signed Release APK was installed on a physical Android device, and the
-maintainer reported successful manual sign-in testing. Release/Debug/Profile
-builds and 76 existing unit checks passed. Release Lint has no errors and one
-informational warning about an available Gradle patch update. APK signature and
-SHA-256 were verified; no new UI tests were added or run. Broader device,
-offline, upgrade and account-flow coverage remains limited.
-
-This is a GitHub **Pre-release**, intended for early feedback. It does not
-indicate university endorsement or authorization of this independent project.
+Include app/Android versions and reproduction steps; remove personal data,
+cookies and tokens from reports. This candidate does not indicate university
+endorsement or authorization.

@@ -1,6 +1,6 @@
 # API 接入与协议
 
-更新：2026-10-08。现有代码使用 MyWarwick 登录会话和只读接口，无新增 OAuth application。结构依据 2026-10-03 至 06 的浏览器、前端与手机观察；本次文档整理没有重新请求学校数据，不将历史样本当实时状态。界面规范见 [架构](architecture.md)，当前交付见 [开发与验证](development.md)。
+更新：2026-10-08，开发版本 0.26.0-beta.2。现有代码使用 MyWarwick 登录会话和只读接口，无新增 OAuth application。既有结构依据 2026-10-03 至 06 的观察，新服务另于 10 月 8 日只读验证；不将样本当持续实时状态。界面规范见 [架构](architecture.md)，当前交付见 [开发与验证](development.md)。
 
 ## 接入与展示
 
@@ -9,7 +9,7 @@
 | `/user/info` | 每资源尝试前验证账户；Me 姓名/usercode | 原生已验证；CSRF 只用于请求，不记录认证值 |
 | `/api/tiles/content/timetable` | Home Now/Next、Today/Tomorrow；Classes 连续列表、冲突/跨日、地点与详情 | 原生解析和缓存已验证；全日项保留在列表，不参加 Now/Next |
 | `/api/tiles/content/coursework` | Home 最近三条未来期限/Recently passed；Tasks 搜索、Upcoming/Past、详情与原站 | 浏览器/原生已验证；近期聚合，不代表完整历史或提交状态，使用原始 title |
-| `/api/streams/notifications?limit=100[&before={id}]` | Home 两条摘要；Inbox 搜索/详情/刷新最新页/显式加载更早记录 | 浏览器分页协议已验证，手机整体反馈正常；不写网站已读，不推断未读数或紧急等级 |
+| `/api/streams/notifications?limit=100[&before={id}]` | Home 两条摘要；Inbox 搜索叠加缓存来源筛选、详情、刷新最新页、更早分页 | 10 月 8 日浏览器确认 provider/displayName 为 tabula/Tabula、comms/Comms；既有分页及手机反馈正常，新筛选待手测；不写网站已读 |
 | `/api/tiles/content/modules` | Me → Modules：名称、代码、学年、公告/评估数量、Moodle 入口 | 浏览器结构已验证，手机整体反馈正常；非空公告/评估正文及完整选课覆盖待验证 |
 | `/api/tiles/content/library` | Me → Library：学校摘要、账户入口；未知条目提示原站 | 仅空列表被浏览器/原生验证；非空借阅、到期日和欠费字段待验证 |
 | `/api/tiles/content/account` | Me 本人真实邮箱和显式复制；独立缓存/刷新 | 原生解析和持久化已验证；不拼邮箱，姓名/账号仍以 user/info 为准 |
@@ -43,15 +43,26 @@ Messages 的 `before` 是排除边界的更早 ID；URL 编码后传入。最新
 
 Modules 仅存公告/评估数组数量；Library 未知字段不推断借阅状态。邮箱缺失/null/空串表示不可用，非字符串拒绝并保留缓存。
 
+## 已确认且待原生接入
+
+2026-10-08，在现有浏览器登录态中读取 `/api/tiles` 的官方卡片目录及以下 GET，均返回 200/有效 content；未修改卡片偏好、未申请 token、未输出打印余额或私人消息。浏览器可读不等于 Android 页面和缓存已接入。
+
+| GET 路径 | 已确认结构 | 首轮用途与边界 |
+| --- | --- | --- |
+| `/api/tiles/content/bus` | content.items；item: id/callout/text，全为字符串；本次 18 条 | Me → Buses，显示服务给出的时刻和线路文字；没有结构化实时标志，不标注“实时”，旧缓存要注明过期，不先猜路线/站点字段 |
+| `/api/tiles/content/print` | content.href/items；item: id/callout/text；本次 1 条，原站 printercredits.warwick.ac.uk | Me → Print，余额摘要和官方入口；不充值、不提交打印任务，不解析成未确认的账户/配额结构 |
+| `/api/tiles/content/uni-events` | content.defaultText/currentWeek/items；item: id/source/start/end/isAllDay/title/location[]/href/extraInfo/academicWeek；本次 100 条，location item 已见 name，时间 offset 同 Coursework | Me → Events，未来活动/来源筛选、完整详情及报名原站；source 已见 insite/student-events/library。与个人汇总日程 eventsmerge 分开，不直接影响课程 Now/Next |
+
+建议按 Buses → Print → Events 实现独立服务页及按需刷新，不纳入每次启动的六项全量刷新。原生接入时沿用账户验证、失败保留与事务缓存；若增加持久字段需提供公开 schema 迁移。公交的时效性、Events 全日/跨日语义需分别处理。
+
 ## 候选与未采用接口
 
 | 接口 | 当前结论 |
 | --- | --- |
-| `/api/tiles/content/eventsmerge`、`calendar`、`mail`、`todo` | 仅前端候选，结构、覆盖及与已接入功能的重叠待验证 |
+| `/api/tiles/content/eventsmerge`、`calendar`、`mail`、`todo` | 浏览器主页观察到 200，完整结构、覆盖与产品用途未核对；eventsmerge 是 All my events，不是公共 Events |
 | `/api/streams/notifications?limit=100&since={id}` | 浏览器确认读较新记录；客户端仍刷新最新页，不做增量同步 |
 | `GET /api/timetable` + `X-Timetable-Token` | 旧移动端路径；仅 cookie 请求历史返回 401，专用 token 当前有效性/生命周期未验证 |
 | `POST /api/timetable/register` | 前端存在注册后交 native bridge 的逻辑；本项目未调用、未签发 token |
-| 公交 | 尚未确认可接入接口，不展示虚构摘要 |
 
 新增接口前先确认结构与产品用途，不批量探测。后台同步、系统通知、消息写回和作业提交未实现。
 
@@ -63,4 +74,4 @@ Modules 仅存公告/评估数组数量；Library 未知字段不推断借阅状
 
 证据索引：[官方 Android 仓库](https://github.com/UniversityofWarwick/mywarwick-android)（参考提交 `cb105bf`）、[MyWarwick](https://my.warwick.ac.uk/)、[CookieManager](https://developer.android.com/reference/android/webkit/CookieManager)、[Custom Tabs](https://developer.chrome.com/docs/android/custom-tabs)。早期手机已解析课表、Coursework 和空 Library；浏览器确认 Messages/Modules 与分页；2026-10-06 手机确认 account 邮箱持久化。前端文件 hash 和样本数量不作为长期协议要求，不保存原始 HAR、cookie/token 或私人正文。
 
-本轮交付只整理文档与后续打包附件目录，API 路径、认证和展示行为未变。
+本轮增加 Inbox 本地来源筛选，Home 正方形入口和更紧凑的 Me 网格；业务请求和 schema 5 未变。三个新服务目前只完成浏览器协议验证，尚未作为原生功能展示。

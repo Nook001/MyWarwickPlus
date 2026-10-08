@@ -30,6 +30,8 @@
     <string name="action_back">Back</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_clear_search">Clear search</string>
+    <string name="all_sources">All</string>
+    <string name="action_clear_filters">Clear filters</string>
     <string name="action_close">Close</string>
     <string name="action_retry_sign_out">Retry sign-out</string>
     <string name="fine_texture">Fine texture</string>

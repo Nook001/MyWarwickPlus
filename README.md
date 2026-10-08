@@ -2,7 +2,7 @@
 
 独立的 Android 学生客户端，使用 Kotlin + Jetpack Compose，通过官方 WebView SSO 登录并复用 MyWarwick 只读接口。不是 University of Warwick 官方应用。
 
-**[下载首个 Beta](https://github.com/Nook001/MyWarwickPlus/releases/tag/v0.26.0-beta.1)**：0.26.0-beta.1，Android 9+，需要 Warwick 账号。安装签名 APK，首次使用需登录；当前为 Pre-release。[发布说明](docs/release-notes.md)列出安装方法和已知限制。
+**[下载首个 Beta](https://github.com/Nook001/MyWarwickPlus/releases/tag/v0.26.0-beta.1)**：0.26.0-beta.1，Android 9+，需要 Warwick 账号。安装签名 APK，首次使用需登录；当前为 Pre-release。下载页包含该版本说明，下一版本草稿见 [发布说明](docs/release-notes.md)。
 
 ## 功能
 
@@ -11,10 +11,12 @@
 | Home | Now/Next、今日剩余课程或明日预览、截止日期、消息摘要、网站快捷入口 |
 | Classes | 连续日程、日期跳转、跨日/冲突提示、课程与地点详情 |
 | Tasks | Coursework 搜索、Upcoming/Past、准确期限、原站链接 |
-| Inbox | 消息搜索、完整详情、最新页刷新和显式更早分页 |
+| Inbox | 消息搜索、来源筛选、完整详情、最新页刷新和显式更早分页 |
 | Me | 邮箱复制、主题设置、Library/Modules、服务入口和本地退出 |
 
 五套固定颜色主题、静态渐变背景、离线缓存和真实任务阶段进度。时间按 Europe/London 显示。当前无后台同步、系统通知、作业提交或消息已读写回。
+
+开发候选为 0.26.0-beta.2：来源筛选、Home 正方形入口及紧凑 Me 网格尚待手机验收。Buses/Print/Events 已确认接口，尚未接入原生页面；状态见 API 表。
 
 ## 文档
 

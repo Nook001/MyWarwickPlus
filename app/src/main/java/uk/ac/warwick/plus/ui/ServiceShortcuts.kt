@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathBuilder
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 
 internal fun serviceIcon(name: String, draw: PathBuilder.() -> Unit) =
@@ -52,13 +53,22 @@ internal object ServiceIcons {
 
 @Composable
 internal fun HomeQuickLinks(onOpen: (String) -> Unit) {
-    Row(Modifier.fillMaxWidth().testTag("home-quick-links"), horizontalArrangement = Arrangement.spacedBy(Spacing.grid)) {
-        HomeServices.forEach { service ->
-            val label = stringResource(requireNotNull(service.homeLabelRes))
-            ActionTile(label, service.icon, { onOpen(service.url) },
-                layout = ActionTileLayout.Compact,
-                modifier = Modifier.weight(1f).testTag("home-service-${service.name.lowercase()}"),
-                actionLabel = stringResource(R.string.open_in_browser, stringResource(service.labelRes)))
+    val fontScale = LocalDensity.current.fontScale
+    BoxWithConstraints(Modifier.fillMaxWidth().testTag("home-quick-links")) {
+        val columns = if (fontScale > 1.3f || maxWidth < 280.dp) 2 else 4
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.grid)) {
+            HomeServices.chunked(columns).forEach { services ->
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.grid)) {
+                    services.forEach { service ->
+                        val label = stringResource(requireNotNull(service.homeLabelRes))
+                        ActionTile(label, service.icon, { onOpen(service.url) },
+                            layout = ActionTileLayout.Square,
+                            modifier = Modifier.weight(1f).aspectRatio(1f).testTag("home-service-${service.name.lowercase()}"),
+                            actionLabel = stringResource(R.string.open_in_browser, stringResource(service.labelRes)))
+                    }
+                    repeat(columns - services.size) { Spacer(Modifier.weight(1f)) }
+                }
+            }
         }
     }
 }

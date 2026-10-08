@@ -39,6 +39,12 @@ $env:JAVA_HOME = 'D:/Dev/JDK21.0.8'
 
 构建日志、mapping 和 trace 只在本地 `work/`、`dist/` 保存。先前跟踪文件扫描未发现高置信 token/private-key，不等于完整安全审计。历史 API 验证边界在 API 表，旧版本安装重试和逐次构建日志通过 Git 查询。
 
+## 开发候选
+
+0.26.0-beta.2 / versionCode 40：Inbox 本地来源筛选、Home 正方形入口、紧凑 Me 网格。Debug 构建和 Lint 通过；同签名 Release 打包待完成。ADB 未检测到手机，尚未安装或取得新 UI 手测反馈。没有新增单元测试或 UI Test。
+
+新增服务的浏览器只读证据及原生接入边界统一记录在 API 表，当前仍只同步六类业务数据、使用 schema 5。
+
 ## 手动检查
 
 | 范围 | 检查点 |
@@ -77,7 +83,7 @@ $traceProcessor = 'C:/Tools/Perfetto/trace_processor_shell.exe'
 | 方向 | 开始条件或缺口 |
 | --- | --- |
 | 公开版验证 | 补离线/更新/退出、字体与主题、更多设备；API 37 运行仍待对应设备 |
-| 数据覆盖 | 非空 Library、Modules 公告/评估、公交；先取得只读结构证据与明确用途 |
+| 数据覆盖 | Buses/Print/Events 已确认登录态 GET 和结构，待独立服务页与按需缓存；非空 Library、Modules 公告/评估仍待结构证据 |
 | 性能 | Messages 滚动、主题切换内存、可重复 Classes 对比；有热点证据后才考虑 Baseline Profile 或进一步时钟调度 |
 | 存储与备份 | 真设备 Room 迁移验证、OEM 迁移是否遵守禁备份规则；JVM 假缓存不能替代 Room 引擎检查 |
 | 发行维护 | 密钥/密码独立备份及学校允许范围仍待用户确认，操作见发布文档 |
