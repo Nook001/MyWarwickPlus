@@ -58,15 +58,15 @@ $apk = "dist/$tag/public/MyWarwickPlus-$($tag.Substring(1)).apk"
 
 ## 创建 GitHub Release
 
-核对 manifest 的 sourceCommit，让 tag 对应实际打包源码，先创建 Draft、上传两个 public 文件，再按发行安排公开为 Pre-release。每次修复发新版本，不覆盖已发布 APK/tag。
+核对 manifest 的 sourceCommit，让 tag 对应实际打包源码，先创建 Draft、上传两个 public 文件，再按发行安排公开。当前 0.27.0-beta.1 按用户要求作为正式 Release/Latest，保留原 tag 和 APK。每次代码修复发新版本，不覆盖已发布 APK/tag。
 
 ```powershell
 $manifest = Get-Content "dist/$tag/private/release-manifest.json" -Raw | ConvertFrom-Json
 $notes = "dist/$tag/private/RELEASE_NOTES.md"
-gh release create $manifest.tag --repo Nook001/MyWarwickPlus --target $manifest.sourceCommit --draft --prerelease --title "MyWarwick+ $($manifest.versionName)" --notes-file $notes
+gh release create $manifest.tag --repo Nook001/MyWarwickPlus --target $manifest.sourceCommit --draft --title "MyWarwick+ $($manifest.versionName)" --notes-file $notes
 gh release upload $manifest.tag "dist/$tag/public/$($manifest.apk)" "dist/$tag/public/SHA256SUMS.txt" --repo Nook001/MyWarwickPlus
 # 发布时核对附件/标签/说明后执行：
-gh release edit $manifest.tag --repo Nook001/MyWarwickPlus --draft=false --prerelease --latest=false
+gh release edit $manifest.tag --repo Nook001/MyWarwickPlus --draft=false --prerelease=false --latest
 ```
 
 脚本和构建/核对由 Codex 执行；密钥独立备份、账号操作、手测和学校允许范围由用户确认。MIT 仅覆盖本项目代码，不授权学校服务、内容或品牌。发布前检查附件/截图/源码不含私人数据。

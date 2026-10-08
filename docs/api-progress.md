@@ -76,4 +76,4 @@ Modules 仅存公告/评估数组数量；Library 未知字段不推断借阅状
 
 证据索引：[官方 Android 仓库](https://github.com/UniversityofWarwick/mywarwick-android)（参考提交 `cb105bf`）、[MyWarwick](https://my.warwick.ac.uk/)、[CookieManager](https://developer.android.com/reference/android/webkit/CookieManager)、[Custom Tabs](https://developer.chrome.com/docs/android/custom-tabs)。早期手机已解析课表、Coursework 和空 Library；浏览器确认 Messages/Modules 与分页；2026-10-06 手机确认 account 邮箱持久化。前端文件 hash 和样本数量不作为长期协议要求，不保存原始 HAR、cookie/token 或私人正文。
 
-本轮保留用户已有 UI 调整，新增首页 Buses/Print/Events 原生摘要、按需刷新和 schema 6 缓存；既有六类接口未更改。
+本轮保留用户已有 UI 调整，新增首页 Buses/Print/Events 原生摘要、按需刷新和 schema 6 缓存；既有六类接口未更改。0.27.0-beta.1 已通过用户验收，作为正式 Release/Latest 发布，版本号与 APK 保持不变。

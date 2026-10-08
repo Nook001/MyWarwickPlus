@@ -1,7 +1,8 @@
 # MyWarwick+ 0.27.0-beta.1
 
-Beta release for Android 9 and later. This is an independent student project;
-a Warwick account is required.
+Public release for Android 9 and later, marked as Latest on GitHub. The
+original version name and tag are retained. This is an independent student
+project; a Warwick account is required.
 
 ## Changes
 
