@@ -69,7 +69,9 @@ private fun ServiceSummaryCard(kind: ServiceKind, state: ServiceState, recovery:
                 }
             }
             if (isBus && state.lastSynced != null) {
-                val old = now < state.lastSynced || now - state.lastSynced >= kind.refreshMillis || state.message != null || recovery.needsLogin
+                // The UI clock ticks every 30s and may precede a just-completed request.
+                val age = now - state.lastSynced
+                val old = age < -60_000 || age >= kind.refreshMillis || state.message != null || recovery.needsLogin
                 Text(stringResource(if (old) R.string.bus_cached_at else R.string.bus_updated_at,
                     deadlineDateLabel(state.lastSynced, now, includeTime = true)),
                     style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
