@@ -49,7 +49,7 @@ Modules 仅存公告/评估数组数量；Library 未知字段不推断借阅状
 
 | GET 路径 | 结构与原生展示 | 边界 |
 | --- | --- | --- |
-| `/api/tiles/content/bus` | items: id/callout/text 字符串；Home 半宽卡，最多两条原始时刻和线路 | 顺序沿用原站；只有 HH:mm，不推断日期、实时预测、已发车或倒计时；注明拉取时间，过期/失败标为缓存 |
+| `/api/tiles/content/bus` | items: id/callout/text 字符串；Home 半宽卡，最多两条时刻和线路/方向/站点；点开完整原文 | 顺序沿用原站，摘要仅按已见 from/to 文本格式收紧，格式不匹配回退原文；只有 HH:mm，不推断日期、实时预测、已发车或倒计时；注明拉取时间，过期/失败标为缓存 |
 | `/api/tiles/content/print` | content.href/items；item: id/callout/text；Home 半宽余额/说明卡，点卡打开接口给出的官方账户入口 | 保留原始余额字符串，不推断币种、可打印页数或配额，不充值、不打印 |
 | `/api/tiles/content/uni-events` | items: id/source/title/extraInfo/href/location[]{name}/start/end/isAllDay；Home 最底部最多三条未来/进行中活动，详情与原站链接 | 时间 offset 同 Coursework，全日结束边界按排他处理；未知来源保留；不搜索、不分页，不混入课程 Now/Next；HTML 仅转纯文本 |
 

@@ -24,11 +24,13 @@ import uk.ac.warwick.plus.ui.components.*
 internal fun HomeServiceSummaries(services: Map<ServiceKind, ServiceState>, recovery: Map<ServiceKind, RecoveryState>,
     now: Long, onLogin: () -> Unit, onRecover: (SyncResource) -> Unit, onOpen: (String) -> Unit) {
     val fontScale = LocalDensity.current.fontScale
+    val busState = services[ServiceKind.BUSES] ?: ServiceState()
+    var showBuses by remember(busState.summaries) { mutableStateOf(false) }
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val stacked = fontScale > 1.3f || maxWidth < 280.dp
         val buses: @Composable (Modifier) -> Unit = { modifier ->
             ServiceSummaryCard(ServiceKind.BUSES, services[ServiceKind.BUSES] ?: ServiceState(),
-                recovery.getValue(ServiceKind.BUSES), now, modifier, onLogin, { onRecover(SyncResource.BUSES) }, onOpen)
+                recovery.getValue(ServiceKind.BUSES), now, modifier, onLogin, { onRecover(SyncResource.BUSES) }, onOpen, { showBuses = true })
         }
         val print: @Composable (Modifier) -> Unit = { modifier ->
             ServiceSummaryCard(ServiceKind.PRINT, services[ServiceKind.PRINT] ?: ServiceState(),
@@ -40,17 +42,35 @@ internal fun HomeServiceSummaries(services: Map<ServiceKind, ServiceState>, reco
             buses(Modifier.weight(1f).fillMaxHeight()); print(Modifier.weight(1f).fillMaxHeight())
         }
     }
+    if (showBuses) DetailsSheet({ showBuses = false }, contentPadding = PaddingValues(16.dp), itemSpacing = 12.dp) {
+        item { DetailEyebrow(stringResource(AppLabels.BUSES)) }
+        busState.lastSynced?.let { updated -> item {
+            Text(stringResource(R.string.bus_updated_at, updatedTimeLabel(updated)), style = MaterialTheme.typography.labelSmall)
+        } }
+        busState.summaries.forEach { entry -> item(key = entry.id) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(entry.callout, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                Text(entry.text, style = MaterialTheme.typography.bodySmall)
+            }
+        } }
+        item { DetailClose(stringResource(R.string.close_service_details)) { showBuses = false } }
+    }
 }
+
+private val busRouteText = Regex("^(.+?) from (.+?) to (.+)$")
 
 @Composable
 private fun ServiceSummaryCard(kind: ServiceKind, state: ServiceState, recovery: RecoveryState, now: Long,
-    modifier: Modifier, onLogin: () -> Unit, onRefresh: () -> Unit, onOpen: (String) -> Unit) {
+    modifier: Modifier, onLogin: () -> Unit, onRefresh: () -> Unit, onOpen: (String) -> Unit,
+    onBuses: () -> Unit = {}) {
     val isBus = kind == ServiceKind.BUSES
     val label = stringResource(if (isBus) AppLabels.BUSES else AppLabels.PRINT)
     val destination = if (isBus) "" else state.url
     val actionLabel = stringResource(R.string.open_in_browser, label)
+    val busActionLabel = stringResource(R.string.view_resource_details, label)
     SectionCard(label, modifier = modifier.testTag("home-${kind.tile}").then(
-        if (destination.isBlank()) Modifier else Modifier.clickable(role = Role.Button, onClickLabel = actionLabel) { onOpen(destination) }),
+        if (isBus && state.summaries.isNotEmpty()) Modifier.clickable(role = Role.Button, onClickLabel = busActionLabel, onClick = onBuses)
+        else if (destination.isBlank()) Modifier else Modifier.clickable(role = Role.Button, onClickLabel = actionLabel) { onOpen(destination) }),
         icon = if (isBus) ContentIcons.bus else ContentIcons.print) {
         Column(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 10.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -63,8 +83,11 @@ private fun ServiceSummaryCard(kind: ServiceKind, state: ServiceState, recovery:
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         if (entry.callout.isNotBlank()) Text(entry.callout, style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                        if (entry.text.isNotBlank()) Text(entry.text, style = HomeTypography.content,
-                            maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        val route = if (isBus) busRouteText.matchEntire(entry.text)?.groupValues else null
+                        if (entry.text.isNotBlank()) Text(if (route == null) entry.text else "${route[1]} → ${route[3]}",
+                            style = HomeTypography.content, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        if (route != null) Text(route[2], style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
