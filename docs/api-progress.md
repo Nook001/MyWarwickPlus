@@ -7,7 +7,7 @@
 | GET 路径 | 接入与用途 | 验证边界 |
 | --- | --- | --- |
 | `/user/info` | 每资源尝试前验证账户；Me 姓名/usercode | 原生已验证；CSRF 只用于请求，不记录认证值 |
-| `/api/tiles/content/timetable` | Home Now/Next 卡片含倒计时与当日时间轴（Now 标记、剩余课程开始时间、模块色）、Later today/Tomorrow；Classes 连续列表、冲突/跨日、地点与详情 | 原生解析和缓存已验证；全日项保留在列表，不参加 Now/Next |
+| `/api/tiles/content/timetable` | Home Now/Next 卡片含倒计时与当日时间轴（仅当 Next 在今天；Now 标记、剩余课程开始时间、模块色），跨天时标签改为 Tomorrow/日期、24 小时内显示倒计时；Later today 不重复 Next，今天结束后改列下一个上课日全部课程（周五晚列周一，周末仍为问候）；Classes 连续列表、冲突/跨日、地点与详情 | 原生解析和缓存已验证；全日项保留在列表，不参加 Now/Next |
 | `/api/tiles/content/coursework` | Home 最近三条未来期限/Recently passed，1/3/7 天内期限按紧急程度着色文字；Tasks 搜索、Upcoming/Past、详情与原站 | 浏览器/原生已验证；近期聚合，不代表完整历史或提交状态，使用原始 title |
 | `/api/streams/notifications?limit=100[&before={id}]` | Home 两条摘要；Inbox 搜索叠加缓存来源筛选、详情、刷新最新页、更早分页 | 10 月 8 日浏览器确认 provider/displayName 为 tabula/Tabula、comms/Comms；既有分页及手机反馈正常，新筛选待手测；不写网站已读 |
 | `/api/tiles/content/modules` | Me → Modules：名称、代码、学年、公告/评估数量、Moodle 入口 | 浏览器结构已验证，手机整体反馈正常；非空公告/评估正文及完整选课覆盖待验证 |

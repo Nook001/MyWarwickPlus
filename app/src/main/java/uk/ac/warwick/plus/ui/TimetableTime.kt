@@ -39,7 +39,7 @@ data class ScheduleDay(val date: LocalDate, val events: List<EventContentItem>)
 
 internal data class HomeAgenda(val day: ScheduleDay, val weekendMessage: Int? = null)
 
-/** Today and a finished day have the same transition; no separate empty-tomorrow state. */
+/** A finished weekday rolls to the next day with classes, so Friday evening previews Monday. */
 internal fun homeAgenda(events: List<EventContentItem>, now: Long): HomeAgenda {
     val today = atWarwick(now).toLocalDate()
     val todayEvents = eventsOnDate(events, today)
@@ -53,7 +53,7 @@ internal fun homeAgenda(events: List<EventContentItem>, now: Long): HomeAgenda {
             if (todayEvents.isEmpty()) R.string.enjoy_weekend else R.string.well_done_weekend)
     }
     val tomorrow = today.plusDays(1)
-    return HomeAgenda(ScheduleDay(tomorrow, eventsOnDate(events, tomorrow)))
+    return HomeAgenda(scheduleDays(events, tomorrow).firstOrNull { it.events.isNotEmpty() } ?: ScheduleDay(tomorrow, emptyList()))
 }
 
 /** Include the chosen date even when empty; other empty dates do not occupy the agenda. */
@@ -145,7 +145,7 @@ fun nextClassLabel(event: EventContentItem, now: Long): UiText {
             if (it < 60) text(R.string.minutes_left, it) else text(R.string.hours_left, it / 60, it % 60)
         }
         minutes < 60 -> text(R.string.in_minutes, minutes)
-        date == today -> text(R.string.in_hours, minutes / 60, minutes % 60)
+        date == today || minutes < 24 * 60 -> text(R.string.in_hours, minutes / 60, minutes % 60)
         date == today.plusDays(1) -> text(R.string.tomorrow)
         else -> UiText.Literal(relativeDateLabel(date))
     }

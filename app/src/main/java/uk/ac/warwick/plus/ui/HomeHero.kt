@@ -49,11 +49,13 @@ internal fun NextClassCard(event: EventContentItem, timeline: DayTimeline?, toda
     val identity = classIdentity(event)
     val time = classTimeRange(event, includeWeekday = true)
     val date = atWarwick(event.startMillis).toLocalDate()
-    val whenLabel = when {
-        date <= today -> time
-        date == today.plusDays(1) -> "${stringResource(R.string.tomorrow)} · $time"
-        else -> "${weekdayDateLabel(date, includeYear = date.year != today.year)} · $time"
+    val label = when {
+        isClassNow(event, now) -> stringResource(AppLabels.NOW)
+        date <= today -> stringResource(AppLabels.NEXT)
+        date == today.plusDays(1) -> stringResource(R.string.tomorrow)
+        else -> weekdayDateLabel(date, includeYear = date.year != today.year)
     }
+    val showCountdown = date <= today || event.startMillis - now < 24 * 3_600_000L
     val colours = appCardColours(CardTone.Featured)
     AppCard(onClick = onSelect, tone = CardTone.Featured, shape = AppShapes.featured,
         modifier = Modifier.fillMaxWidth().testTag("next-class-card"), actionLabel = stringResource(R.string.view_class_details)) {
@@ -62,9 +64,9 @@ internal fun NextClassCard(event: EventContentItem, timeline: DayTimeline?, toda
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically) {
                 Icon(ContentIcons.clock, contentDescription = null, modifier = Modifier.size(18.dp))
-                Text(if (isClassNow(event, now)) stringResource(AppLabels.NOW) else stringResource(AppLabels.NEXT), style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Medium)
-                Text(whenLabel, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End,
+                Text(label, style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Medium, modifier = Modifier.testTag("next-label"))
+                Text(time, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End,
                     modifier = Modifier.weight(1f).testTag("next-when"))
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -79,7 +81,7 @@ internal fun NextClassCard(event: EventContentItem, timeline: DayTimeline?, toda
                 verticalAlignment = Alignment.CenterVertically) {
                 LocationLabel(event.location, modifier = Modifier.weight(1f).testTag("next-location"),
                     colour = colours.foreground)
-                if (date == today) Text(nextClassLabel(event, now).render(), style = MaterialTheme.typography.labelMedium,
+                if (showCountdown) Text(nextClassLabel(event, now).render(), style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.testTag("next-countdown"))
                 DetailsArrow(Modifier.testTag("next-details-chevron"), size = 20.dp, tint = colours.foreground)
             }

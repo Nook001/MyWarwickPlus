@@ -26,6 +26,11 @@ class SchedulePresentationTest {
         val empty = homeAgenda(emptyList(), afternoon.endMillis)
         assertTrue(empty.day.events.isEmpty())
         assertNull(empty.weekendMessage)
+        val friday = event("friday", "2026-10-09T13:00:00+01:00", "2026-10-09T14:00:00+01:00")
+        val monday = event("monday", "2026-10-12T09:00:00+01:00", "2026-10-12T10:00:00+01:00")
+        val afterFriday = homeAgenda(listOf(friday, monday), friday.endMillis)
+        assertEquals(LocalDate.of(2026, 10, 12), afterFriday.day.date)
+        assertEquals(listOf("monday"), afterFriday.day.events.map { it.id })
     }
     @Test fun homeAgendaKeepsCrossDayAndAllDayItemsBeforeWeekendGreeting() {
         val previous = TimeZone.getDefault()

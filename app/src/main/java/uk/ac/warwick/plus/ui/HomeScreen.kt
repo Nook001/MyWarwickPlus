@@ -24,8 +24,12 @@ internal fun HomeContent(state: HomePageState, today: LocalDate, now: Long, onSe
     val nextId = remember(state.events, now) { nextTimedClass(state.events, now)?.id }
     val agenda = remember(state.events, now) { homeAgenda(state.events, now) }
     val heroDate = next?.let { atWarwick(it.startMillis).toLocalDate() }
-    val timeline = remember(state.events, heroDate, now) { heroDate?.let { dayTimeline(state.events, it, now) } }
-    val agendaEvents = remember(agenda, next) { agenda.day.events.filter { it.id != next?.id } }
+    val timeline = remember(state.events, heroDate, today, now) {
+        if (heroDate == today) dayTimeline(state.events, today, now) else null
+    }
+    val agendaEvents = remember(agenda, next, today) {
+        if (agenda.day.date == today) agenda.day.events.filter { it.id != next?.id } else agenda.day.events
+    }
     val featuredColourOf = rememberModuleColours(state.events, appCardColours(CardTone.Featured).background)
     val colourOf = rememberModuleColours(state.events, appCardColours(CardTone.Normal).background)
     val conflicts = state.conflicts
