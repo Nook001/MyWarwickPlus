@@ -2,7 +2,7 @@
 
 更新：2026-10-08；代码 0.26.0-beta.1 / versionCode39。首次公开候选增加正式签名/打包验证、独立公开/Debug/Profile包名、MIT/隐私与Me入口；已有首页/Inbox排版保留。接口、认证、只读边界及schema5不变；公交与非空Library结构仍未验证。下表为历史证据，不代表当前账户实时数量。协议见 [protocol.md](protocol.md)，架构见 [architecture.md](architecture.md)，交付状态见 [validation.md](validation.md)。
 
-首次公开候选尚未公开发布；正式Release验证/手机验收见validation.md，发布与分工见release.md。0.25.1内部包的历史部署记录不等于新包验收。
+首次公开候选已签名打包，Release/Debug/Profile构建与76项既有JVM检查通过；GitHub Draft附件齐备，未公开发布。物理手机拒绝新包USB安装，正式Release仍待安装与手测；详见validation.md，分工/备份见release.md。0.25.1内部包的历史部署记录不等于新包验收。
 
 
 ## 已接入
