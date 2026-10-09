@@ -41,6 +41,7 @@ interface StudentApi {
 
 class TimetableRepository(private val api: StudentApi, private val dao: StudentCache,
     private val logSync: (() -> String) -> Unit = { debugLog(it) },
+    private val refreshSession: suspend (String) -> Boolean = { false },
     private val endSession: suspend () -> Unit = {}) : TimetableStore {
     private val mutex = Mutex()
     // Accessed only under mutex; this ordering also protects against late Flow reads.
@@ -59,7 +60,13 @@ class TimetableRepository(private val api: StudentApi, private val dao: StudentC
     }
 
     private suspend fun authenticate(onAuthenticated: (SignedInUser, CachedTimetable?) -> Unit): SignedInUser {
-        val user = api.request { api.user() }
+        val user = try {
+            api.request { api.user() }
+        } catch (error: SignInRequiredException) {
+            val url = error.refreshUrl ?: throw error
+            if (!refreshSession(url)) throw error
+            api.request { api.user() }
+        }
         currentCoroutineContext().ensureActive()
         val changedAccount = dao.states().any { it.userCode != user.code }
         if (changedAccount) {

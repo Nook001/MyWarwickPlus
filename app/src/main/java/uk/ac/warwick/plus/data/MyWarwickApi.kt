@@ -10,7 +10,8 @@ import uk.ac.warwick.plus.auth.MY_WARWICK
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
-class SignInRequiredException : Exception()
+/** [refreshUrl] is MyWarwick's own SSO round trip, offered when only its session has lapsed. */
+class SignInRequiredException(val refreshUrl: String? = null) : Exception()
 class ServiceException(val status: Int) : Exception()
 data class SignedInUser(val code: String, val name: String, val csrfHeader: String, val csrfToken: String)
 
@@ -60,7 +61,8 @@ class MyWarwickApi(session: AuthSession) : StudentApi {
     override fun user(): SignedInUser {
         val root = JSONObject(get("/user/info"))
         val user = root.optJSONObject("user") ?: throw SignInRequiredException()
-        if (root.opt("refresh") is String || !user.optBoolean("authenticated")) throw SignInRequiredException()
+        val refresh = root.opt("refresh") as? String
+        if (refresh != null || !user.optBoolean("authenticated")) throw SignInRequiredException(refresh?.takeIf { it.isNotBlank() })
         return SignedInUser(user.requiredString("usercode"), user.stringOrEmpty("name"),
             user.stringOrEmpty("csrfHeader"), user.stringOrEmpty("csrfToken"))
     }

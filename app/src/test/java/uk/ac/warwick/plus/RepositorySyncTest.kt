@@ -114,6 +114,29 @@ class RepositorySyncTest {
         assertTrue(authenticated); assertFalse(downloaded); assertEquals(0, dao.writes)
     }
 
+    @Test fun lapsedSessionRefreshesOnceThenRetriesButPlainSignInStillFails() = runBlocking {
+        var refreshUrl: String? = "https://websignon.warwick.ac.uk/origin/hs?myWarwickRefresh=true"
+        var lapsed = true
+        val refreshed = mutableListOf<String>()
+        val api = object : Api() {
+            override fun user(): SignedInUser {
+                if (lapsed) throw SignInRequiredException(refreshUrl)
+                return super.user()
+            }
+        }
+        val dao = Dao()
+        val repo = TimetableRepository(api, dao, logSync = {}, refreshSession = { refreshed += it; lapsed = false; true })
+        repo.sync { _, _ -> }
+        assertEquals(listOf(refreshUrl), refreshed)
+        assertEquals("new-user", dao.cache.sync?.userCode)
+        lapsed = true; refreshUrl = null
+        try {
+            repo.sync { _, _ -> }
+            fail("Without a refresh URL the user must sign in")
+        } catch (_: SignInRequiredException) { }
+        assertEquals(1, refreshed.size)
+    }
+
     @Test fun cancelledBlockingDownloadCannotWriteItsResultAndSignOutStillClearsCache() = runBlocking {
         val started = CompletableDeferred<Unit>()
         val release = CountDownLatch(1)

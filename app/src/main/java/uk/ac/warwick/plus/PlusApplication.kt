@@ -4,6 +4,7 @@ import android.app.Application
 import android.net.ConnectivityManager
 import androidx.room.Room
 import uk.ac.warwick.plus.auth.AuthSession
+import uk.ac.warwick.plus.auth.SessionRefresher
 import uk.ac.warwick.plus.data.*
 import uk.ac.warwick.plus.ui.AppearancePreferences
 
@@ -19,7 +20,8 @@ class PlusApplication : Application() {
             TimetableRepository(api,
                 Room.databaseBuilder(this, TimetableDatabase::class.java, "timetable.db")
                     .addMigrations(ServiceMigration)
-                    .build().timetable(), endSession = { api.cancelRequests(); session.clear(this) })
+                    .build().timetable(), refreshSession = SessionRefresher(this)::refresh,
+                endSession = { api.cancelRequests(); session.clear(this) })
         }
     }
 }
