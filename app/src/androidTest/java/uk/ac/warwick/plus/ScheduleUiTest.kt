@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
+import uk.ac.warwick.plus.data.EventContentItem
 import uk.ac.warwick.plus.data.EventEntity
 import uk.ac.warwick.plus.ui.*
 import java.time.*
@@ -36,6 +37,7 @@ class ScheduleUiTest {
             bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,it)
         }; bitmap.recycle()
     }
+    private fun label(date: LocalDate)=scheduleDateLabel(date,today).resolve(androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext.resources)
     private fun chooseDate(date: LocalDate) {
         compose.onNodeWithTag("schedule-date-picker").performClick()
         capture("schedule-date-input")
@@ -46,11 +48,11 @@ class ScheduleUiTest {
         var appearance by mutableStateOf(Appearance())
         val state=fixture().copy(events=listOf(event("1",today.plusDays(1),10,"Compiler Design","Example lecture theatre"),
             event("2",today.plusDays(1),13,"Computer Graphics","Example laboratory"),event("3",today.plusDays(3),11)))
-        compose.setContent { PlusTheme(appearance) { PlusScreen(state,{}, {}) } }
+        compose.setContent { PlusTheme(appearance) { PlusScreen(state,testActions()) } }
         compose.onNodeWithTag("schedule-tab").performClick()
         compose.onNodeWithText("Today").assertIsDisplayed()
         compose.onNode(hasText("No classes today") and hasAnyAncestor(hasTestTag("schedule-day-$today"))).assertIsDisplayed()
-        compose.onNodeWithText(scheduleDateLabel(today.plusDays(1),today)).assertIsDisplayed()
+        compose.onNodeWithText(label(today.plusDays(1))).assertIsDisplayed()
         compose.onNodeWithTag("schedule-class-${today.plusDays(1)}-1").assertHasClickAction()
         val row=compose.onNodeWithTag("schedule-class-${today.plusDays(1)}-1").getUnclippedBoundsInRoot()
         assertTrue("Ordinary course should stay compact",row.bottom-row.top<=88.dp)
@@ -66,10 +68,10 @@ class ScheduleUiTest {
     @Test fun dateInputSupportsHistoryCancelAndReturningToTodayWithoutRequests() {
         var calls=0
         val historical=today.minusDays(2)
-        compose.setContent { PlusTheme { PlusScreen(fixture().copy(events=fixture().events+event("past",historical,14,"Historical seminar")),{calls++},{}) } }
+        compose.setContent { PlusTheme { PlusScreen(fixture().copy(events=fixture().events+event("past",historical,14,"Historical seminar")),testActions(refresh={calls++})) } }
         compose.onNodeWithTag("schedule-tab").performClick()
         chooseDate(historical)
-        compose.onNodeWithText(scheduleDateLabel(historical,today)).assertIsDisplayed()
+        compose.onNodeWithText(label(historical)).assertIsDisplayed()
         compose.onNodeWithText("Historical seminar").assertIsDisplayed()
         compose.onNodeWithTag("schedule-date-picker").performClick()
         compose.onNode(hasSetTextAction()).performTextReplacement(today.plusDays(9).format(DateTimeFormatter.ofPattern("ddMMyyyy")))
@@ -88,7 +90,7 @@ class ScheduleUiTest {
     @Test fun switchingTabsRefreshingAndRestoringKeepAgendaPosition() {
         var state by mutableStateOf(fixture(22))
         val restoration=StateRestorationTester(compose)
-        restoration.setContent { PlusTheme { PlusScreen(state,{}, {}) } }
+        restoration.setContent { PlusTheme { PlusScreen(state,testActions()) } }
         compose.onNodeWithTag("schedule-tab").performClick()
         compose.onNodeWithTag("schedule-list").performScrollToIndex(12)
         compose.onNodeWithText("Example course 12").assertIsDisplayed()
@@ -108,11 +110,11 @@ class ScheduleUiTest {
         val active=event("active",today,10,title,"A deliberately long building and room name")
         val overlap=event("overlap",today,10,"Overlapping seminar")
         val next=event("next",today,13,"Next seminar")
-        var selected: EventEntity? by mutableStateOf(null)
+        var selected: EventContentItem? by mutableStateOf(null)
         compose.setContent {
             CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density,1.8f)) {
                 PlusTheme(Appearance(ColourTheme.LAKE)) { Surface(Modifier.width(320.dp).fillMaxHeight().windowInsetsPadding(WindowInsets.systemBars)) {
-                    ScheduleContent(TimetableState(lastSynced=1L,events=listOf(active,overlap,next)),today,now,today,rememberLazyListState()) { selected=it }
+                    ScheduleContent(TimetableState(lastSynced=1L,events=listOf(active,overlap,next)).schedulePage(),today,now,today,rememberLazyListState()) { selected=it }
                 } }
             }
         }

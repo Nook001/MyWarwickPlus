@@ -31,7 +31,7 @@ class CacheAndAuthTest {
                 repo.syncCoursework { user, cache ->
                     authenticated = true
                     assertEquals("new", user.code)
-                    assertTrue(cache.events.isEmpty()); assertTrue(cache.coursework.isEmpty())
+                    assertTrue(cache!!.events.isEmpty()); assertTrue(cache.coursework.isEmpty())
                     assertNull(cache.sync); assertNull(cache.courseworkSync)
                 }
                 fail("The network request must fail")
@@ -64,13 +64,13 @@ class CacheAndAuthTest {
                     db.timetable().replace(listOf(event, event), SyncEntity())
                     fail("Duplicate primary keys should fail")
                 } catch (_: android.database.sqlite.SQLiteConstraintException) { }
-                assertEquals("sample-user", db.timetable().state().userCode)
+                assertEquals("sample-user", db.timetable().state()!!.userCode)
             } finally { initial.close() }
             val reopened = Room.databaseBuilder(context, TimetableDatabase::class.java, name).build()
             try {
                 val db = reopened
                 assertEquals("Example class", db.timetable().events().single().title)
-                assertEquals(300L, db.timetable().state().syncedAt)
+                assertEquals(300L, db.timetable().state()!!.syncedAt)
                 db.timetable().clear()
                 assertNull(db.timetable().state())
                 assertTrue(db.timetable().events().isEmpty())

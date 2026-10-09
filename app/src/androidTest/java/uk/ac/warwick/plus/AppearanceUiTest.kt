@@ -58,7 +58,7 @@ class AppearanceUiTest {
     @Test fun settingsSwitchAllFiveColoursWithoutRefreshingAndRetainChoiceAcrossPages() {
         var appearance by mutableStateOf(Appearance())
         var refreshes = 0
-        compose.setContent { PlusTheme(appearance, { appearance = it }) { PlusScreen(fixture(), { refreshes++ }, {}) } }
+        compose.setContent { PlusTheme(appearance, { appearance = it }) { PlusScreen(fixture(), testActions(refresh = { refreshes++ })) } }
         ColourTheme.entries.forEach { theme ->
             settings()
             compose.onNodeWithTag("theme-${theme.id}").performScrollTo().performClick().assertIsSelected()
@@ -98,7 +98,7 @@ class AppearanceUiTest {
                 LocalDensity provides Density(LocalDensity.current.density, 1.8f)) {
                 PlusTheme(appearance, { appearance = it }) {
                     observed = MaterialTheme.colorScheme.background
-                    PlusScreen(fixture(), {}, {})
+                    PlusScreen(fixture(), testActions())
                 }
             }
         }

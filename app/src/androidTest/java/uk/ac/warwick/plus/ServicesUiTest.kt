@@ -26,26 +26,28 @@ class ServicesUiTest {
         feeds = mapOf(kind to FeedState(entries = listOfNotNull(entry), lastSynced = 1L, hasMore = more,
             description = "No current checkouts or holds", url = "https://warwick.ac.uk/services/library/account", webReadMillis = 1)))
     private fun navigate(kind: FeedKind) {
+        if (kind == FeedKind.MESSAGES) { compose.onNodeWithTag("tab-messages").performClick(); return }
         compose.onNodeWithTag("more-tab").performClick()
-        compose.onNode(hasText(kind.label) and hasClickAction()).performScrollTo().performClick()
+        val label = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext.getString(kind.labelRes)
+        compose.onNode(hasText(label) and hasClickAction()).performScrollTo().performClick()
     }
     @Test fun signOutRequiresExplicitConfirmationAndMoreShowsSavedAccount() {
         var calls = 0
-        compose.setContent { PlusTheme { PlusScreen(state(FeedKind.MESSAGES), {}, {}, onSignOut = { calls++ }) } }
+        compose.setContent { PlusTheme { PlusScreen(state(FeedKind.MESSAGES), testActions(signOut = { calls++ })) } }
         compose.onNodeWithTag("more-tab").performClick()
         compose.onNodeWithText("example-user").assertIsDisplayed()
         capture("more")
-        compose.onNodeWithText("Sign out of this app").performClick()
+        compose.onNodeWithTag("sign-out").performScrollTo().performClick()
         assertEquals(0,calls)
         compose.onNodeWithText("Cancel").performClick(); assertEquals(0,calls)
-        compose.onNodeWithText("Sign out of this app").performClick()
-        compose.onNodeWithText("Sign out").performClick(); assertEquals(1,calls)
+        compose.onNodeWithTag("sign-out").performScrollTo().performClick()
+        compose.onNode(hasText("Sign out") and hasAnyAncestor(isDialog())).performClick(); assertEquals(1,calls)
     }
     @Test fun loggedOutMoreStillOffersServicesAndExplicitLogin() {
         var login = false
-        compose.setContent { PlusTheme { PlusScreen(TimetableState(needsLogin=true), {}, { login = true }) } }
+        compose.setContent { PlusTheme { PlusScreen(TimetableState(needsLogin=true), testActions(signIn = { login = true })) } }
         compose.onNodeWithTag("more-tab").performClick()
-        compose.onNodeWithText("Sign in with Warwick").performClick(); assertTrue(login)
+        compose.onNodeWithText("Sign in").performClick(); assertTrue(login)
         compose.onNode(hasText("Library") and hasClickAction()).assertExists()
     }
     @Test fun messagesArePlainTextAndOnlyOpenUrlsOnUserClick() {
@@ -53,7 +55,7 @@ class ServicesUiTest {
             text="<p>Hello <b>student</b><img src='https://invalid.example/image'></p>"; html=true; dateMillis=100
             url="https://www.warwicksu.com/example" }
         var opened: String? = null
-        compose.setContent { PlusTheme { PlusScreen(state(FeedKind.MESSAGES,entry), {}, {}, onExternalLink = { opened=it }) } }
+        compose.setContent { PlusTheme { PlusScreen(state(FeedKind.MESSAGES,entry), testActions(openExternal = { opened=it })) } }
         navigate(FeedKind.MESSAGES)
         compose.onNodeWithText("Hello student",substring=true).assertIsDisplayed()
         assertNull(opened); capture("messages")
@@ -66,9 +68,9 @@ class ServicesUiTest {
     @Test fun olderPageIsManualAndSearchKeepsLoadMoreAvailable() {
         val entry = FeedEntry().apply { feed=3; id="example"; title="Example message" }
         var calls=0
-        compose.setContent { PlusTheme { PlusScreen(state(FeedKind.MESSAGES,entry,true), {}, {}, onMoreMessages={ calls++ }) } }
+        compose.setContent { PlusTheme { PlusScreen(state(FeedKind.MESSAGES,entry,true), testActions(loadOlderMessages={ calls++ })) } }
         navigate(FeedKind.MESSAGES); assertEquals(0,calls)
-        compose.onNodeWithText("Search messages").performTextInput("nothing matches")
+        compose.onNodeWithText("Search Messages").performTextInput("nothing matches")
         compose.onNodeWithText("No matches").assertIsDisplayed()
         compose.onNodeWithText("Load older messages").performScrollTo().performClick(); assertEquals(1,calls)
     }
@@ -76,7 +78,7 @@ class ServicesUiTest {
         val entry=FeedEntry().apply { feed=5; id="42"; title="Example module"; moduleCode="EX101"; academicYear="2026/27"
             url="https://moodle.warwick.ac.uk/course/view.php?id=42"; announcementCount=2 }
         var opened: String?=null
-        compose.setContent { PlusTheme { PlusScreen(state(FeedKind.MODULES,entry), {}, {}, onExternalLink={ opened=it }) } }
+        compose.setContent { PlusTheme { PlusScreen(state(FeedKind.MODULES,entry), testActions(openExternal={ opened=it })) } }
         navigate(FeedKind.MODULES)
         compose.onNodeWithText("EX101 · 2026/27").assertIsDisplayed(); capture("modules")
         compose.onNodeWithText("Example module").performClick()
@@ -84,15 +86,15 @@ class ServicesUiTest {
     }
     @Test fun emptyLibraryDisplaysServerSummaryAndAccountLink() {
         var opened: String?=null
-        compose.setContent { PlusTheme { PlusScreen(state(FeedKind.LIBRARY), {}, {}, onExternalLink={ opened=it }) } }
+        compose.setContent { PlusTheme { PlusScreen(state(FeedKind.LIBRARY), testActions(openExternal={ opened=it })) } }
         navigate(FeedKind.LIBRARY)
         compose.onNodeWithText("No current checkouts or holds").assertIsDisplayed(); capture("library")
-        compose.onNodeWithText("Open library website").performScrollTo().performClick()
+        compose.onNodeWithText("Open Library website").performScrollTo().performClick()
         assertEquals("https://warwick.ac.uk/services/library/account",opened)
     }
     @Test fun swipeDownRequestsRefreshFromScrollableContent() {
         val calls=java.util.concurrent.atomic.AtomicInteger()
-        compose.setContent { PlusTheme { PlusScreen(TimetableState(lastSynced=1L), { calls.incrementAndGet() }, {}) } }
+        compose.setContent { PlusTheme { PlusScreen(TimetableState(lastSynced=1L), testActions(refresh={ calls.incrementAndGet() })) } }
         compose.onNodeWithTag("home-list").performScrollToIndex(0)
         compose.onNodeWithTag("home-list").performTouchInput { swipeDown(startY=10f,endY=height-10f,durationMillis=1_000) }
         capture("swipe-after")
@@ -100,10 +102,10 @@ class ServicesUiTest {
     }
     @Test fun pullRefreshUsesCurrentPageAndDoesNotRequestOlderMessages() {
         var globalCalls = 0
-        var feed: FeedKind? = null
+        var feed: SyncResource? = null
         var olderCalls = 0
-        compose.setContent { PlusTheme { PlusScreen(state(FeedKind.MESSAGES), { globalCalls++ }, {},
-            onFeedRefresh = { feed = it }, onMoreMessages = { olderCalls++ }) } }
+        compose.setContent { PlusTheme { PlusScreen(state(FeedKind.MESSAGES), testActions(refresh = { globalCalls++ },
+            refreshResource = { feed = it }, loadOlderMessages = { olderCalls++ })) } }
         compose.onNodeWithText("Refresh").assertDoesNotExist()
         compose.onNodeWithTag("home-list").performTouchInput { swipeDown(startY=10f, endY=height-10f, durationMillis=1_000) }
         compose.waitUntil(5_000) { globalCalls == 1 }
@@ -111,19 +113,19 @@ class ServicesUiTest {
         navigate(FeedKind.MESSAGES)
         compose.onNodeWithText("Refresh").assertDoesNotExist()
         compose.onNodeWithTag("feed-list").performTouchInput { swipeDown(startY=10f, endY=height-10f, durationMillis=1_000) }
-        compose.waitUntil(5_000) { feed == FeedKind.MESSAGES }
-        assertEquals(1, globalCalls); assertEquals(FeedKind.MESSAGES, feed); assertEquals(0, olderCalls)
+        compose.waitUntil(5_000) { feed == SyncResource.MESSAGES }
+        assertEquals(1, globalCalls); assertEquals(SyncResource.MESSAGES, feed); assertEquals(0, olderCalls)
     }
     @Test fun largeFontLongTitlesAndFiltersRemainUsable() {
         val entry=CourseworkEntity().apply { id="long"; title="A deliberately long assignment title that must remain readable at a large system font size"; dueMillis=1L }
         compose.setContent { PlusTheme {
             val density=LocalDensity.current.density
             CompositionLocalProvider(LocalDensity provides Density(density,1.8f)) {
-                PlusScreen(TimetableState(lastSynced=1L,coursework=CourseworkState(listOf(entry),1L)), {}, {})
+                PlusScreen(TimetableState(lastSynced=1L,coursework=CourseworkState(listOf(entry),1L)), testActions())
             }
         } }
-        compose.onNodeWithText("Coursework",useUnmergedTree=true).performClick()
-        compose.onNodeWithText("Search coursework").performTextInput("deliberately")
+        compose.onNodeWithTag("tab-coursework").performClick()
+        compose.onNodeWithText("Search Tasks").performTextInput("deliberately")
         compose.onNodeWithText("Past").performScrollTo().performClick()
         compose.onNodeWithTag("coursework-list").performScrollToNode(hasText(entry.title))
         compose.onNodeWithText(entry.title).assertIsDisplayed(); capture("large-font")

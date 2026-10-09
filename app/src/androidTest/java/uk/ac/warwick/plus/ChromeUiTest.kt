@@ -36,7 +36,7 @@ class ChromeUiTest {
     }
     @Test fun compactChromeAndCardSeparationRemainReadableAcrossAllFiveColours() {
         var appearance by mutableStateOf(Appearance())
-        compose.setContent { PlusTheme(appearance) { PlusScreen(fixture(), {}, {}) } }
+        compose.setContent { PlusTheme(appearance) { PlusScreen(fixture(), testActions()) } }
         ColourTheme.entries.forEach { theme ->
             compose.runOnIdle { appearance = Appearance(theme) }
             compose.waitUntil(10_000) { compose.onAllNodesWithTag("background-ready-${theme.id}-false").fetchSemanticsNodes().isNotEmpty() }
@@ -51,7 +51,7 @@ class ChromeUiTest {
         compose.onNodeWithTag("schedule-tab").performClick()
         assertTrue(compose.onNodeWithTag("page-header").getUnclippedBoundsInRoot().let { it.bottom - it.top } <= 56.dp)
         capture("schedule-rosewood")
-        compose.onNodeWithText("Coursework").performClick()
+        compose.onNodeWithTag("tab-coursework").performClick()
         assertTrue(compose.onNodeWithTag("page-header").getUnclippedBoundsInRoot().let { it.bottom - it.top } <= 48.dp)
         compose.onNodeWithTag("more-tab").performClick()
         assertTrue(compose.onNodeWithTag("page-header").getUnclippedBoundsInRoot().let { it.bottom - it.top } <= 48.dp)
@@ -60,7 +60,7 @@ class ChromeUiTest {
     @Test fun narrowLargeFontTabsRetainTouchTargetsAndSelectedSemantics() {
         compose.setContent {
             CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, 1.8f)) {
-                PlusTheme { Box(Modifier.width(320.dp)) { PlusScreen(fixture(), {}, {}) } }
+                PlusTheme { Box(Modifier.width(320.dp)) { PlusScreen(fixture(), testActions()) } }
             }
         }
         for (tag in listOf("schedule-tab", "tab-coursework", "more-tab", "tab-home")) {
@@ -70,8 +70,8 @@ class ChromeUiTest {
         capture("large-font")
     }
     @Test fun failureNoticeDisappearsAndSavedContentIsNeverReplacedByAnErrorCard() {
-        var state by mutableStateOf(fixture().copy(message = "A test connection failure", notice = SyncNotice(1, "A test connection failure")))
-        compose.setContent { PlusTheme { PlusScreen(state, {}, {}, onNoticeConsumed = { id -> if (state.notice?.id == id) state = state.copy(notice = null) }) } }
+        var state by mutableStateOf(fixture().copy(message = UiText.Literal("A test connection failure"), notice = SyncNotice(1, UiText.Literal("A test connection failure"))))
+        compose.setContent { PlusTheme { PlusScreen(state, testActions(consumeNotice = { id -> if (state.notice?.id == id) state = state.copy(notice = null) })) } }
         compose.onNodeWithText("Compiler Design").assertIsDisplayed()
         compose.onNodeWithText("A test connection failure").assertIsDisplayed()
         compose.waitUntil(10_000) { compose.onAllNodesWithText("A test connection failure").fetchSemanticsNodes().isEmpty() }
@@ -82,19 +82,20 @@ class ChromeUiTest {
     }
     @Test fun noticeRetryTargetsTheFailedFeedAndExpiredSessionRetainsLoginInMore() {
         var full = 0; var feeds = 0; var logins = 0; var older = 0
-        var state by mutableStateOf(fixture().copy(notice = SyncNotice(1, "Messages couldn't be updated", FeedKind.MESSAGES)))
-        compose.setContent { PlusTheme { PlusScreen(state, { full++ }, { logins++ }, onFeedRefresh = { assertEquals(FeedKind.MESSAGES, it); feeds++ },
-            onMoreMessages = { older++ },
-            onNoticeConsumed = { id -> if (state.notice?.id == id) state = state.copy(notice = null) }) } }
+        var state by mutableStateOf(fixture().copy(notice = SyncNotice(1, UiText.Literal("Messages couldn't be updated"), RecoveryAction.Refresh(SyncResource.MESSAGES))))
+        compose.setContent { PlusTheme { PlusScreen(state, testActions(refresh = { full++ }, signIn = { logins++ },
+            refreshResource = { assertEquals(SyncResource.MESSAGES, it); feeds++ }, loadOlderMessages = { older++ },
+            consumeNotice = { id -> if (state.notice?.id == id) state = state.copy(notice = null) })) } }
         compose.onNodeWithText("Retry").performClick()
         compose.runOnIdle { assertEquals(1, feeds); assertEquals(0, full)
-            state = state.copy(signedIn = false, needsLogin = true, notice = SyncNotice(2, "Sign in to update your information.")) }
+            state = state.copy(signedIn = false, needsLogin = true, notice = SyncNotice(2, UiText.Literal("Sign in to update your information."))) }
         compose.onNodeWithText("Sign in").performClick()
         compose.runOnIdle { assertEquals(1, logins) }
         compose.onNodeWithTag("more-tab").performClick()
-        compose.onNodeWithText("Sign in with Warwick").assertIsDisplayed()
+        compose.onNodeWithText("Sign in").assertIsDisplayed()
         compose.runOnIdle { state = state.copy(needsLogin = false, signedIn = true,
-            notice = SyncNotice(3, "Older messages couldn't be loaded", FeedKind.MESSAGES, olderMessages = true)) }
+            feeds = mapOf(FeedKind.MESSAGES to FeedState(entries = listOf(FeedEntry().apply { feed = 3; id = "older" }), hasMore = true, olderPageFailed = true)),
+            notice = SyncNotice(3, UiText.Literal("Older messages couldn't be loaded"), RecoveryAction.OlderMessages)) }
         compose.onNodeWithText("Retry").performClick()
         compose.runOnIdle { assertEquals(1, older); assertEquals(1, feeds); assertEquals(0, full) }
     }

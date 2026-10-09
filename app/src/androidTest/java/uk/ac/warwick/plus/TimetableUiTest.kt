@@ -7,8 +7,6 @@ import org.junit.Rule
 import org.junit.Test
 import uk.ac.warwick.plus.data.EventEntity
 import uk.ac.warwick.plus.data.CourseworkEntity
-import uk.ac.warwick.plus.data.ProbeEndpoint
-import uk.ac.warwick.plus.data.ProbeResult
 import uk.ac.warwick.plus.ui.*
 import java.time.*
 
@@ -22,10 +20,10 @@ class TimetableUiTest {
         }
         var opened: String? = null
         compose.setContent { PlusTheme {
-            PlusScreen(TimetableState(lastSynced = 1L, coursework = CourseworkState(listOf(entry), 1L)), {}, {},
-                onCourseworkLink = { opened = it })
+            PlusScreen(TimetableState(lastSynced = 1L, coursework = CourseworkState(listOf(entry), 1L)),
+                testActions(openExternal = { opened = it }))
         } }
-        compose.onNodeWithText("View all coursework").performScrollTo().performClick()
+        compose.onNodeWithText("View all tasks").performScrollTo().performClick()
         compose.onNodeWithText("Example assignment").assertIsDisplayed()
         capture("coursework")
         compose.onNodeWithText("Example assignment").performClick()
@@ -39,23 +37,22 @@ class TimetableUiTest {
     @Test fun expiredSessionWithOnlyCourseworkCacheStillShowsDeadlines() {
         val entry = CourseworkEntity().apply { id = "past"; title = "Past assignment"; dueMillis = 1L }
         compose.setContent { PlusTheme {
-            PlusScreen(TimetableState(needsLogin = true, message = "Sign in to update your saved data.",
-                coursework = CourseworkState(listOf(entry), 1L, "Your saved deadlines have been kept.")), {}, {})
+            PlusScreen(TimetableState(needsLogin = true, message = UiText.Literal("Sign in to update your saved data."),
+                coursework = CourseworkState(listOf(entry), 1L, UiText.Literal("Your saved deadlines have been kept."))), testActions())
         } }
         compose.onNodeWithText("Sign in with Warwick").assertDoesNotExist()
-        compose.onNodeWithText("Coursework", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("tab-coursework").performClick()
         compose.onNodeWithText("Past assignment").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Deadline passed").assertIsDisplayed()
+        compose.onNodeWithText("Passed").assertIsDisplayed()
         compose.onNodeWithTag("more-tab").performClick()
-        compose.onNodeWithText("Sign in with Warwick").assertIsDisplayed()
+        compose.onNodeWithText("Sign in").assertIsDisplayed()
     }
     @Test fun emptyFeedDoesNotImplyAllAssignmentsAreSubmitted() {
         compose.setContent { PlusTheme {
-            PlusScreen(TimetableState(lastSynced = 1L, coursework = CourseworkState(lastSynced = 1L)), {}, {})
+            PlusScreen(TimetableState(lastSynced = 1L, coursework = CourseworkState(lastSynced = 1L)), testActions())
         } }
-        compose.onNodeWithText("Coursework", useUnmergedTree = true).performClick()
-        compose.onNodeWithText("No deadlines returned").assertIsDisplayed()
-        compose.onNodeWithText("Check the source service for the full record.", substring = true).assertIsDisplayed()
+        compose.onNodeWithTag("tab-coursework").performClick()
+        compose.onNodeWithText("No upcoming deadlines").assertIsDisplayed()
     }
     private fun capture(name: String) {
         compose.waitForIdle()
@@ -68,14 +65,14 @@ class TimetableUiTest {
     }
     @Test fun signedOutScreenOffersOfficialLogin() {
         var requested = false
-        compose.setContent { PlusTheme { PlusScreen(TimetableState(needsLogin = true), {}, { requested = true }) } }
+        compose.setContent { PlusTheme { PlusScreen(TimetableState(needsLogin = true), testActions(signIn = { requested = true })) } }
         compose.onNodeWithText("Sign in with Warwick").performClick()
         assertTrue(requested)
     }
     @Test fun authenticatedButFailedSyncOffersRetryInsteadOfLogin() {
         compose.setContent { PlusTheme {
-            PlusScreen(TimetableState(signedIn = true, message = "Your timetable couldn't be loaded.",
-                notice = SyncNotice(1, "Your timetable couldn't be loaded.")), {}, {})
+            PlusScreen(TimetableState(signedIn = true, message = UiText.Literal("Your timetable couldn't be loaded."),
+                notice = SyncNotice(1, UiText.Literal("Your timetable couldn't be loaded."))), testActions())
         } }
         compose.onNodeWithText("Sign in with Warwick").assertDoesNotExist()
         compose.onNodeWithText("Retry").assertIsDisplayed()
@@ -88,7 +85,7 @@ class TimetableUiTest {
             startMillis = start.toInstant().toEpochMilli(); endMillis = start.plusMinutes(30).toInstant().toEpochMilli()
         }
         compose.setContent {
-            PlusTheme { PlusScreen(TimetableState(events = listOf(event), lastSynced = 1L), {}, {}) }
+            PlusTheme { PlusScreen(TimetableState(events = listOf(event), lastSynced = 1L), testActions()) }
         }
         capture("home")
         compose.onNodeWithTag("schedule-tab").performClick()
@@ -104,7 +101,7 @@ class TimetableUiTest {
             id = "details-example"; title = "Example seminar"; module = "EX101"; moduleName = "Example module name"; location = "Example room"
             startMillis = start.toInstant().toEpochMilli(); endMillis = start.plusHours(1).toInstant().toEpochMilli()
         }
-        compose.setContent { PlusTheme { PlusScreen(TimetableState(events = listOf(event), lastSynced = 1L), {}, {}) } }
+        compose.setContent { PlusTheme { PlusScreen(TimetableState(events = listOf(event), lastSynced = 1L), testActions()) } }
         compose.onNodeWithTag("schedule-tab").performClick()
         capture("day")
         compose.onNodeWithText("Example module name").performClick()
@@ -125,30 +122,12 @@ class TimetableUiTest {
         var requested = false
         compose.setContent { PlusTheme {
             PlusScreen(TimetableState(events = listOf(event), lastSynced = 1L, needsLogin = true,
-                message = "Your session has expired. Sign in to update your saved timetable."), {}, { requested = true })
+                message = UiText.Literal("Your session has expired. Sign in to update your saved timetable.")), testActions(signIn = { requested = true }))
         } }
         compose.onNodeWithTag("more-tab").performClick()
-        compose.onNodeWithText("Sign in with Warwick").performClick()
+        compose.onNodeWithText("Sign in").performClick()
         assertTrue(requested)
         compose.onNodeWithTag("schedule-tab").performClick()
         compose.onNodeWithText("Cached seminar").performScrollTo().assertIsDisplayed()
-    }
-
-    @Test fun explorerMakesNoRequestUntilManuallyTriggered() {
-        val calls = java.util.concurrent.atomic.AtomicInteger()
-        compose.setContent { PlusTheme {
-            PlusScreen(TimetableState(lastSynced = 1L), {}, {}, probe = { endpoint ->
-                calls.incrementAndGet()
-                ProbeResult(endpoint, 200, 5, true, listOf("items"), 3, listOf("date", "title"))
-            })
-        } }
-        compose.onNodeWithTag("more-tab").performClick()
-        compose.onNodeWithTag("more-list").performScrollToNode(hasText("Developer tools"))
-        compose.onNodeWithText("Developer tools").performClick()
-        compose.onNodeWithText("API explorer").assertIsDisplayed()
-        org.junit.Assert.assertEquals(0, calls.get())
-        compose.onNodeWithText("Run request").performScrollTo().performClick()
-        compose.waitUntil(5_000) { calls.get() == 1 }
-        compose.onNodeWithText("HTTP 200", substring = true).performScrollTo().assertIsDisplayed()
     }
 }

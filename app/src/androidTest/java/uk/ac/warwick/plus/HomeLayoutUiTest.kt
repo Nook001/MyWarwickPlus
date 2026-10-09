@@ -53,7 +53,7 @@ class HomeLayoutUiTest {
                     if (dark) Configuration.UI_MODE_NIGHT_YES else Configuration.UI_MODE_NIGHT_NO
             }
             CompositionLocalProvider(LocalConfiguration provides configuration) {
-                PlusTheme(Appearance(if (dark) ColourTheme.FOREST else ColourTheme.LAKE)) { PlusScreen(fixture(), {}, {}) }
+                PlusTheme(Appearance(if (dark) ColourTheme.FOREST else ColourTheme.LAKE)) { PlusScreen(fixture(), testActions()) }
             }
         }
         compose.onNodeWithTag("home-greeting").assertTextContains(", Avery", substring = true)
@@ -84,7 +84,7 @@ class HomeLayoutUiTest {
         assertTrue("No-class state should only take one compact line",
             compose.onNodeWithTag("today-empty").getUnclippedBoundsInRoot().let { it.bottom - it.top <= 56.dp })
         val heading = compose.onNodeWithTag("deadlines-heading").getUnclippedBoundsInRoot()
-        val allCoursework = compose.onNodeWithText("View all coursework").getUnclippedBoundsInRoot()
+        val allCoursework = compose.onNodeWithText("View all tasks").getUnclippedBoundsInRoot()
         assertTrue("Deadlines and navigation must share a row", allCoursework.top < heading.bottom && heading.top < allCoursework.bottom)
         capture("home-light")
         compose.runOnIdle { dark = true }
@@ -99,7 +99,7 @@ class HomeLayoutUiTest {
     @Test fun narrowLargeFontHomeKeepsCodeAndDetailActionAndRevealsFullTitleOnTap() {
         compose.setContent {
             CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, 1.8f)) {
-                PlusTheme { Box(Modifier.width(320.dp)) { PlusScreen(fixture(long = true), {}, {}) } }
+                PlusTheme { Box(Modifier.width(320.dp)) { PlusScreen(fixture(long = true), testActions()) } }
             }
         }
         compose.onNodeWithTag("next-code", useUnmergedTree = true).assertTextEquals("EX101L").assertIsDisplayed()
@@ -109,13 +109,13 @@ class HomeLayoutUiTest {
         compose.onNode(hasText("A deliberately long module name for narrow screens and larger fonts") and
             hasAnyAncestor(hasTestTag("class-details"))).assertIsDisplayed()
         compose.onNodeWithText("Close details").performScrollTo().performClick()
-        compose.onNodeWithText("View all coursework").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("View all tasks").performScrollTo().assertIsDisplayed()
         val heading = compose.onNodeWithTag("deadlines-heading").getUnclippedBoundsInRoot()
         assertTrue("Deadlines heading must remain one line even at large fonts", heading.bottom - heading.top <= 40.dp)
-        val allCoursework = compose.onNodeWithText("View all coursework").getUnclippedBoundsInRoot()
+        val allCoursework = compose.onNodeWithText("View all tasks").getUnclippedBoundsInRoot()
         assertTrue("Large-font navigation must remain beside the heading",
             allCoursework.left >= heading.right && allCoursework.top < heading.bottom && heading.top < allCoursework.bottom)
-        compose.onNodeWithText("View all coursework").performClick()
-        compose.onNodeWithText("Coursework deadlines").assertIsDisplayed()
+        compose.onNodeWithText("View all tasks").performClick()
+        compose.onNode(hasText("Tasks") and hasAnyAncestor(hasTestTag("page-header"))).assertIsDisplayed()
     }
 }

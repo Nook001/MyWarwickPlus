@@ -46,7 +46,7 @@ class FeedsCacheTest {
             api.page=ParsedFeed(listOf(FeedEntry().apply { feed=3; id="old-cursor" }),FeedMeta().apply { feed=3; hasMore=true })
             repo.syncFeed(FeedKind.MESSAGES,null,{ _,_ -> })
             api.code="other"
-            try { repo.syncFeed(FeedKind.MESSAGES,"old-cursor",{ _,cache -> assertTrue(cache.feeds.values.all { it.entries.isEmpty() }) }); fail("Old cursor must be rejected") }
+            try { repo.syncFeed(FeedKind.MESSAGES,"old-cursor",{ _,cache -> assertTrue(cache!!.feeds.values.all { it.entries.isEmpty() }) }); fail("Old cursor must be rejected") }
             catch (_: IllegalArgumentException) { }
             assertTrue(db.timetable().states().isEmpty())
         } finally { db.close() }
