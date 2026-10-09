@@ -57,7 +57,7 @@ The original My Warwick Android app has historically presented its web applicati
 
 Built with **Kotlin + Jetpack Compose**, targeting **Android API 37** while supporting **Android 9+**. Student information is read from Warwick services via the app's read-only integrations and cached locally. The project includes a profiling build and Perfetto trace tooling; no unmeasured performance multiplier is claimed.
 
-[Architecture and UI](docs/architecture.md) · [API integration](docs/api-progress.md) · [Development and performance](docs/development.md)
+[Contributing](CONTRIBUTING.md) · [Agent guide](AGENTS.md) · [Architecture and UI](docs/architecture.md) · [API integration](docs/api-progress.md) · [Development and performance](docs/development.md)
 
 </details>
 
@@ -65,17 +65,18 @@ Built with **Kotlin + Jetpack Compose**, targeting **Android API 37** while supp
 
 | | Experience |
 | :-- | :-- |
-| **Home** | Now/Next, today's remaining classes or tomorrow's preview, nearby deadlines and recent messages. |
+| **Home** | Now/Next, today's remaining classes or the next class day, nearby deadlines and recent messages. |
 | **Classes** | Date-grouped timetable, date navigation, locations, event details and conflict indicators. |
 | **Tasks** | Upcoming and past coursework, search, exact due times and links to official pages. |
 | **Inbox** | Searchable university messages, full details and older-message pagination. |
 | **Me** | Account info, Library/Modules summaries, services, themes and local sign-out. |
+| **Beyond the app** | Optional class and deadline reminders, a Next class home-screen widget, and English or Simplified Chinese. |
 
 ## Built by a Warwick student. Shaped by Warwick students.
 
 MyWarwick+ is **open source**. Whether you write Android code or just know what would make the app better, your feedback can help shape what comes next.
 
-**[Report a bug](https://github.com/Nook001/MyWarwickPlus/issues/new)** · **[Suggest an improvement](https://github.com/Nook001/MyWarwickPlus/issues/new)** · **[Contribute on GitHub](https://github.com/Nook001/MyWarwickPlus/pulls)**
+**[Report a bug](https://github.com/Nook001/MyWarwickPlus/issues/new)** · **[Suggest an improvement](https://github.com/Nook001/MyWarwickPlus/issues/new)** · **[Contribute](CONTRIBUTING.md)**
 
 Please include app/Android versions and steps to reproduce when reporting bugs. **Never share passwords, tokens, cookies, student IDs or private messages in public issues.**
 

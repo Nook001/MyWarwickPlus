@@ -1,6 +1,6 @@
 # 开发与验证
 
-本文提供构建、手机验证、性能采集及当前待办。日常开发遵守 [AGENTS.md](../AGENTS.md)；代码职责见 [架构](architecture.md)，签名打包见 [发布流程](release.md)。
+本文提供维护者的构建、手机验证、性能采集及当前待办。通用规则和 PR 规范见 [AGENTS.md](../AGENTS.md) 与 [CONTRIBUTING.md](../CONTRIBUTING.md)；代码职责见 [架构](architecture.md)，签名打包见 [发布流程](release.md)。
 
 ## 环境与构建
 
@@ -38,15 +38,7 @@ $env:JAVA_HOME = 'D:/Dev/JDK21.0.8'
 86 项 JVM 检查、Debug Lint 与 androidTest 编译通过，签名 Release 打包检查通过，证书指纹不变。物理手机覆盖安装 Debug 包由用户整体验收通过（未逐项记录边界场景）；签名包覆盖安装 0.27.1 后版本为 43。`v0.28.0-beta.1` 于 2026-10-09 [发布并设为 Latest](https://github.com/Nook001/MyWarwickPlus/releases/tag/v0.28.0-beta.1)，tag 对应 `4fb6047`，APK SHA-256 `1886b2ea…00cc49`，上传附件 digest 与本地一致。
 
 
-0.27.1-beta.1 / versionCode 42：首页今天结束后列出下一个上课日课程，跨天 Next 标为 Tomorrow/日期且不显示时间轴；首页 Library 改为应用内页面。签名 Release（打包脚本含 Release Lint 与 JVM 检查）通过，证书指纹不变；物理手机覆盖安装 Debug 包确认 Tomorrow 显示及 Library 跳转/返回首页，签名包覆盖安装后版本为 42。
-
-`v0.27.1-beta.1` 于 2026-10-08 [发布并设为 Latest](https://github.com/Nook001/MyWarwickPlus/releases/tag/v0.27.1-beta.1)，tag 对应 `3900863`，APK SHA-256 `5042b9cd…27cdb9`。打包前本机签名目录缺失，已从用户备份恢复原 keystore 与 DPAPI 凭据。
-
-0.27.0-beta.1 / versionCode 41：保留用户 UI 调整，首页半宽 Buses/Print、底部 Events；核心优先、首页附加刷新、schema 5→6 非破坏迁移。签名 Release、Debug 构建和 82 项 JVM 检查通过；Debug Lint 无问题，Release 0 errors/1 warning（Gradle 补丁提示）。五项新 JVM 检查只覆盖协议、时间、刷新和账户隔离，不新增或运行 UI Test；既有夹具仅适配新增接口。
-
-`v0.27.0-beta.1` 于 2026-10-08 [发布为正式 Release 并设为 Latest](https://github.com/Nook001/MyWarwickPlus/releases/tag/v0.27.0-beta.1)，保留原版本号、tag 与已验收 APK。签名包在 `dist/v0.27.0-beta.1/public/`，源码及发布 tag 对应 `f2dbab2`；后续文档提交不改变 APK。物理手机已覆盖安装并启动公交文字修正版，实际安装 APK 的 SHA-256 与候选包一致；此前已在原生首页观察到非空公交和打印余额。用户确认本轮手动验收通过，未逐项记录边界场景或多设备结果。
-
-迁移 SQL 已用 SQLite 核对，与 Room 导出的 schema 6 八张表一致，原有五张表的样本行保留；手机启动无 SQLite/运行时错误，仍需手测覆盖前后的离线缓存。新服务浏览器整批字段验证见 API 表。
+更早版本的验证记录见 Git 历史和对应 [Release](https://github.com/Nook001/MyWarwickPlus/releases)。仍有效的结论：schema 5→6 迁移 SQL 已用 SQLite 核对，与 Room 导出的八张表一致并保留原有数据，覆盖前后的离线缓存仍需手测；签名目录曾从用户备份恢复，证书指纹自首个 Beta 起未变。
 
 ## 手动检查
 
