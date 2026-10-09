@@ -37,7 +37,7 @@ class CancellableRequestsTest {
         val job = launch {
             requests.run {
                 requests.attach(call)
-                try { call.execute().use { it.body!!.string() } }
+                try { call.execute().use { it.body.string() } }
                 finally { finished.complete(Unit) }
             }
         }

@@ -1,5 +1,9 @@
+buildscript {
+    // AGP's built-in Kotlin uses this compiler; keep it equal to the Compose compiler plugin below.
+    dependencies { classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.21") }
+}
 plugins {
     id("com.android.application") version "9.4.1" apply false
-    id("org.jetbrains.kotlin.plugin.compose") version "2.2.10" apply false
+    id("org.jetbrains.kotlin.plugin.compose") version "2.4.21" apply false
     id("com.google.devtools.ksp") version "2.3.12" apply false
 }

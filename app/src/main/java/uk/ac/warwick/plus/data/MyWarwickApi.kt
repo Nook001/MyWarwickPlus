@@ -7,7 +7,6 @@ import okhttp3.Request
 import org.json.JSONObject
 import uk.ac.warwick.plus.auth.AuthSession
 import uk.ac.warwick.plus.auth.MY_WARWICK
-import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 /** [refreshUrl] is MyWarwick's own SSO round trip, offered when only its session has lapsed. */
@@ -40,7 +39,7 @@ class MyWarwickApi(session: AuthSession) : StudentApi {
             if (response.code in 300..399 || response.code == 401 || response.code == 403) throw SignInRequiredException()
             if (!response.isSuccessful) throw ServiceException(response.code)
             if (!response.header("Content-Type").orEmpty().contains("application/json")) throw SignInRequiredException()
-            val body = response.body ?: throw IOException("Empty response")
+            val body = response.body
             // A bounded response prevents an unexpected HTML/error body exhausting memory.
             val source = body.source()
             source.request(4L * 1024 * 1024 + 1)

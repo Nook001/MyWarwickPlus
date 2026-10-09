@@ -18,7 +18,7 @@ abstract class TimetableDao : StudentCache {
         SyncEntity::class, FeedEntry::class, FeedMeta::class,
         ServiceSummaryEntity::class, CampusEventEntity::class, ServiceMeta::class])
     protected abstract fun invalidations(query: SupportSQLiteQuery): Flow<Int>
-    override fun changes(): Flow<Unit> = invalidations(SimpleSQLiteQuery("SELECT 1")).map { Unit }
+    override fun changes(): Flow<Unit> = invalidations(SimpleSQLiteQuery("SELECT 1")).map { }
 
     // Contents and metadata are always read from the same database transaction.
     @Transaction
