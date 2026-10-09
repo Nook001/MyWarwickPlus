@@ -117,7 +117,8 @@ fun FeedContent(kind: FeedKind, state: FeedState, busy: Boolean, needsLogin: Boo
                         val label = if (kind == FeedKind.MODULES) listOf(entry.moduleCode, entry.academicYear).filter { it.isNotBlank() }.joinToString(" · ") else entry.provider
                         if (label.isNotBlank()) Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                         Text(entry.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                        val text = textById[entry.id] ?: if (entry.html) "" else entry.text
+                        val text = if (kind == FeedKind.MODULES) stringResource(R.string.module_site_hint)
+                            else textById[entry.id] ?: if (entry.html) "" else entry.text
                         if (text.isNotBlank()) Text(text, style = MaterialTheme.typography.bodyMedium,
                             maxLines = 3, overflow = TextOverflow.Ellipsis)
                         if (kind == FeedKind.MODULES) Text(pluralStringResource(R.plurals.announcement_count, entry.announcementCount, entry.announcementCount), style = MaterialTheme.typography.bodySmall)

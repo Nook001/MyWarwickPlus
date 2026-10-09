@@ -30,7 +30,7 @@ import java.time.LocalDate
 import uk.ac.warwick.plus.config.AppLabels
 import uk.ac.warwick.plus.data.EventContentItem
 
-internal fun moduleKey(event: EventContentItem) = event.module.ifBlank { classIdentity(event).name }
+internal fun moduleKey(event: EventContentItem) = event.module.ifBlank { event.moduleName.ifBlank { event.title } }
 
 /** Sorted keys give a term's modules distinct colours instead of risking hash collisions. */
 internal fun moduleColourIndex(events: List<EventContentItem>): Map<String, Int> =
@@ -46,8 +46,8 @@ internal fun rememberModuleColours(events: List<EventContentItem>, surface: Colo
 @Composable
 internal fun NextClassCard(event: EventContentItem, timeline: DayTimeline?, today: LocalDate, now: Long,
     colourOf: (EventContentItem) -> Color, onSelect: () -> Unit) {
-    val identity = classIdentity(event)
-    val time = classTimeRange(event, includeWeekday = true)
+    val identity = classIdentity(event, stringResource(R.string.class_fallback))
+    val time = classTimeRange(event, includeWeekday = true, stringResource(R.string.all_day))
     val date = atWarwick(event.startMillis).toLocalDate()
     val label = when {
         isClassNow(event, now) -> stringResource(AppLabels.NOW)

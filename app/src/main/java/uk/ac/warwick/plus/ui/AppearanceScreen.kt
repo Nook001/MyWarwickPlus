@@ -56,5 +56,7 @@ fun AppearanceContent() {
                 }
             }
         }
+        reminderSettings()
+        updateSettings()
     }
 }

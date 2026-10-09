@@ -17,12 +17,13 @@ internal fun EventDetails(event: EventContentItem, conflict: Boolean, onDismiss:
     DetailsSheet(onDismiss, Modifier.testTag("class-details"),
         contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp)) {
         item {
-            DetailHeader(stringResource(R.string.class_details), classIdentity(event).name, gap = 8.dp)
+            DetailHeader(stringResource(R.string.class_details), classIdentity(event, stringResource(R.string.class_fallback)).name, gap = 8.dp)
         }
         if (event.module.isNotBlank()) item { DetailField(stringResource(R.string.module), event.module) }
         if (event.moduleName.isNotBlank() && event.moduleName != event.title) item { DetailField(stringResource(R.string.timetable_entry), event.title) }
         item {
-            DetailField(stringResource(R.string.when_label), classDetailTime(event))
+            DetailField(stringResource(R.string.when_label), dateLabel(atWarwick(event.startMillis).toLocalDate()) + "\n" +
+                stringResource(R.string.warwick_time, classTimeRange(event, includeWeekday = false, stringResource(R.string.all_day))))
         }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {

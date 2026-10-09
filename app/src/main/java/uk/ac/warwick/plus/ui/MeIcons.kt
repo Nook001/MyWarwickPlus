@@ -15,6 +15,10 @@ internal object MeIcons {
         moveTo(8f, 3f); lineTo(8f, 9f); moveTo(16f, 9f); lineTo(16f, 15f)
         moveTo(10f, 15f); lineTo(10f, 21f)
     }
+    val update = serviceIcon("Update") {
+        moveTo(12f, 3f); lineTo(12f, 15f); moveTo(7f, 10f); lineTo(12f, 15f); lineTo(17f, 10f)
+        moveTo(4f, 15f); lineTo(4f, 20f); lineTo(20f, 20f); lineTo(20f, 15f)
+    }
     val messages = serviceIcon("Messages") {
         moveTo(5f, 3f); lineTo(19f, 3f); quadTo(21f, 3f, 21f, 5f)
         lineTo(21f, 16f); quadTo(21f, 18f, 19f, 18f); lineTo(9f, 18f)

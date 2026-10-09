@@ -135,7 +135,8 @@
     <string name="last_seven_days">Last 7 days</string>
     <string name="next_seven_days">Next 7 days</string>
     <string name="earlier">Earlier</string>
-    <string name="later">Later</string>    <string name="later_today">Later today</string>
+    <string name="later">Later</string>
+    <string name="later_today">Later today</string>
     <string name="good_morning">Good morning</string>
     <string name="good_afternoon">Good afternoon</string>
     <string name="good_evening">Good evening</string>
@@ -159,9 +160,12 @@
     <string name="open_source_website">Open source website</string>
     <string name="close_service_details">Close service details</string>
     <string name="modules_feed_description">Modules returned by MyWarwick. Open Moodle for learning materials and announcements.</string>
+    <string name="module_site_hint">Open the module site for announcements and learning materials.</string>
     <string name="library_feed_description">Your Library account summary from MyWarwick.</string>
     <string name="library_not_loaded">Your Library summary hasn\'t loaded yet</string>
     <string name="continues_after">Continues tomorrow</string>
+    <string name="continues_before">Continues from previous day</string>
+    <string name="class_fallback">Class</string>
     <string name="service_moodle">Moodle</string>
     <string name="service_email">Email</string>
     <string name="service_tabula">Tabula</string>
@@ -207,4 +211,29 @@
         <item quantity="one">%1$d evaluation returned</item>
         <item quantity="other">%1$d evaluations returned</item>
     </plurals>
+    <string name="check_for_updates">Check for updates</string>
+    <string name="checking_updates">Checking…</string>
+    <string name="up_to_date">Up to date</string>
+    <string name="update_check_failed">Couldn\'t check</string>
+    <string name="update_available">Update available · %1$s</string>
+    <string name="update_available_notice">MyWarwick+ %1$s is available</string>
+    <string name="view_update">View</string>
+    <string name="updates_section">UPDATES</string>
+    <string name="auto_update_check">Check for updates automatically</string>
+    <string name="auto_update_check_detail">Once a day, asks GitHub for the latest release. No account data is sent.</string>
+    <string name="reminders_section">REMINDERS</string>
+    <string name="class_reminders">Class reminders</string>
+    <string name="class_reminders_detail">10 minutes before each class, from your saved timetable</string>
+    <string name="deadline_reminders">Deadline reminders</string>
+    <string name="deadline_reminders_detail">24 hours before each deadline</string>
+    <string name="notifications_denied">Notifications are off for MyWarwick+. Allow them in Android settings to get reminders.</string>
+    <string name="reminder_class_title">%1$s at %2$s</string>
+    <string name="reminder_deadline_title">Due in 24 hours: %1$s</string>
+    <string name="reminder_deadline_text">Due %1$s · Warwick time</string>
+    <string name="reminder_channel_classes">Class reminders</string>
+    <string name="reminder_channel_deadlines">Deadline reminders</string>
+    <string name="widget_name">Next class</string>
+    <string name="widget_description">Your next class and today\'s timeline</string>
+    <string name="widget_placeholder">Your next class</string>
+    <string name="widget_not_loaded">Open MyWarwick+ to load your timetable</string>
 </resources>

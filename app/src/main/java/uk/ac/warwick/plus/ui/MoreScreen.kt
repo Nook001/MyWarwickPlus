@@ -49,6 +49,10 @@ fun MoreContent(state: TimetableState, onLogin: () -> Unit, onSignOut: () -> Uni
                 MeListRow(stringResource(AppLabels.LIBRARY), ServiceIcons.library, { onFeed(FeedKind.LIBRARY) })
                 ListDivider()
                 MeListRow(stringResource(AppLabels.MODULES), ServiceIcons.moodle, { onFeed(FeedKind.MODULES) })
+                if (LocalUpdates.current != null) {
+                    ListDivider()
+                    UpdateRow(onOpen)
+                }
             }
         }
         item {

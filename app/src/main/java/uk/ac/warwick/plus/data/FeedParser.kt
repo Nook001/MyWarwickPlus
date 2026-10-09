@@ -48,7 +48,6 @@ object FeedParser {
                         url = safeCourseworkUrl(item.stringOrEmpty("href")) ?: ""
                         announcementCount = item.optJSONArray("announcements")?.length() ?: 0
                         evaluationCount = item.optJSONArray("evaluations")?.length() ?: 0
-                        text = "Open the module site for announcements and learning materials."
                     }
                     FeedKind.LIBRARY -> {
                         // Empty live feed: only display fields actually present; never invent loan state.

@@ -3,8 +3,9 @@
 Updated: 8 October 2026. Applies to 0.27.1-beta.1.
 
 MyWarwick+ is an independent student project, not an official University of
-Warwick application. It connects directly to Warwick services; the project
-does not operate a server that receives your account or student data.
+Warwick application. It connects directly to Warwick services and, for update
+checks, to GitHub; the project does not operate a server that receives your
+account or student data.
 
 ## Sign-in and connections
 
@@ -19,12 +20,26 @@ them to the developer or attach them to links opened in your browser. Warwick
 receives normal request information, such as your IP address and the app's
 versioned User-Agent.
 
+When a Warwick session lapses, the app may reopen Warwick's sign-in refresh
+page in an invisible WebView, as the official app does. It completes only if
+Warwick can sign you in without a password or MFA prompt; otherwise you are
+asked to sign in as usual.
+
+Update checks request the public latest-release information from
+`api.github.com` at most once a day while the app is open, or when you tap
+**Check for updates**. The request contains no cookies or account data; GitHub
+receives your IP address and the app's versioned User-Agent under its own
+privacy statement. Downloads open in your browser.
+
 ## Data on your device
 
 The app caches the account identity/name/email, timetable, coursework,
 messages, module and library summaries, bus times, print balance and public
 campus events returned for your account,
-along with refresh times. Preferences include your selected colour theme.
+along with refresh times. Preferences include your selected colour theme,
+reminder and update-check settings, and the latest release version seen.
+Class and deadline reminders, and the home-screen widget, are produced on the
+device from this cache; they do not fetch data in the background.
 Data is stored in the app's private storage. There is no additional encrypted
 database layer; protection also depends on Android's device security.
 
@@ -44,6 +59,8 @@ submit coursework or change your university account settings.
 - **Copy email** writes your email to Android's clipboard only when you tap it;
   clipboard handling is then controlled by Android.
 - External links open in your browser, which uses its own session and policies.
+- **Settings** turns reminders and automatic update checks on or off; reminder
+  notifications can also be managed in Android's notification settings.
 
 ## Feedback
 

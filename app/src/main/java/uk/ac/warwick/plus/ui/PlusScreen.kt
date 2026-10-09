@@ -68,6 +68,7 @@ internal fun PlusScreen(state: TimetableState, actions: PlusActions) {
     val openLink: (String) -> Unit = { raw ->
         if (!launchBrowser(raw)) scope.launch { snackbar.showSnackbar(resources.getString(R.string.link_open_failed)) }
     }
+    if (!state.signingOut) UpdateNotice(snackbar, openLink)
     var previousAccount by rememberSaveable { mutableStateOf(state.accountCode) }
     LaunchedEffect(state.accountCode, state.busy, state.signingOut) {
         // Empty identity during initial cache loading is not an account switch.

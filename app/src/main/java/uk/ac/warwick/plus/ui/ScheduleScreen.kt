@@ -84,7 +84,7 @@ internal fun ScheduleContent(state: SchedulePageState, today: LocalDate, now: Lo
 internal fun ScheduleClassRow(event: EventContentItem, date: LocalDate, status: String?, conflict: Boolean,
     compactTop: Boolean = false, density: ListRowDensity = ListRowDensity.Standard, accent: Color? = null,
     finished: Boolean = false, onSelect: () -> Unit) {
-    val identity = classIdentity(event)
+    val identity = classIdentity(event, stringResource(R.string.class_fallback))
     val time = scheduleTime(event, date)
     val compact = density == ListRowDensity.Compact
     MetricListRow(onSelect, stringResource(R.string.view_class_details),
@@ -108,7 +108,7 @@ internal fun ScheduleClassRow(event: EventContentItem, date: LocalDate, status: 
             if (event.location.isNotBlank()) LocationLabel(event.location)
         }
         if (!event.allDay && (time.continuesBefore || time.continuesAfter)) Text(
-            listOfNotNull(if (time.continuesBefore) "Continues from previous day" else null,
+            listOfNotNull(if (time.continuesBefore) stringResource(R.string.continues_before) else null,
                 if (time.continuesAfter) stringResource(R.string.continues_after) else null).joinToString(" · "),
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         if (conflict) Text(stringResource(R.string.class_overlap), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)

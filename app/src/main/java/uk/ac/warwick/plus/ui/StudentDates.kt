@@ -11,20 +11,24 @@ import java.util.Locale
 val WarwickZone: ZoneId = ZoneId.of("Europe/London")
 fun atWarwick(millis: Long): ZonedDateTime = Instant.ofEpochMilli(millis).atZone(WarwickZone)
 
-/** Immutable formatters are shared across rows; the phone locale and zone never select the format. */
-private object StudentDateFormats {
-    private fun format(pattern: String) = DateTimeFormatter.ofPattern(pattern, Locale.UK)
-    val clock = format("HH:mm")
-    val longDate = format("EEEE, d MMMM")
-    val shortDate = format("d MMM")
-    val shortDateYear = format("d MMM yyyy")
-    val weekdayDate = format("EEE d MMM")
-    val weekdayDateYear = format("EEE d MMM yyyy")
-    val relativeDate = format("EEE, d MMM")
-    val shortDateTime = format("d MMM · HH:mm")
-    val dateTimeYear = format("d MMM yyyy · HH:mm")
-    val fullDateTime = format("EEE d MMM yyyy · HH:mm")
+/** Shared immutable formatters. Times are always Warwick time; only the app's UI language picks the wording. */
+private class DateFormats(private val locale: Locale, private val chinese: Boolean) {
+    private fun format(english: String, simplified: String) = DateTimeFormatter.ofPattern(if (chinese) simplified else english, locale)
+    val clock = format("HH:mm", "HH:mm")
+    val longDate = format("EEEE, d MMMM", "M月d日 EEEE")
+    val shortDate = format("d MMM", "M月d日")
+    val shortDateYear = format("d MMM yyyy", "yyyy年M月d日")
+    val weekdayDate = format("EEE d MMM", "M月d日 EEE")
+    val weekdayDateYear = format("EEE d MMM yyyy", "yyyy年M月d日 EEE")
+    val relativeDate = format("EEE, d MMM", "M月d日 EEE")
+    val shortDateTime = format("d MMM · HH:mm", "M月d日 · HH:mm")
+    val dateTimeYear = format("d MMM yyyy · HH:mm", "yyyy年M月d日 · HH:mm")
+    val fullDateTime = format("EEE d MMM yyyy · HH:mm", "yyyy年M月d日 EEE · HH:mm")
 }
+
+private val englishFormats = DateFormats(Locale.UK, chinese = false)
+private val chineseFormats by lazy { DateFormats(Locale.SIMPLIFIED_CHINESE, chinese = true) }
+private val StudentDateFormats get() = if (Locale.getDefault().language == "zh") chineseFormats else englishFormats
 
 fun dateLabel(date: LocalDate): String = date.format(StudentDateFormats.longDate)
 fun timeLabel(millis: Long): String = atWarwick(millis).format(StudentDateFormats.clock)

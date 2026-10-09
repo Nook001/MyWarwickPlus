@@ -1,6 +1,6 @@
 # API 接入与协议
 
-更新：2026-10-08，已发布版本 0.27.1-beta.1。现有代码使用 MyWarwick 登录会话和只读接口，无新增 OAuth application。既有结构依据 2026-10-03 至 06 的观察，新服务另于 10 月 8 日只读验证；不将样本当持续实时状态。界面规范见 [架构](architecture.md)，当前交付见 [开发与验证](development.md)。
+更新：2026-10-08，已发布版本 0.27.1-beta.1；主线另有静默续期、更新检查、本地提醒、桌面小组件与简体中文界面（未发布）。现有代码使用 MyWarwick 登录会话和只读接口，无新增 OAuth application。既有结构依据 2026-10-03 至 06 的观察，新服务另于 10 月 8 日只读验证；不将样本当持续实时状态。界面规范见 [架构](architecture.md)，当前交付见 [开发与验证](development.md)。
 
 ## 接入与展示
 
@@ -20,7 +20,7 @@
 
 官方 WebView SSO/MFA → CookieManager → OkHttp CookieJar → 原生 GET 已跑通。Cookie 仅发送给 `https://my.warwick.ac.uk:443`，WebView 没有 JS bridge。Custom Tabs 和桌面浏览器拥有独立会话，不能直接提取其 cookie 代替手机登录。
 
-`/user/info` 读取 `user.{authenticated,usercode,name,csrfHeader,csrfToken}`；根节点 `refresh` 为 URL 字符串时，先在不可见 WebView 中走该 SSO 往返（与官方客户端 `myWarwickRefresh` 相同，仅允许登录域名，20 秒超时，失败后 10 分钟内不重试），回到 my.warwick 后重验一次；仍失败、无 refresh 或 authenticated=false 时要求登录。需要密码/MFA 的页面不会自动完成，静默续期的实机效果待手测。资源请求携带 session cookie、`Accept: application/json` 和版本 User-Agent；仅在预期 `Csrf-Token` 名称且 token 非空时添加该头。历史浏览器课表 GET 不带显式 CSRF 也成功，未逐个确认 cookie 的必要性。
+`/user/info` 读取 `user.{authenticated,usercode,name,csrfHeader,csrfToken}`；根节点 `refresh` 为 URL 字符串时，先在不可见 WebView 中走该 SSO 往返（与官方客户端 `myWarwickRefresh` 相同，仅允许登录域名，20 秒超时，失败后 10 分钟内不重试），回到 my.warwick 后重验一次；仍失败、无 refresh 或 authenticated=false 时要求登录。需要密码/MFA 的页面不会自动完成。物理手机在模拟 12 小时 `.warwick.ac.uk` SSO cookie 失效后已静默续期并完成全部资源同步；真实过夜过期及 Microsoft 长期 cookie（约 90 天）到期后的行为待观察。资源请求携带 session cookie、`Accept: application/json` 和版本 User-Agent；仅在预期 `Csrf-Token` 名称且 token 非空时添加该头。历史浏览器课表 GET 不带显式 CSRF 也成功，未逐个确认 cookie 的必要性。
 
 原生不自动跟随重定向；3xx、401、403、非 JSON Content-Type 归为需登录。响应上限 4 MiB，连接/读取/整次超时为 15/25/35 秒。错误 envelope、必需字段缺失、重复 ID 或不合法时间按解析器规则拒绝整批，不跳过坏条目掩盖异常。
 
@@ -66,7 +66,13 @@ Modules 仅存公告/评估数组数量；Library 未知字段不推断借阅状
 | `GET /api/timetable` + `X-Timetable-Token` | 旧移动端路径；仅 cookie 请求历史返回 401，专用 token 当前有效性/生命周期未验证 |
 | `POST /api/timetable/register` | 前端存在注册后交 native bridge 的逻辑；本项目未调用、未签发 token |
 
-新增接口前先确认结构与产品用途，不批量探测。后台同步、系统通知、消息写回和作业提交未实现。
+新增接口前先确认结构与产品用途，不批量探测。后台同步、消息写回和作业提交未实现；上课/截止提醒（课前 10 分钟、截止前 24 小时，默认关闭）与桌面 Next 小组件只读本地缓存，不发起请求，数据随下一次前台同步更新。
+
+## 非 MyWarwick 请求
+
+| 请求 | 用途与边界 |
+| --- | --- |
+| `GET https://api.github.com/repos/Nook001/MyWarwickPlus/releases/latest` | Release 版启动时每 24 小时最多一次（可在设置关闭），Me 可手动检查；独立 OkHttp 客户端，无 cookie/账户数据，只读 tag_name/html_url/draft/prerelease，响应上限 512 KB，html_url 必须属于本仓库 Releases；有新版本时提示一次并在浏览器打开发布页，不下载安装。Debug/Profile 不自动检查 |
 
 ## 安全与证据
 

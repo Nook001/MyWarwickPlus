@@ -44,10 +44,13 @@ android {
         versionCode = 42
         versionName = "0.27.1-beta.1"
         buildConfigField("boolean", "PERFORMANCE_TRACING", "false")
+        buildConfigField("String", "BASE_VERSION_NAME", "\"$versionName\"")
+        buildConfigField("boolean", "AUTO_UPDATE_CHECK", "true")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { compose = true; buildConfig = true; resValues = true }
-    androidResources { localeFilters += "en" }
+    androidResources { localeFilters += listOf("en", "zh-rCN") }
+    testOptions.unitTests.all { it.systemProperty("user.language", "en"); it.systemProperty("user.country", "GB") }
     packaging {
         resources.excludes += setOf("**/*.kotlin_builtins", "DebugProbesKt.bin")
     }
@@ -68,6 +71,7 @@ android {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
             resValue("string", "app_name", "MyWarwick+ Debug")
+            buildConfigField("boolean", "AUTO_UPDATE_CHECK", "false")
         }
         release {
             if (hasReleaseSigning) signingConfig = signingConfigs.getByName("release")
@@ -84,6 +88,7 @@ android {
             isDebuggable = false
             matchingFallbacks += "release"
             buildConfigField("boolean", "PERFORMANCE_TRACING", "true")
+            buildConfigField("boolean", "AUTO_UPDATE_CHECK", "false")
         }
     }
 }
