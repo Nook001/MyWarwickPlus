@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: android-actions/setup-android@v4
+      # Validates the wrapper checksum and caches dependencies; no signing secrets are available here.
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Unit tests, lint, debug build and instrumented-test compile
+        run: ./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:compileDebugAndroidTestKotlin
+      - name: Upload reports
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: reports
+          path: |
+            app/build/reports/
+            app/build/test-results/
+          retention-days: 7

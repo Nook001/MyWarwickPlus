@@ -35,7 +35,11 @@ JDK 21, Android SDK Platform 37, min SDK 28. On Windows use `.\gradlew.bat`.
 ./gradlew :app:compileDebugAndroidTestKotlin   # when changing APIs the instrumented tests use
 ```
 
-All of these must pass with no new lint findings or compiler warnings.
+All of these must pass with no new lint findings or compiler warnings. GitHub
+Actions (`.github/workflows/ci.yml`) runs the same set on every push to
+`master` and every pull request. The build classpath pins the Kotlin Gradle
+plugin to the Compose compiler plugin version in the root `build.gradle.kts`;
+upgrade them together.
 
 ## Hard rules
 

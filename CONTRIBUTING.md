@@ -49,6 +49,7 @@ agents. In short:
 ## Pull requests
 
 - One focused change per PR, with a short imperative commit subject.
+- CI runs the checks above on every PR; it must be green before review.
 - Fill in the PR template, including how you verified the change and
   screenshots for UI changes (personal data removed).
 - Update the relevant document when behaviour, endpoints or data handling

@@ -4,7 +4,7 @@
 
 ## 环境与构建
 
-Android Studio 打开仓库根目录，需要 JDK 21 和 Android SDK Platform 37.0。compile/target SDK 为 37，min SDK 为 28，JVM 目标为 17。依赖版本以 Gradle 文件为准，SDK 路径写入不跟踪的 `local.properties`。
+Android Studio 打开仓库根目录，需要 JDK 21 和 Android SDK Platform 37.0。compile/target SDK 为 37，min SDK 为 28，JVM 目标为 17。依赖版本以 Gradle 文件为准，SDK 路径写入不跟踪的 `local.properties`。2026-10-09 已升至 Gradle 9.8.1、Kotlin 2.4.21（根 `build.gradle.kts` 让 AGP 内置 Kotlin 使用与 Compose 编译器插件相同的版本），其余依赖已是当日最新稳定版。GitHub Actions 在每次推送 `master` 和 PR 时运行单元测试、Debug Lint、Debug 构建和 androidTest 编译，不含签名或设备测试。
 
 | 变体 | applicationId | 用途 |
 | --- | --- | --- |
