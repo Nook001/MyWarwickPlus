@@ -28,6 +28,7 @@ import uk.ac.warwick.plus.PlusApplication
 import uk.ac.warwick.plus.R
 import uk.ac.warwick.plus.data.CachedTimetable
 import uk.ac.warwick.plus.ui.classIdentity
+import uk.ac.warwick.plus.ui.classSummary
 import uk.ac.warwick.plus.ui.deadlineDateLabel
 import uk.ac.warwick.plus.ui.timeLabel
 
@@ -94,7 +95,7 @@ class ReminderScheduler(private val context: Context, private val preferences: S
                 val identity = classIdentity(event, context.getString(R.string.class_fallback))
                 Triple(CHANNEL_CLASSES,
                     context.getString(R.string.reminder_class_title, identity.name, timeLabel(event.startMillis)),
-                    listOf(identity.code, event.location).filter { it.isNotBlank() }.joinToString(" · "))
+                    classSummary(identity, event))
             }
             ReminderKind.DEADLINE -> {
                 val entry = cache.coursework.firstOrNull { it.id == reminder.id } ?: return

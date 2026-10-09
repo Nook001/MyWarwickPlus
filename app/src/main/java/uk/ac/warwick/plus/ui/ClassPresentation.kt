@@ -1,6 +1,8 @@
 package uk.ac.warwick.plus.ui
 
+import java.time.LocalDate
 import uk.ac.warwick.plus.R
+import uk.ac.warwick.plus.config.AppLabels
 import uk.ac.warwick.plus.data.EventContentItem
 
 internal data class ClassIdentity(val name: String, val code: String)
@@ -10,6 +12,21 @@ internal fun classIdentity(event: EventContentItem, fallback: String): ClassIden
     val code = if (event.moduleName.isNotBlank() && event.title != name) event.title
         else event.module.takeUnless { it == name }.orEmpty()
     return ClassIdentity(name, code)
+}
+
+/** Code and location on one line, as the widget and reminders show them. */
+internal fun classSummary(identity: ClassIdentity, event: EventContentItem): String =
+    listOf(identity.code, event.location).filter { it.isNotBlank() }.joinToString(" · ")
+
+/** Next card and widget heading: Now, Next today, Tomorrow, then the weekday date. */
+internal fun nextClassHeading(event: EventContentItem, today: LocalDate, now: Long): UiText {
+    val date = atWarwick(event.startMillis).toLocalDate()
+    return when {
+        isClassNow(event, now) -> text(AppLabels.NOW)
+        date <= today -> text(AppLabels.NEXT)
+        date == today.plusDays(1) -> text(R.string.tomorrow)
+        else -> UiText.Literal(weekdayDateLabel(date, includeYear = date.year != today.year))
+    }
 }
 
 internal fun classTimeRange(event: EventContentItem, includeWeekday: Boolean, allDay: String): String {

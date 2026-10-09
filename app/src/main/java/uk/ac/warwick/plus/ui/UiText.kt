@@ -9,8 +9,8 @@ import androidx.compose.ui.platform.LocalResources
 // ViewModel describes messages without retaining Context or eagerly resolving a language.
 sealed interface UiText {
     data class Literal(val value: String) : UiText
-    data class Resource(@StringRes val id: Int, val args: List<Any> = emptyList()) : UiText
-    data class Quantity(@PluralsRes val id: Int, val count: Int, val args: List<Any> = emptyList()) : UiText
+    data class Resource(@param:StringRes val id: Int, val args: List<Any> = emptyList()) : UiText
+    data class Quantity(@param:PluralsRes val id: Int, val count: Int, val args: List<Any> = emptyList()) : UiText
 }
 
 internal fun text(@StringRes id: Int, vararg args: Any): UiText = UiText.Resource(id, args.toList())

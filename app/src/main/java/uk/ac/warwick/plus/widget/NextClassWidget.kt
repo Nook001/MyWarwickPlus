@@ -115,17 +115,11 @@ class NextClassWidget : AppWidgetProvider() {
                 return views
             }
             val date = atWarwick(next.startMillis).toLocalDate()
-            val label = when {
-                isClassNow(next, now) -> context.getString(AppLabels.NOW)
-                date <= today -> context.getString(AppLabels.NEXT)
-                date == today.plusDays(1) -> context.getString(R.string.tomorrow)
-                else -> weekdayDateLabel(date, includeYear = date.year != today.year)
-            }
             val identity = classIdentity(next, context.getString(R.string.class_fallback))
-            views.setTextViewText(R.id.widget_label, label)
+            views.setTextViewText(R.id.widget_label, nextClassHeading(next, today, now).resolve(context.resources))
             views.setTextViewText(R.id.widget_time, classTimeRange(next, includeWeekday = true, context.getString(R.string.all_day)))
             views.setTextViewText(R.id.widget_title, identity.name)
-            val detail = listOf(identity.code, next.location).filter { it.isNotBlank() }.joinToString(" · ")
+            val detail = classSummary(identity, next)
             views.setTextViewText(R.id.widget_detail, detail)
             views.setViewVisibility(R.id.widget_detail, if (detail.isBlank()) View.GONE else View.VISIBLE)
             val timeline = if (date == today) dayTimeline(cache.events, today, now) else null

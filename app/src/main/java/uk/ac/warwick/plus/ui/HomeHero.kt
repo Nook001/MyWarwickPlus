@@ -48,14 +48,8 @@ internal fun NextClassCard(event: EventContentItem, timeline: DayTimeline?, toda
     colourOf: (EventContentItem) -> Color, onSelect: () -> Unit) {
     val identity = classIdentity(event, stringResource(R.string.class_fallback))
     val time = classTimeRange(event, includeWeekday = true, stringResource(R.string.all_day))
-    val date = atWarwick(event.startMillis).toLocalDate()
-    val label = when {
-        isClassNow(event, now) -> stringResource(AppLabels.NOW)
-        date <= today -> stringResource(AppLabels.NEXT)
-        date == today.plusDays(1) -> stringResource(R.string.tomorrow)
-        else -> weekdayDateLabel(date, includeYear = date.year != today.year)
-    }
-    val showCountdown = date <= today || event.startMillis - now < 24 * 3_600_000L
+    val label = nextClassHeading(event, today, now).render()
+    val showCountdown = atWarwick(event.startMillis).toLocalDate() <= today || event.startMillis - now < 24 * 3_600_000L
     val colours = appCardColours(CardTone.Featured)
     AppCard(onClick = onSelect, tone = CardTone.Featured, shape = AppShapes.featured,
         modifier = Modifier.fillMaxWidth().testTag("next-class-card"), actionLabel = stringResource(R.string.view_class_details)) {
