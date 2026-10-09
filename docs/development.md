@@ -25,15 +25,18 @@ $env:JAVA_HOME = 'D:/Dev/JDK21.0.8'
 
 明确指定物理手机，覆盖安装保留登录与缓存；出现 USB 安装确认需用户点击允许。不将模拟器安装或构建成功记为手机验收。功能阶段不编写、扩展或默认运行 UI Test；简单样式/功能不新增单元测试。既有 androidTest 已修复为可编译（`:app:compileDebugAndroidTestKotlin`），但不计入默认检查；不要在已登录的手机上运行 connectedAndroidTest，它会卸载应用并清除登录。
 
-## 未发布主线
+## 最新公开版本验证
+
+0.28.0-beta.1 / versionCode 43：
 
 - 静默续期：`/user/info` 返回 refresh URL 时由不可见 WebView 完成 SSO 往返，手机模拟会话失效已验证。
 - 更新检查：设置可关闭自动检查，Me → 应用 → 检查更新；Debug/Profile 只手动检查。语义化版本比较与 Release 响应校验有 JVM 检查。
-- 提醒：设置 → 提醒，开启时请求通知权限；单一精确闹钟链按缓存重排，开机/升级/改时区后恢复。到期窗口规则有 JVM 检查，手机通知待手测。
-- 桌面小组件：Next 卡片与当日时间轴，随缓存/主题更新并在课程边界、午夜刷新，待手机添加验证。
+- 提醒：设置 → 提醒，开启时请求通知权限；单一精确闹钟链按缓存重排，开机/升级/改时区后恢复，迟到的闹钟或缓存变化不会跳过已到期提醒。到期窗口规则有 JVM 检查。
+- 桌面小组件：Next 卡片与当日时间轴，随缓存/主题更新并在课程边界、午夜刷新。
 - 简体中文：跟随系统语言，Android 13+ 可在系统应用设置单独切换；日期用中文格式，时间仍为英国时间。
 
-## 最新公开版本验证
+86 项 JVM 检查、Debug Lint 与 androidTest 编译通过，签名 Release 打包检查通过，证书指纹不变。物理手机覆盖安装 Debug 包由用户整体验收通过（未逐项记录边界场景）；签名包覆盖安装 0.27.1 后版本为 43。`v0.28.0-beta.1` 于 2026-10-09 [发布并设为 Latest](https://github.com/Nook001/MyWarwickPlus/releases/tag/v0.28.0-beta.1)，tag 对应 `4fb6047`，APK SHA-256 `1886b2ea…00cc49`，上传附件 digest 与本地一致。
+
 
 0.27.1-beta.1 / versionCode 42：首页今天结束后列出下一个上课日课程，跨天 Next 标为 Tomorrow/日期且不显示时间轴；首页 Library 改为应用内页面。签名 Release（打包脚本含 Release Lint 与 JVM 检查）通过，证书指纹不变；物理手机覆盖安装 Debug 包确认 Tomorrow 显示及 Library 跳转/返回首页，签名包覆盖安装后版本为 42。
 
