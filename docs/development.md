@@ -27,15 +27,16 @@ $env:JAVA_HOME = 'D:/Dev/JDK21.0.8'
 
 ## 最新公开版本验证
 
-0.28.0-beta.1 / versionCode 43：
+0.29.0-beta.1 / versionCode 44（在 0.28.0-beta.1 基础上）：
 
+- 首页栏名与 Tab 一致（Tasks、Inbox），设置页按组合并为卡片，颜色主题改为色块行。
 - 静默续期：`/user/info` 返回 refresh URL 时由不可见 WebView 完成 SSO 往返，手机模拟会话失效已验证。
 - 更新检查：设置可关闭自动检查，Me → 应用 → 检查更新；Debug/Profile 只手动检查。语义化版本比较与 Release 响应校验有 JVM 检查。
 - 提醒：设置 → 提醒，开启时请求通知权限；单一精确闹钟链按缓存重排，开机/升级/改时区后恢复，迟到的闹钟或缓存变化不会跳过已到期提醒。到期窗口规则有 JVM 检查。
 - 桌面小组件：4×2 Next 卡片与当日时间轴，2×2 小号与 2×1 迷你（时间、地点、名称）；设置页可直接添加，随缓存/主题更新并在课程边界、午夜刷新。
 - 简体中文：默认跟随系统语言，可在设置页外观卡选择 English/简体中文（Android 13+ 与系统应用语言设置同步）；日期用中文格式，时间仍为英国时间。
 
-86 项 JVM 检查、Debug Lint 与 androidTest 编译通过，签名 Release 打包检查通过，证书指纹不变。物理手机覆盖安装 Debug 包由用户整体验收通过（未逐项记录边界场景）；签名包覆盖安装 0.27.1 后版本为 43。`v0.28.0-beta.1` 于 2026-10-09 [发布并设为 Latest](https://github.com/Nook001/MyWarwickPlus/releases/tag/v0.28.0-beta.1)，tag 对应 `4fb6047`，APK SHA-256 `1886b2ea…00cc49`，上传附件 digest 与本地一致。
+86 项 JVM 检查、Debug Lint 与 androidTest 编译通过，签名 Release 打包检查通过，证书指纹不变。物理手机（vivo，Android 16）覆盖安装 Debug 与签名包后由用户验收通过（未逐项记录边界场景）；签名包覆盖安装 0.28.0 后版本为 44。vivo 桌面会直接拒绝应用内添加小组件请求，标准组件归入其“桌面挂件”列表。`v0.29.0-beta.1` 于 2026-10-12 [发布并设为 Latest](https://github.com/Nook001/MyWarwickPlus/releases/tag/v0.29.0-beta.1)，tag 对应 `0cf7eb1`，APK SHA-256 `1af050a4…a82e228`，上传附件 digest 与本地一致。
 
 
 更早版本的验证记录见 Git 历史和对应 [Release](https://github.com/Nook001/MyWarwickPlus/releases)。仍有效的结论：schema 5→6 迁移 SQL 已用 SQLite 核对，与 Room 导出的八张表一致并保留原有数据，覆盖前后的离线缓存仍需手测；签名目录曾从用户备份恢复，证书指纹自首个 Beta 起未变。
