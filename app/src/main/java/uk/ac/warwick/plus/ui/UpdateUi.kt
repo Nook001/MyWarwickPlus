@@ -69,16 +69,22 @@ internal fun UpdateNotice(snackbar: SnackbarHostState, onOpen: (String) -> Unit)
     }
 }
 
+/** One row inside a settings SectionCard; the caller adds the click or toggle semantics. */
 @Composable
-internal fun SettingSwitch(title: String, detail: String, checked: Boolean, tag: String, onChange: (Boolean) -> Unit) {
-    AppCard(shape = AppShapes.featured) {
-        Row(Modifier.fillMaxWidth().toggleable(checked, role = Role.Switch, onValueChange = onChange).testTag(tag).padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium)
-                Text(detail, style = MaterialTheme.typography.bodySmall)
-            }
-            Switch(checked, onCheckedChange = null)
+internal fun SettingRow(title: String, detail: String, modifier: Modifier, trailing: @Composable () -> Unit) {
+    Row(Modifier.fillMaxWidth().then(modifier).heightIn(min = 56.dp)
+        .padding(horizontal = Spacing.contentInset, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(title, style = MaterialTheme.typography.bodyMedium)
+            Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+        trailing()
     }
 }
+
+@Composable
+internal fun SettingSwitch(title: String, detail: String, checked: Boolean, tag: String, onChange: (Boolean) -> Unit) =
+    SettingRow(title, detail, Modifier.toggleable(checked, role = Role.Switch, onValueChange = onChange).testTag(tag)) {
+        Switch(checked, onCheckedChange = null)
+    }

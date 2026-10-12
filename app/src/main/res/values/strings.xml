@@ -235,4 +235,16 @@
     <string name="widget_description">Your next class and today\'s timeline</string>
     <string name="widget_placeholder">Your next class</string>
     <string name="widget_not_loaded">Open MyWarwick+ to load your timetable</string>
+    <string name="widget_compact_name">Next class · small</string>
+    <string name="widget_mini_name">Next class · mini</string>
+    <string name="widget_compact_description">Time, place and name of your next class</string>
+    <string name="widget_preview_start" translatable="false">09:00</string>
+    <string name="widget_preview_end" translatable="false">– 10:00</string>
+    <string name="widgets_section">HOME SCREEN WIDGETS</string>
+    <string name="widget_large_detail">4 × 2 · Next class and today\'s timeline</string>
+    <string name="widget_compact_detail">2 × 2 · Time, place and name</string>
+    <string name="widget_mini_detail">2 × 1 · Time, place and name</string>
+    <string name="widget_add">Add</string>
+    <string name="widget_add_label">Add %1$s to the home screen</string>
+    <string name="appearance_section">APPEARANCE</string>
 </resources>

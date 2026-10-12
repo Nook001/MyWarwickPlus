@@ -230,4 +230,14 @@
     <string name="widget_description">你的下一节课和今天的时间轴</string>
     <string name="widget_placeholder">你的下一节课</string>
     <string name="widget_not_loaded">打开 MyWarwick+ 加载课表</string>
+    <string name="widget_compact_name">下一节课 · 小</string>
+    <string name="widget_mini_name">下一节课 · 迷你</string>
+    <string name="widget_compact_description">下一节课的时间、地点和名称</string>
+    <string name="widgets_section">桌面小组件</string>
+    <string name="widget_large_detail">4 × 2 · 下一节课和今天的时间轴</string>
+    <string name="widget_compact_detail">2 × 2 · 时间、地点和名称</string>
+    <string name="widget_mini_detail">2 × 1 · 时间、地点和名称</string>
+    <string name="widget_add">添加</string>
+    <string name="widget_add_label">将“%1$s”添加到桌面</string>
+    <string name="appearance_section">外观</string>
 </resources>

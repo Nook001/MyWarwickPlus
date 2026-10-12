@@ -4,6 +4,7 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
+import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -33,40 +34,52 @@ import uk.ac.warwick.plus.ui.*
 
 /** Read-only view of the cached timetable; it never signs in or fetches by itself. */
 class NextClassWidget : AppWidgetProvider() {
-    override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) = refresh(context)
+    override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) = refresh(this, context)
 
     override fun onAppWidgetOptionsChanged(context: Context, manager: AppWidgetManager, id: Int, options: Bundle) =
-        refresh(context)
+        refresh(this, context)
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action == ACTION_REFRESH) refresh(context) else super.onReceive(context, intent)
+        if (intent.action == ACTION_REFRESH) refresh(this, context) else super.onReceive(context, intent)
     }
 
-    override fun onDisabled(context: Context) = cancelRefresh(context)
-
-    private fun refresh(context: Context) {
-        val app = context.applicationContext as PlusApplication
-        val pending = goAsync()
-        CoroutineScope(Dispatchers.Default).launch {
-            try { update(context, app.repository.cached()) } finally { pending.finish() }
-        }
-    }
+    override fun onDisabled(context: Context) = refresh(this, context)
 
     companion object {
         private const val ACTION_REFRESH = "uk.ac.warwick.plus.widget.REFRESH"
         private const val STEP_MILLIS = 15 * 60_000L
 
+        /** Every widget kind redraws together and shares one refresh alarm. */
+        internal fun refresh(receiver: BroadcastReceiver, context: Context) {
+            val app = context.applicationContext as PlusApplication
+            val pending = receiver.goAsync()
+            CoroutineScope(Dispatchers.Default).launch {
+                try { update(context, app.repository.cached()) } finally { pending.finish() }
+            }
+        }
+
         fun update(context: Context, cache: CachedTimetable, now: Long = System.currentTimeMillis()) {
             val manager = AppWidgetManager.getInstance(context)
-            val ids = manager.getAppWidgetIds(ComponentName(context, NextClassWidget::class.java))
-            if (ids.isEmpty()) { cancelRefresh(context); return }
+            fun ids(provider: Class<*>) = manager.getAppWidgetIds(ComponentName(context, provider))
+            val large = ids(NextClassWidget::class.java)
+            val compact = ids(CompactClassWidget::class.java)
+            val mini = ids(MiniClassWidget::class.java)
+            if (large.isEmpty() && compact.isEmpty() && mini.isEmpty()) { cancelRefresh(context); return }
             val theme = (context.applicationContext as PlusApplication).appearance.state.value.theme
-            ids.forEach { id ->
+            large.forEach { id ->
                 val width = manager.getAppWidgetOptions(id).getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 250)
                 manager.updateAppWidget(id, render(context, cache, now, theme, width))
             }
+            compact.forEach { id -> manager.updateAppWidget(id, CompactClassWidget.render(context, cache, now, theme,
+                manager.getAppWidgetOptions(id), defaultSquare = true)) }
+            mini.forEach { id -> manager.updateAppWidget(id, CompactClassWidget.render(context, cache, now, theme,
+                manager.getAppWidgetOptions(id), defaultSquare = false)) }
             scheduleRefresh(context, nextRefresh(cache.events, now))
         }
+
+        internal fun openApp(context: Context): PendingIntent = PendingIntent.getActivity(context, 0,
+            Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
 
         /** The Now marker moves every quarter hour during the day; otherwise wait for the next class edge. */
         internal fun nextRefresh(events: List<EventContentItem>, now: Long): Long {
@@ -100,9 +113,7 @@ class NextClassWidget : AppWidgetProvider() {
             views.setInt(R.id.widget_background, "setColorFilter", background)
             listOf(R.id.widget_label, R.id.widget_time, R.id.widget_title).forEach { views.setTextColor(it, foreground) }
             views.setTextColor(R.id.widget_detail, muted)
-            views.setOnClickPendingIntent(R.id.widget_root, PendingIntent.getActivity(context, 0,
-                Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
-                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))
+            views.setOnClickPendingIntent(R.id.widget_root, openApp(context))
             val today = atWarwick(now).toLocalDate()
             val next = currentOrNextClass(cache.events, now)
             if (cache.sync == null || next == null) {

@@ -37,5 +37,19 @@
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/next_class_widget_info" />
         </receiver>
+        <receiver android:name=".widget.CompactClassWidget" android:exported="false"
+            android:label="@string/widget_compact_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/compact_class_widget_info" />
+        </receiver>
+        <receiver android:name=".widget.MiniClassWidget" android:exported="false"
+            android:label="@string/widget_mini_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/mini_class_widget_info" />
+        </receiver>
     </application>
 </manifest>
