@@ -26,7 +26,7 @@ internal fun HomeMessages(state: FeedState, recovery: RecoveryState, today: Loca
     }
     // Only convert the visible preview; the full feed shares the account-scoped text cache.
     val textById = rememberFeedText(recent)
-    SectionCard(stringResource(AppLabels.MESSAGES), modifier = Modifier.testTag("home-messages-section"),
+    SectionCard(stringResource(AppLabels.INBOX), modifier = Modifier.testTag("home-messages-section"),
         icon = MeIcons.messages, tone = CardTone.Quiet, trailing = {
             SectionAllAction(stringResource(R.string.view_all_messages), onAll)
         }) {

@@ -23,7 +23,6 @@ object AppLabels {
     val NOW = R.string.label_now
     val NEXT = R.string.label_next
     val TODAY = R.string.label_today
-    val DEADLINES = R.string.label_deadlines
     val BRAND = R.string.label_brand
 }
 

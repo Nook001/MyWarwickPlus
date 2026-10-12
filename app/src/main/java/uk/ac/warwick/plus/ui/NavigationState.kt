@@ -5,11 +5,11 @@ import androidx.compose.runtime.saveable.listSaver
 import uk.ac.warwick.plus.config.AppLabels
 import uk.ac.warwick.plus.data.FeedKind
 
-enum class AppTab(val key: String, val labelRes: Int, val tag: String, val titleRes: Int = labelRes) {
+enum class AppTab(val key: String, val labelRes: Int, val tag: String) {
     HOME("home", AppLabels.HOME, "tab-home"),
     CLASSES("classes", AppLabels.CLASSES, "schedule-tab"),
     TASKS("tasks", AppLabels.TASKS, "tab-coursework"),
-    MESSAGES("messages", AppLabels.INBOX, "tab-messages", AppLabels.MESSAGES),
+    MESSAGES("messages", AppLabels.INBOX, "tab-messages"),
     ME("me", AppLabels.ME, "more-tab");
 
     companion object {

@@ -141,7 +141,7 @@ internal fun PlusScreen(state: TimetableState, actions: PlusActions) {
                         title = when (navigator.tab) {
                             AppTab.HOME -> greeting
                             AppTab.ME -> stringResource(navigator.meRoute.titleRes)
-                            else -> stringResource(navigator.tab.titleRes)
+                            else -> stringResource(navigator.tab.labelRes)
                         },
                         subtitle = if (state.busy) state.syncProgress?.description?.render() ?: stringResource(AppLabels.BRAND) else stringResource(AppLabels.BRAND),
                         titleTag = if (navigator.tab == AppTab.HOME) "home-greeting" else null) {

@@ -78,7 +78,7 @@ internal fun HomeContent(state: HomePageState, today: LocalDate, now: Long, onSe
             }
         }
         item(key = "deadlines") {
-            SectionCard(stringResource(AppLabels.DEADLINES), modifier = Modifier.testTag("home-deadlines-section"),
+            SectionCard(stringResource(AppLabels.TASKS), modifier = Modifier.testTag("home-deadlines-section"),
                 headingTag = "deadlines", icon = ContentIcons.deadlines, trailing = {
                 SectionAllAction(stringResource(R.string.view_all_tasks), onAllCoursework)
             }) {
