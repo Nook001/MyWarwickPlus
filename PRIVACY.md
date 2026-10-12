@@ -1,6 +1,6 @@
 # MyWarwick+ privacy information
 
-Updated: 9 October 2026. Applies to 0.28.0-beta.1.
+Updated: 12 October 2026. Applies to 0.29.0-beta.1.
 
 MyWarwick+ is an independent student project, not an official University of
 Warwick application. It connects directly to Warwick services and, for update
@@ -36,9 +36,10 @@ privacy statement. Downloads open in your browser.
 The app caches the account identity/name/email, timetable, coursework,
 messages, module and library summaries, bus times, print balance and public
 campus events returned for your account,
-along with refresh times. Preferences include your selected colour theme,
-reminder and update-check settings, and the latest release version seen.
-Class and deadline reminders, and the home-screen widget, are produced on the
+along with refresh times. Preferences include your selected colour theme and
+language, reminder and update-check settings, and the latest release version
+seen; on Android 13 and later, Android itself stores the app language.
+Class and deadline reminders, and the home-screen widgets, are produced on the
 device from this cache; they do not fetch data in the background.
 Data is stored in the app's private storage. There is no additional encrypted
 database layer; protection also depends on Android's device security.

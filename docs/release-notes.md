@@ -1,38 +1,36 @@
-# MyWarwick+ 0.28.0-beta.1
+# MyWarwick+ 0.29.0-beta.1
 
 Public update for Android 9 and later. This is an independent student
 project; a Warwick account is required.
 
 ## Changes
 
-- Sign-in: when the daily Warwick session lapses, the app renews it silently
-  through Warwick's own sign-in refresh, as the official app does. You only
-  need to sign in again if Warwick asks for your password or MFA.
-- Updates: release builds check GitHub for a newer release at most once a
-  day while open, and Me → App has a manual check. New versions open in your
-  browser; nothing is downloaded automatically. Automatic checks can be
-  turned off in Settings.
-- Reminders: optional class reminders (10 minutes before) and deadline
-  reminders (24 hours before), off by default and switched on in Settings.
-  They are produced on the device from your saved timetable and coursework.
-- Widget: a home-screen Next class widget with today's timeline, following
-  your colour theme.
-- Language: Simplified Chinese interface, following the system language;
-  on Android 13 and later it can be chosen per app in Android settings.
-  Times stay in UK time.
+- Widgets: two new home-screen widgets show the time, place and name of your
+  next class: a 2×2 small one and a 2×1 mini one. Both switch layout when
+  resized. The existing 4×2 Next class widget is unchanged.
+- Adding widgets: Settings → Home screen widgets has an Add button for each
+  widget. It asks your launcher to show its own add dialog; some launchers
+  don't support this, so you can still add the widgets from the launcher's
+  widget list as usual.
+- Language: choose System, English or Simplified Chinese in Settings. On
+  Android 13 and later this is the same setting as the per-app language in
+  Android settings. Times stay in UK time.
+- Settings: each group is now one card, and colour themes are a single row
+  of swatches, so all settings fit in much less space.
+- Home: section names now match the tabs they open, so Deadlines is
+  Tasks and Messages is Inbox; the Inbox page title is Inbox too.
 - No database changes; existing account and student caches are preserved.
 
 ## Install and verify
 
-Install the signed `MyWarwickPlus-0.28.0-beta.1.apk` over the public package
+Install the signed `MyWarwickPlus-0.29.0-beta.1.apk` over the public package
 `io.github.nook001.mywarwickplus`. The signing certificate is unchanged.
 Internal, Debug and Profile packages remain separate. Use `SHA256SUMS.txt`
-for checksum verification. Android asks for notification permission only
-when you turn a reminder on.
+for checksum verification.
 
 ## Limits
 
-Reminders and the widget use the data saved at the last sync; the app still
+Reminders and widgets use the data saved at the last sync; the app still
 does not sync in the background, so open it occasionally to keep them current.
 Bus times contain no confirmed service date or real-time flag; the app preserves
 source order and labels cached results rather than predicting departures.
