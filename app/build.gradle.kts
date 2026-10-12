@@ -50,6 +50,8 @@ android {
     }
     buildFeatures { compose = true; buildConfig = true; resValues = true }
     androidResources { localeFilters += listOf("en", "zh-rCN") }
+    // The in-app language switch needs every language present without Play Core downloads.
+    bundle { language { enableSplit = false } }
     testOptions.unitTests.all { it.systemProperty("user.language", "en"); it.systemProperty("user.country", "GB") }
     packaging {
         resources.excludes += setOf("**/*.kotlin_builtins", "DebugProbesKt.bin")

@@ -247,4 +247,8 @@
     <string name="widget_add">Add</string>
     <string name="widget_add_label">Add %1$s to the home screen</string>
     <string name="appearance_section">APPEARANCE</string>
+    <string name="language">Language</string>
+    <string name="language_system">System</string>
+    <string name="language_english" translatable="false">English</string>
+    <string name="language_chinese" translatable="false">简体中文</string>
 </resources>

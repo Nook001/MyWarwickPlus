@@ -1,6 +1,7 @@
 package uk.ac.warwick.plus
 
 import android.app.Application
+import android.content.Context
 import android.net.ConnectivityManager
 import androidx.room.Room
 import kotlinx.coroutines.CoroutineScope
@@ -14,10 +15,14 @@ import uk.ac.warwick.plus.auth.SessionRefresher
 import uk.ac.warwick.plus.data.*
 import uk.ac.warwick.plus.reminders.ReminderScheduler
 import uk.ac.warwick.plus.ui.AppearancePreferences
+import uk.ac.warwick.plus.ui.LanguagePreference
 import uk.ac.warwick.plus.update.UpdateChecker
 import uk.ac.warwick.plus.widget.NextClassWidget
 
 class PlusApplication : Application() {
+    override fun attachBaseContext(base: Context) = super.attachBaseContext(LanguagePreference.wrap(base))
+
+    val language by lazy { LanguagePreference(this) }
     fun hasNetwork(): Boolean = getSystemService(ConnectivityManager::class.java).activeNetwork != null
     val appearance by lazy {
         traceWork("MWP.Appearance.load") { AppearancePreferences(getSharedPreferences("appearance", MODE_PRIVATE)) }

@@ -26,7 +26,9 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import uk.ac.warwick.plus.ui.PlusTheme
+import uk.ac.warwick.plus.ui.LanguagePreference
 import uk.ac.warwick.plus.PlusApplication
+import android.content.Context
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /** Login stays on the official service. No JavaScript bridge or credential interception. */
@@ -36,6 +38,8 @@ class LoginActivity : ComponentActivity() {
     private var loadingProgress by mutableIntStateOf(0)
     private var problem by mutableStateOf<UiText?>(null)
     private var pageHost by mutableStateOf("my.warwick.ac.uk")
+
+    override fun attachBaseContext(newBase: Context) = super.attachBaseContext(LanguagePreference.wrap(newBase))
 
     @SuppressLint("SetJavaScriptEnabled") // Warwick SSO requires JavaScript; navigation and permissions remain restricted.
     @OptIn(ExperimentalMaterial3Api::class)

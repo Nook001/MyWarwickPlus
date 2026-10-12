@@ -240,4 +240,6 @@
     <string name="widget_add">添加</string>
     <string name="widget_add_label">将“%1$s”添加到桌面</string>
     <string name="appearance_section">外观</string>
+    <string name="language">语言</string>
+    <string name="language_system">跟随系统</string>
 </resources>

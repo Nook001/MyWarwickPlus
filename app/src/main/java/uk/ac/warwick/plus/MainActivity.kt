@@ -1,6 +1,7 @@
 package uk.ac.warwick.plus
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -22,6 +23,8 @@ import uk.ac.warwick.plus.auth.LoginActivity
 import uk.ac.warwick.plus.ui.*
 
 class MainActivity : ComponentActivity() {
+    override fun attachBaseContext(newBase: Context) = super.attachBaseContext(LanguagePreference.wrap(newBase))
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -40,7 +43,8 @@ class MainActivity : ComponentActivity() {
                 val login = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
                     if (it.resultCode == Activity.RESULT_OK) model.refreshAfterSignIn()
                 }
-                CompositionLocalProvider(LocalUpdates provides app.updates, LocalReminders provides app.reminders) {
+                CompositionLocalProvider(LocalUpdates provides app.updates, LocalReminders provides app.reminders,
+                    LocalLanguage provides app.language) {
                     PlusScreen(state, PlusActions(
                         refresh = model::refresh,
                         signIn = { login.launch(Intent(this, LoginActivity::class.java)) },

@@ -11,7 +11,9 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
+import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -39,6 +41,7 @@ fun AppearanceContent() {
                         ThemeSwatch(theme, appearance.theme == theme, Modifier.weight(1f)) { update(appearance.copy(theme = theme)) }
                     }
                 }
+                LocalLanguage.current?.let { LanguageChoice(it) }
                 ListDivider()
                 SettingSwitch(stringResource(R.string.fine_texture), stringResource(R.string.fine_texture_detail),
                     appearance.texture, "fine-texture") { update(appearance.copy(texture = it)) }
@@ -47,6 +50,23 @@ fun AppearanceContent() {
         reminderSettings()
         widgetSettings()
         updateSettings()
+    }
+}
+
+@Composable
+private fun LanguageChoice(language: LanguagePreference) {
+    val activity = LocalActivity.current
+    val current = remember(language) { language.current() }
+    ListDivider()
+    Text(stringResource(R.string.language), style = MaterialTheme.typography.bodyMedium,
+        modifier = Modifier.padding(start = Spacing.contentInset, end = Spacing.contentInset, top = 10.dp))
+    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(horizontal = Spacing.contentInset, vertical = 8.dp)) {
+        AppLanguage.entries.forEachIndexed { index, option ->
+            SegmentedButton(selected = option == current, modifier = Modifier.testTag("language-${option.name.lowercase()}"),
+                onClick = { if (option != current && activity != null) language.select(option, activity) },
+                shape = SegmentedButtonDefaults.itemShape(index, AppLanguage.entries.size),
+                label = { Text(stringResource(option.labelRes), maxLines = 1) })
+        }
     }
 }
 
